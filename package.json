@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "pnpm build:main && node scripts/patch-gsettings.mjs && concurrently -k \"pnpm dev:renderer\" \"pnpm dev:main\"",
     "dev:renderer": "vite",
-    "dev:main": "wait-on http://localhost:5173 && GSETTINGS_SCHEMA_DIR=./.gsettings-schemas GDK_BACKEND=wayland NODE_ENV=development electron --no-sandbox --enable-features=UseOzonePlatform --ozone-platform=wayland dist/main/main.js",
+    "dev:main": "wait-on http://localhost:5173 && cross-env GSETTINGS_SCHEMA_DIR=./.gsettings-schemas GDK_BACKEND=wayland NODE_ENV=development electron --no-sandbox --enable-features=UseOzonePlatform --ozone-platform=wayland dist/main/main.js",
     "build": "pnpm build:renderer && pnpm build:main",
     "build:renderer": "vite build",
     "build:main": "tsc -p tsconfig.main.json && tsc -p tsconfig.preload.json",
@@ -55,6 +55,7 @@
     "@vitest/coverage-v8": "^1.6.0",
     "concurrently": "^10.0.0",
     "electron": "^42.3.0",
+    "cross-env": "^10.1.0",
     "electron-builder": "^26.8.1",
     "jsdom": "^29.1.1",
     "tsx": "^4.22.3",

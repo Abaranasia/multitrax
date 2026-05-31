@@ -30,7 +30,7 @@ interface TrackNodes {
 export class AudioEngine {
   private readonly ctx: AudioContext;
   private readonly masterGain: GainNode;
-  private readonly recorderDest: MediaStreamDestinationNode;
+  private readonly recorderDest: MediaStreamAudioDestinationNode;
   private readonly tracks: Map<string, TrackNodes> = new Map();
 
   constructor() {

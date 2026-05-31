@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useAudio } from '../context/AudioContext';
-import { encodeWav } from '../utils/encodeWav';
-import { formatTime } from '../utils/formatTime';
+import { useAudio } from '../../context/AudioContext';
+import { encodeWav } from '../../utils/encodeWav';
+import { formatTime } from '../../utils/formatTime';
 import './RecorderBar.css';
 
 type RecorderStatus = 'idle' | 'recording' | 'saving';

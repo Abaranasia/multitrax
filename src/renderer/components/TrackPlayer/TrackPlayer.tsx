@@ -1,7 +1,7 @@
 import React, { useRef, useCallback, useState } from 'react';
-import { TrackState } from '../domain/TrackState';
-import { useAudio } from '../context/AudioContext';
-import { formatTime } from '../utils/formatTime';
+import { TrackState } from '../../domain/TrackState';
+import { useAudio } from '../../context/AudioContext';
+import { formatTime } from '../../utils/formatTime';
 import './TrackPlayer.css';
 
 interface Props {

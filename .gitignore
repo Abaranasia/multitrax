@@ -4,3 +4,5 @@ release/
 .gsettings-schemas/
 *.log
 .DS_Store
+
+coverage

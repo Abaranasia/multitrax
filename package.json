@@ -12,8 +12,9 @@
     "build:main": "tsc -p tsconfig.main.json && tsc -p tsconfig.preload.json",
     "start": "pnpm build && electron .",
     "pack": "pnpm build && electron-builder",
-    "test": "vitest",
-    "test:watch": "vitest watch"
+    "test": "TZ=UTC vitest watch",
+    "test:no-watch": "TZ=UTC vitest run",
+    "test:coverage": "TZ=UTC vitest run --coverage"
   },
   "keywords": [],
   "author": "",
@@ -46,11 +47,12 @@
     }
   },
   "devDependencies": {
+    "@testing-library/react": "^14.1.0",
     "@types/node": "^25.9.1",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
-    "@testing-library/react": "^14.1.0",
     "@vitejs/plugin-react": "^6.0.2",
+    "@vitest/coverage-v8": "^1.6.0",
     "concurrently": "^10.0.0",
     "electron": "^42.3.0",
     "electron-builder": "^26.8.1",

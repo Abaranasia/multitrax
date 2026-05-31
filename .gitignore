@@ -1,0 +1,6 @@
+node_modules/
+dist/
+release/
+.gsettings-schemas/
+*.log
+.DS_Store

@@ -66,6 +66,24 @@ pnpm pack      # Packages into an installer via electron-builder
 
 Output: `release/` folder with platform-native installer.
 
+## Build for macOS
+This repo already has macOS packaging configured in package.json:
+
+build.mac.target: "dmg"
+On a Mac machine
+Run:
+```bash
+pnpm install
+pnpm build
+pnpm pack
+```
+That will produce the packaged macOS app under release/, typically as a .dmg installer.
+
+### Important
+You need to run this on macOS to produce a valid Mac app.
+Building a Mac executable from Windows is not supported by Electron Builder in a normal local setup.
+If you want to build from Windows, use a macOS build agent / VM or a CI service that runs on macOS.
+
 ## Planned / Extension Points
 
 - [ ] Waveform visualization using AnalyserNode + Canvas 2D

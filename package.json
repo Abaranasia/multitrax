@@ -1,0 +1,63 @@
+{
+  "name": "multitrack",
+  "version": "1.0.0",
+  "description": "Multi-track audio player desktop app",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "dev": "pnpm build:main && node scripts/patch-gsettings.mjs && concurrently -k \"pnpm dev:renderer\" \"pnpm dev:main\"",
+    "dev:renderer": "vite",
+    "dev:main": "wait-on http://localhost:5173 && GSETTINGS_SCHEMA_DIR=./.gsettings-schemas GDK_BACKEND=wayland NODE_ENV=development electron --no-sandbox --enable-features=UseOzonePlatform --ozone-platform=wayland dist/main/main.js",
+    "build": "pnpm build:renderer && pnpm build:main",
+    "build:renderer": "vite build",
+    "build:main": "tsc -p tsconfig.main.json && tsc -p tsconfig.preload.json",
+    "start": "pnpm build && electron .",
+    "pack": "pnpm build && electron-builder"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.1.2",
+      "onFail": "download"
+    }
+  },
+  "type": "module",
+  "build": {
+    "appId": "com.multitrack.app",
+    "productName": "Multitrack",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*"
+    ],
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "concurrently": "^10.0.0",
+    "electron": "^42.3.0",
+    "electron-builder": "^26.8.1",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.14",
+    "wait-on": "^9.0.10"
+  },
+  "dependencies": {
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  }
+}

@@ -1,0 +1,357 @@
+.track-player {
+  position: absolute;
+  width: 380px;
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  color: #e0e0e0;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  /* Needed so the settings overlay clips to the card's border-radius */
+  overflow: hidden;
+  font-size: 13px;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 0.15s;
+}
+
+.track-player:active {
+  cursor: grabbing;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+}
+
+.track-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.track-title {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 310px;
+  color: #e94560;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+.btn-close:hover {
+  color: #e94560;
+}
+
+.track-time {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 6px;
+}
+
+.track-duration {
+  color: #666;
+}
+
+/* Progress bar */
+.progress-bar {
+  height: 6px;
+  background: #0f3460;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e94560, #a855f7);
+  border-radius: 3px;
+  transition: width 0.1s linear;
+  pointer-events: none;
+}
+
+/* Controls */
+.track-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: default;
+}
+
+.controls-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-playback {
+  background: #0f3460;
+  border: none;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 16px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-playback:hover {
+  background: #e94560;
+}
+.btn-playback.active {
+  background: #e94560;
+}
+
+/* Loop toggle switch */
+.loop-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+.loop-toggle input {
+  display: none;
+}
+.loop-track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  background: #0f3460;
+  border-radius: 9px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.loop-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  background: #555;
+  border-radius: 50%;
+  transition: transform 0.2s, background 0.2s;
+}
+.loop-on .loop-track {
+  background: #4c1d95;
+}
+.loop-on .loop-thumb {
+  transform: translateX(14px);
+  background: #a855f7;
+}
+.loop-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #555;
+  transition: color 0.2s;
+}
+.loop-on .loop-label {
+  color: #a855f7;
+}
+.loop-toggle:hover .loop-track {
+  background: #1a3a70;
+}
+.loop-on:hover .loop-track {
+  background: #5b21b6;
+}
+.loop-toggle:hover .loop-label {
+  color: #aaa;
+}
+
+/* ── Per-toggle color variants ─────────────────────────────────────────────
+   Base (.loop-on) = Loop → purple  (kept from the shared rules above)
+   Fade In         → cyan
+   Fade Out        → orange
+   Seek Fade       → green
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Fade In — cyan */
+.toggle--fade-in.loop-on .loop-track       { background: #134e4a; }
+.toggle--fade-in.loop-on .loop-thumb       { background: #06b6d4; }
+.toggle--fade-in.loop-on .loop-label       { color: #06b6d4; }
+.toggle--fade-in:hover .loop-label         { color: #67e8f9; }
+.toggle--fade-in.loop-on:hover .loop-track { background: #155e57; }
+
+/* Fade Out — orange */
+.toggle--fade-out.loop-on .loop-track       { background: #7c2d12; }
+.toggle--fade-out.loop-on .loop-thumb       { background: #f97316; }
+.toggle--fade-out.loop-on .loop-label       { color: #f97316; }
+.toggle--fade-out:hover .loop-label         { color: #fdba74; }
+.toggle--fade-out.loop-on:hover .loop-track { background: #9a3412; }
+
+/* Seek Fade — green */
+.toggle--seek-fade.loop-on .loop-track       { background: #14532d; }
+.toggle--seek-fade.loop-on .loop-thumb       { background: #22c55e; }
+.toggle--seek-fade.loop-on .loop-label       { color: #22c55e; }
+.toggle--seek-fade:hover .loop-label         { color: #86efac; }
+.toggle--seek-fade.loop-on:hover .loop-track { background: #166534; }
+
+/* Volume */
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+.volume-icon {
+  font-size: 14px;
+}
+.volume-control input[type='range'] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #0f3460;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.volume-control input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e94560;
+  cursor: pointer;
+}
+.volume-value {
+  font-size: 11px;
+  color: #888;
+  min-width: 32px;
+  text-align: right;
+}
+
+/* Settings gear button */
+.btn-settings {
+  background: none;
+  border: none;
+  color: #555;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 3px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.btn-settings:hover {
+  color: #ccc;
+}
+
+/* Fade-duration settings overlay */
+.fade-settings-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 12, 30, 0.93);
+  backdrop-filter: blur(2px);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  cursor: default;
+}
+
+.fade-settings-panel {
+  width: calc(100% - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fade-settings-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #c0c0d0;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.fade-settings-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fade-settings-label {
+  font-size: 11px;
+  color: #888;
+  width: 64px;
+  flex-shrink: 0;
+}
+.fade-settings-field input[type='range'] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #1a3a70;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.fade-settings-field input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #a855f7;
+  cursor: pointer;
+}
+.fade-settings-value {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: #a0a0b8;
+  width: 30px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.fade-settings-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.fade-settings-apply,
+.fade-settings-cancel {
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.fade-settings-apply {
+  background: #4c1d95;
+  color: #e0e0e0;
+}
+.fade-settings-apply:hover {
+  background: #6d28d9;
+}
+.fade-settings-cancel {
+  background: #1a2a4a;
+  color: #888;
+}
+.fade-settings-cancel:hover {
+  background: #243555;
+  color: #bbb;
+}

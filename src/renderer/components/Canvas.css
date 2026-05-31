@@ -1,0 +1,51 @@
+.canvas {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(ellipse at center, #1a1a2e 0%, #0d0d1a 100%);
+  overflow: hidden;
+}
+
+.canvas-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #444;
+  pointer-events: none;
+}
+.canvas-empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.4;
+}
+.canvas-empty p {
+  font-size: 18px;
+  margin: 4px 0;
+}
+.canvas-empty-sub {
+  font-size: 14px !important;
+  opacity: 0.6;
+}
+
+.btn-open {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #e94560;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(233, 69, 96, 0.4);
+  transition: background 0.15s, transform 0.1s;
+  z-index: 1000;
+}
+.btn-open:hover {
+  background: #c73652;
+  transform: translateY(-1px);
+}

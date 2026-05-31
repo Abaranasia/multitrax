@@ -1,74 +1,42 @@
-import React, { useRef, useCallback, useState } from 'react';
 import { TrackState } from '../../domain/TrackState';
-import { useAudio } from '../../context/AudioContext';
 import { formatTime } from '../../utils/formatTime';
+import { useTrackPlayer } from './useTrackPlayer';
+
 import './TrackPlayer.css';
 
-interface Props {
+interface TrackPlayerProps {
   state: TrackState;
   x: number;
   y: number;
 }
 
-export const TrackPlayer: React.FC<Props> = ({ state, x, y }) => {
-  const { play, pause, stop, seek, setVolume, setLoop, setFadeIn, setFadeOut, setSeekFade, setFadeDurations, removeTrack, updatePosition } = useAudio();
-  const cardRef = useRef<HTMLDivElement>(null);
-  const dragOffset = useRef({ x: 0, y: 0 });
-
-  // ── Fade-duration settings dialog ─────────────────────────────────────────
-  const [settingsOpen, setSettingsOpen]     = useState(false);
-  const [draftFadeIn, setDraftFadeIn]       = useState(state.fadeInDuration);
-  const [draftFadeOut, setDraftFadeOut]     = useState(state.fadeOutDuration);
-  const [draftSeekFade, setDraftSeekFade]   = useState(state.seekFadeDuration);
-
-  const openSettings = useCallback(() => {
-    setDraftFadeIn(state.fadeInDuration);
-    setDraftFadeOut(state.fadeOutDuration);
-    setDraftSeekFade(state.seekFadeDuration);
-    setSettingsOpen(true);
-  }, [state.fadeInDuration, state.fadeOutDuration, state.seekFadeDuration]);
-
-  const applySettings = useCallback(() => {
-    setFadeDurations(state.id, draftFadeIn, draftFadeOut, draftSeekFade);
-    setSettingsOpen(false);
-  }, [state.id, draftFadeIn, draftFadeOut, draftSeekFade, setFadeDurations]);
-
-  const fmt = (v: number) => (v % 1 === 0 ? `${v}` : v.toFixed(1));
-
-  // ── Dragging ───────────────────────────────────────────────────────────────
-  const onMouseDown = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      // Only drag on the header area
-      if ((e.target as HTMLElement).closest('.track-controls')) return;
-      e.preventDefault();
-
-      dragOffset.current = { x: e.clientX - x, y: e.clientY - y };
-
-      const onMove = (ev: MouseEvent) => {
-        updatePosition(state.id, ev.clientX - dragOffset.current.x, ev.clientY - dragOffset.current.y);
-      };
-      const onUp = () => {
-        window.removeEventListener('mousemove', onMove);
-        window.removeEventListener('mouseup', onUp);
-      };
-
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
-    },
-    [x, y, state.id, updatePosition],
-  );
-
-  // ── Progress bar click ─────────────────────────────────────────────────────
-  const onProgressClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
-      const ratio = (e.clientX - rect.left) / rect.width;
-      seek(state.id, ratio * state.duration);
-    },
-    [state.id, state.duration, seek],
-  );
-
-  const progress = state.duration > 0 ? (state.currentTime / state.duration) * 100 : 0;
+export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
+  const {
+    cardRef,
+    settingsOpen,
+    setSettingsOpen,
+    draftFadeIn,
+    setDraftFadeIn,
+    draftFadeOut,
+    setDraftFadeOut,
+    draftSeekFade,
+    setDraftSeekFade,
+    openSettings,
+    applySettings,
+    fmt,
+    onMouseDown,
+    onProgressClick,
+    progress,
+    play,
+    pause,
+    stop,
+    setLoop,
+    setFadeIn,
+    setFadeOut,
+    setSeekFade,
+    removeTrack,
+    setVolume,
+  } = useTrackPlayer({ state, x, y });
 
   return (
     <div

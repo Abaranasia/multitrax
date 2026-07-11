@@ -44,6 +44,41 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     setSettingsOpen(false);
   }, [state.id, draftFadeIn, draftFadeOut, draftSeekFade, setFadeDurations]);
 
+  // ── Reverb settings (UI only for now — not yet wired into the audio engine) ──
+  const [reverbSettingsOpen, setReverbSettingsOpen] = useState(false);
+  const [reverbSettings, setReverbSettings] = useState({
+    room: 'hall',
+    mix: 30,
+    preDelay: 20,
+    damping: 50,
+    output: 100,
+  });
+  const [draftReverbRoom, setDraftReverbRoom] = useState(reverbSettings.room);
+  const [draftReverbMix, setDraftReverbMix] = useState(reverbSettings.mix);
+  const [draftReverbPreDelay, setDraftReverbPreDelay] = useState(reverbSettings.preDelay);
+  const [draftReverbDamping, setDraftReverbDamping] = useState(reverbSettings.damping);
+  const [draftReverbOutput, setDraftReverbOutput] = useState(reverbSettings.output);
+
+  const openReverbSettings = useCallback(() => {
+    setDraftReverbRoom(reverbSettings.room);
+    setDraftReverbMix(reverbSettings.mix);
+    setDraftReverbPreDelay(reverbSettings.preDelay);
+    setDraftReverbDamping(reverbSettings.damping);
+    setDraftReverbOutput(reverbSettings.output);
+    setReverbSettingsOpen(true);
+  }, [reverbSettings]);
+
+  const applyReverbSettings = useCallback(() => {
+    setReverbSettings({
+      room: draftReverbRoom,
+      mix: draftReverbMix,
+      preDelay: draftReverbPreDelay,
+      damping: draftReverbDamping,
+      output: draftReverbOutput,
+    });
+    setReverbSettingsOpen(false);
+  }, [draftReverbRoom, draftReverbMix, draftReverbPreDelay, draftReverbDamping, draftReverbOutput]);
+
   const fmt = useCallback((v: number) => (v % 1 === 0 ? `${v}` : v.toFixed(1)), []);
 
   const onMouseDown = useCallback(
@@ -90,6 +125,20 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     setDraftSeekFade,
     openSettings,
     applySettings,
+    reverbSettingsOpen,
+    setReverbSettingsOpen,
+    draftReverbRoom,
+    setDraftReverbRoom,
+    draftReverbMix,
+    setDraftReverbMix,
+    draftReverbPreDelay,
+    setDraftReverbPreDelay,
+    draftReverbDamping,
+    setDraftReverbDamping,
+    draftReverbOutput,
+    setDraftReverbOutput,
+    openReverbSettings,
+    applyReverbSettings,
     fmt,
     onMouseDown,
     onProgressClick,

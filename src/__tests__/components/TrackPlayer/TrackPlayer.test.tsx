@@ -149,6 +149,48 @@ describe('TrackPlayer', () => {
     await waitFor(() => expect(mockAudioEngine.setFadeDurations).toHaveBeenCalledWith('track-1', 2.5, 3.5, 1));
   });
 
+  it('opens reverb settings, applies drafts and persists them, and cancel discards drafts', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const reverbBtn = screen.getByTitle('Reverb settings');
+    fireEvent.click(reverbBtn);
+
+    const applyBtn = await screen.findByText('Apply');
+    const select = document.querySelector('.reverb-settings-select') as HTMLSelectElement;
+    const ranges = document.querySelectorAll('.reverb-settings-panel input[type=range]');
+    expect(ranges.length).toBe(4);
+
+    fireEvent.change(select, { target: { value: 'cathedral' } });
+    fireEvent.change(ranges[0], { target: { value: '60' } }); // mix
+    fireEvent.change(ranges[1], { target: { value: '100' } }); // pre-delay
+    fireEvent.change(ranges[2], { target: { value: '20' } }); // damping
+    fireEvent.change(ranges[3], { target: { value: '80' } }); // output
+
+    fireEvent.click(applyBtn);
+
+    // Overlay closes after apply
+    expect(screen.queryByText('Apply')).toBeNull();
+
+    // Reopen and verify the applied values became the new draft baseline
+    fireEvent.click(reverbBtn);
+    const reopenedSelect = document.querySelector('.reverb-settings-select') as HTMLSelectElement;
+    const reopenedRanges = document.querySelectorAll('.reverb-settings-panel input[type=range]');
+    expect(reopenedSelect.value).toBe('cathedral');
+    expect((reopenedRanges[0] as HTMLInputElement).value).toBe('60');
+
+    // Change again but cancel — should discard the draft
+    fireEvent.change(reopenedRanges[0], { target: { value: '5' } });
+    fireEvent.click(screen.getByText('Cancel'));
+
+    fireEvent.click(reverbBtn);
+    const afterCancelRanges = document.querySelectorAll('.reverb-settings-panel input[type=range]');
+    expect((afterCancelRanges[0] as HTMLInputElement).value).toBe('60');
+  });
+
   it('changes volume and calls engine.setVolume', async () => {
     render(
       <AudioProvider>

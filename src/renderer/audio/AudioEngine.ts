@@ -172,6 +172,18 @@ export class AudioEngine {
     }
   }
 
+  stopAll(): void {
+    for (const id of this.tracks.keys()) {
+      this.stop(id);
+    }
+  }
+
+  playAll(): void {
+    for (const id of this.tracks.keys()) {
+      this.play(id);
+    }
+  }
+
   seek(id: string, seconds: number): void {
     const track = this.tracks.get(id);
     if (!track) return;

@@ -9,6 +9,8 @@ const mockAudioEngine = {
   play: vi.fn(),
   pause: vi.fn(),
   stop: vi.fn(),
+  stopAll: vi.fn(),
+  playAll: vi.fn(),
   seek: vi.fn(),
   setVolume: vi.fn(),
   setLoop: vi.fn(),

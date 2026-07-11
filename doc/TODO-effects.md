@@ -7,6 +7,31 @@ Each effect node should be stored in `TrackNodes` and exposed via the standard
 
 ---
 
+## Architecture decision: per-track inserts vs. a shared effects rack
+
+Considered whether effects should live directly on each track (current approach)
+or as an independent "effects rack" section with a visual patchbay (cable-style
+connections from tracks to shared effect units).
+
+**Decided: keep per-track inserts for now.** Reuses the existing
+`TrackState` + `TrackNodes` + `AudioEngine` setter pattern with no new
+subsystem. A patchbay would require a routing graph, cable-drag UI on the
+canvas, and rules for shared-instance behaviour — a lot of extra surface for
+what's meant to stay a focused mixing/monitoring tool.
+
+- [ ] **Future improvement: shared reverb send/return bus.** Real mixing
+  consoles typically run reverb as a shared "send" effect — one reverb
+  instance fed from multiple tracks via a per-track "send amount" — rather
+  than one `ConvolverNode` duplicated per track. This is both more
+  CPU-efficient (convolution is expensive) and matches how audio engineers
+  expect reverb to behave. Could be implemented as a single shared bus
+  without needing the full visual patchbay (just one reverb instance + a
+  per-track send-level knob). Revisit if per-track `ConvolverNode` instances
+  turn out to be a CPU bottleneck with many tracks, or if users want one
+  consistent "room" applied across the whole mix.
+
+---
+
 ## Native Web Audio API (no extra dependencies)
 
 - [ ] **Equalizer** — `BiquadFilterNode`; 8 filter types (`lowpass`, `highpass`,

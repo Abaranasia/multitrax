@@ -230,3 +230,57 @@ The project already existed with the following features before the logged sessio
   confirm `addTrack` creates exactly the expected node graph
   (`gainNode`, `dryGain`, `preDelay`, `convolver`, `damping`, `wetGain`,
   `outputGain`).
+
+---
+
+## [2026-07-11] — Delay/Echo: insert effect (audio chain + settings UI)
+
+**Files:** `src/renderer/domain/TrackState.ts`, `src/renderer/audio/AudioEngine.ts`,
+`src/renderer/context/AudioContext.tsx`, `src/renderer/components/TrackPlayer/useTrackPlayer.ts`,
+`src/renderer/components/TrackPlayer/TrackPlayer.tsx`, `src/renderer/components/TrackPlayer/TrackPlayer.css`,
+`src/__tests__/audio/AudioEngine.test.ts`, `src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx`,
+`doc/TODO-effects.md`
+
+- Added a per-track delay/echo insert, following the same pattern established
+  for reverb: `TrackState` fields + `AudioEngine` setter + settings-overlay
+  draft/Apply/Cancel UI. Delivered UI and audio wiring together in one pass
+  this time, since the pattern is now well-established.
+- Placed **before** reverb in the signal chain, per the standard mixing
+  convention (delay first, then let the reverb tail wash over the repeats):
+  `gainNode → delay insert → reverb insert → masterGain`. `addTrack` now
+  wires `gainNode` into the delay's entry points and the delay's
+  `outputGain` into reverb's entry points (previously `gainNode` fed reverb
+  directly).
+- Delay uses a feedback `DelayNode` topology: dry/wet split around the delay
+  line, with `delayNode → feedbackGain → damping (lowpass) → delayNode`
+  closing the loop. Legal per the Web Audio cycle rule (the loop contains a
+  `DelayNode` with non-zero delay — MDN's own feedback-delay example uses
+  the identical shape). Feedback is clamped to 0–90% (`DELAY_FEEDBACK_MAX`)
+  to keep the loop gain under 1.0 and guarantee decaying repeats; delay time
+  is clamped to 1–2000 ms (`DELAY_TIME_MAX_MS`) with a 1 ms floor (not 0)
+  specifically because this node sits inside a cycle, unlike reverb's
+  `preDelay` which doesn't.
+- The tone/damping filter sits *inside* the feedback loop (not once on the
+  wet tail like reverb's), so each successive repeat gets progressively
+  darker — the classic tape-echo character. Reused the existing
+  `DAMPING_MIN_HZ`/`DAMPING_MAX_HZ` constants for the mapping instead of
+  duplicating them, since they were already named generically.
+- Added `delayTime`, `delayFeedback`, `delayMix`, `delayDamping`,
+  `delayOutput` to `TrackState`; `delayMix: 0` default keeps new tracks dry
+  until opted in, same convention as reverb.
+- Added a delay settings button (`·•●` — three Unicode circles growing
+  left-to-right, U+00B7/U+2022/U+25CF — amber `#f59e0b` accent) to the
+  controls row, positioned before the reverb button (mirroring signal-chain
+  order); overlay/panel follow the identical Apply/Cancel draft pattern as
+  reverb and fade-durations, but with 5 sliders and no dropdown.
+- `AudioEngine.test.ts`: no new fake node classes needed — `FakeGain`,
+  `FakeDelay`, and `FakeBiquadFilter` were already exercised by the reverb
+  subgraph and are fully reused; added a `setDelaySettings` smoke test.
+- `TrackPlayer.test.tsx`: added Apply/Cancel tests for the delay panel
+  mirroring the reverb tests (5 range inputs, no dropdown).
+- Verified end-to-end in-browser: instrumented `AudioContext.prototype` to
+  confirm `addTrack` now creates the delay subgraph (6 nodes) before the
+  reverb subgraph (6 nodes), in the right order; changed all 5 delay
+  controls, applied, and confirmed playback still runs with no console
+  errors; visually confirmed the `·•●` icon renders as three clean,
+  distinctly-sized growing circles.

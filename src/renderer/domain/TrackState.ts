@@ -12,6 +12,11 @@ export interface TrackState {
   fadeInDuration: number;   // seconds (0–10)
   fadeOutDuration: number;  // seconds (0–10)
   seekFadeDuration: number; // seconds (0–10)
+  delayTime: number;        // 1–2000 (ms)
+  delayFeedback: number;    // 0–90 (%)
+  delayMix: number;         // 0–100 (%)
+  delayDamping: number;     // 0–100 (%)
+  delayOutput: number;      // 0–100 (%)
   reverbRoom: ReverbRoom;
   reverbMix: number;        // 0–100 (%)
   reverbPreDelay: number;   // 0–500 (ms)

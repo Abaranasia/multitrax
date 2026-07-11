@@ -163,6 +163,15 @@ describe('AudioEngine (unit)', () => {
     expect(engine.getDuration('t5')).toBe(20);
   });
 
+  it('setDelaySettings updates the delay chain without throwing', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 6 } as unknown as AudioBuffer;
+    engine.addTrack('t8', buf);
+    engine.setDelaySettings('t8', 450, 60, 40, 30, 90);
+    // no throw; engine remains valid
+    expect(engine.getDuration('t8')).toBe(6);
+  });
+
   it('setReverbSettings updates the reverb chain without throwing', () => {
     const engine = new AudioEngine();
     const buf = { duration: 6 } as unknown as AudioBuffer;

@@ -12,7 +12,7 @@
     "build:main": "tsc -p tsconfig.main.json && tsc -p tsconfig.preload.json",
     "start": "pnpm build && electron .",
     "pack": "pnpm build && electron-builder",
-    "test": "TZ=UTC vitest watch",
+    "test": "vitest watch",
     "test:no-watch": "TZ=UTC vitest run",
     "test:coverage": "TZ=UTC vitest run --coverage"
   },

@@ -67,8 +67,27 @@ what's meant to stay a focused mixing/monitoring tool.
     (parameterising duration/decay directly instead of fixed per-preset
     values). Revisit if the fixed presets feel too limited.
 
-- [ ] **Delay / Echo** — `DelayNode` (up to 180 s); add a feedback `GainNode`
-  looped back into the delay input for classic echo.
+- [x] **Delay / Echo** — `DelayNode` with a feedback `GainNode` looped back
+  through a `BiquadFilterNode` (lowpass) into the delay input. **Implemented**
+  — see `AudioEngine.ts` (`_createDelayNodes`, `setDelaySettings`) and
+  `doc/DEVLOG.md` (2026-07-11 entry). Sits **before** the reverb insert in the
+  per-track chain: `gainNode → delay → reverb → masterGain`.
+  **Parameter set (5 controls):**
+  - **Delay Time** — slider 1–2000 ms (step 10); `DelayNode.delayTime`.
+    Floor of 1 ms (not 0) because this node sits inside a feedback cycle,
+    unlike reverb's pre-delay which doesn't.
+  - **Feedback** — slider 0–90%; capped below 100% so the
+    `delayNode → feedbackGain → damping → delayNode` loop gain always stays
+    under 1.0 — repeats decay to silence and never runaway/self-oscillate.
+  - **Wet/Dry mix** — slider 0–100%; default 0 (fully dry until opted in),
+    same convention as reverb.
+  - **Tone / Damping** — slider 0–100%; `BiquadFilterNode` (lowpass) placed
+    *inside* the feedback loop (not just once on the wet tail), so each
+    successive repeat is progressively darker — classic tape-echo character.
+    Reuses reverb's existing `DAMPING_MIN_HZ`/`DAMPING_MAX_HZ` (500–20000 Hz)
+    mapping.
+  - **Output level** — slider 0–100%; trim `GainNode` after the dry/wet sum.
+  - Reuses the existing per-track settings-overlay pattern (sliders + Apply/Cancel).
 
 - [ ] **Distortion / Saturation** — `WaveShaperNode`; apply an arbitrary
   waveshaping curve; covers soft-clip, overdrive, and bit-crush.
@@ -107,3 +126,14 @@ what's meant to stay a focused mixing/monitoring tool.
 - [ ] **Tape Saturation / Vintage Warmth** — `WaveShaperNode` soft-clip curve
   combined with a mild high-frequency roll-off `BiquadFilterNode`; medium
   complexity.
+
+---
+
+## Track / UI features (non-effects)
+
+- [ ] **Clone track** — context menu on right-click over a track, with an
+  option to duplicate it (current settings/effects plus the loaded wav
+  audio) as a new track.
+
+- [ ] **Stop-all button** — dashboard-level control to stop every currently
+  running track at once.

@@ -23,6 +23,20 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
     setDraftSeekFade,
     openSettings,
     applySettings,
+    delaySettingsOpen,
+    setDelaySettingsOpen,
+    draftDelayTime,
+    setDraftDelayTime,
+    draftDelayFeedback,
+    setDraftDelayFeedback,
+    draftDelayMix,
+    setDraftDelayMix,
+    draftDelayDamping,
+    setDraftDelayDamping,
+    draftDelayOutput,
+    setDraftDelayOutput,
+    openDelaySettings,
+    applyDelaySettings,
     reverbSettingsOpen,
     setReverbSettingsOpen,
     draftReverbRoom,
@@ -55,7 +69,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
   return (
     <div
       ref={cardRef}
-      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}`}
+      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}${delaySettingsOpen ? ' track-player--delay-open' : ''}`}
       style={{ left: x, top: y }}
       onMouseDown={onMouseDown}
     >
@@ -161,6 +175,15 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <span className="loop-label">S</span>
           </label>
 
+          {/* Delay settings */}
+          <button
+            className="btn-delay"
+            onClick={openDelaySettings}
+            title="Delay settings"
+          >
+            ·•●
+          </button>
+
           {/* Reverb settings */}
           <button
             className="btn-reverb"
@@ -242,6 +265,77 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <div className="fade-settings-actions">
               <button className="fade-settings-apply" onClick={applySettings}>Apply</button>
               <button className="fade-settings-cancel" onClick={() => setSettingsOpen(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delay settings overlay ───────────────────────────────────────── */}
+      {delaySettingsOpen && (
+        <div
+          className="delay-settings-overlay"
+          onMouseDown={e => e.stopPropagation()}
+          onClick={() => setDelaySettingsOpen(false)}
+        >
+          <div
+            className="delay-settings-panel"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="delay-settings-title">·•● Delay</div>
+
+            <div className="delay-settings-field">
+              <span className="delay-settings-label">Time</span>
+              <input
+                type="range" min={1} max={2000} step={10}
+                value={draftDelayTime}
+                onChange={e => setDraftDelayTime(Number(e.target.value))}
+              />
+              <span className="delay-settings-value">{draftDelayTime}ms</span>
+            </div>
+
+            <div className="delay-settings-field">
+              <span className="delay-settings-label">Feedback</span>
+              <input
+                type="range" min={0} max={90} step={1}
+                value={draftDelayFeedback}
+                onChange={e => setDraftDelayFeedback(Number(e.target.value))}
+              />
+              <span className="delay-settings-value">{draftDelayFeedback}%</span>
+            </div>
+
+            <div className="delay-settings-field">
+              <span className="delay-settings-label">Mix</span>
+              <input
+                type="range" min={0} max={100} step={1}
+                value={draftDelayMix}
+                onChange={e => setDraftDelayMix(Number(e.target.value))}
+              />
+              <span className="delay-settings-value">{draftDelayMix}%</span>
+            </div>
+
+            <div className="delay-settings-field">
+              <span className="delay-settings-label">Tone</span>
+              <input
+                type="range" min={0} max={100} step={1}
+                value={draftDelayDamping}
+                onChange={e => setDraftDelayDamping(Number(e.target.value))}
+              />
+              <span className="delay-settings-value">{draftDelayDamping}%</span>
+            </div>
+
+            <div className="delay-settings-field">
+              <span className="delay-settings-label">Output</span>
+              <input
+                type="range" min={0} max={100} step={1}
+                value={draftDelayOutput}
+                onChange={e => setDraftDelayOutput(Number(e.target.value))}
+              />
+              <span className="delay-settings-value">{draftDelayOutput}%</span>
+            </div>
+
+            <div className="delay-settings-actions">
+              <button className="delay-settings-apply" onClick={applyDelaySettings}>Apply</button>
+              <button className="delay-settings-cancel" onClick={() => setDelaySettingsOpen(false)}>Cancel</button>
             </div>
           </div>
         </div>

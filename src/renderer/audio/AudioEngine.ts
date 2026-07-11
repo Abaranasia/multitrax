@@ -1,16 +1,49 @@
+import { ReverbRoom } from '../domain/TrackState';
+
 /**
  * AudioEngine — infrastructure layer wrapping the Web Audio API.
  *
  * Each track owns:
  *   - AudioBufferSourceNode  (re-created on every play, as per Web Audio spec)
  *   - GainNode               (persists, controls volume)
+ *   - Reverb subgraph        (persists, insert effect — see ReverbNodes below)
  */
 
 const FADE_DURATION = 5;      // seconds (play/stop fades)
 const SEEK_FADE_DURATION = 2; // seconds (seek cross-fade)
 
+// Lowpass cutoff range for the reverb "damping" control: 0% = no damping
+// (fully open, bright tail), 100% = heavy damping (dark, muffled tail).
+const DAMPING_MIN_HZ = 500;
+const DAMPING_MAX_HZ = 20000;
+
+// duration (seconds) and decay exponent for each room preset's synthesised
+// impulse response. Higher decay = faster fade to silence.
+const ROOM_IR_PRESETS: Record<ReverbRoom, { duration: number; decay: number }> = {
+  'small-room': { duration: 0.4, decay: 3 },
+  hall: { duration: 2.2, decay: 2 },
+  plate: { duration: 1.4, decay: 2.5 },
+  cathedral: { duration: 4.5, decay: 1.5 },
+};
+
+/** Per-track reverb insert: GainNode → [dry/wet split] → outputGain → masterGain. */
+interface ReverbNodes {
+  dryGain: GainNode;
+  preDelay: DelayNode;
+  convolver: ConvolverNode;
+  damping: BiquadFilterNode;
+  wetGain: GainNode;
+  outputGain: GainNode;
+  room: ReverbRoom;
+  mix: number;        // 0–100 (%)
+  preDelayMs: number;  // 0–500 (ms)
+  dampingAmount: number; // 0–100 (%)
+  outputLevel: number; // 0–100 (%)
+}
+
 interface TrackNodes {
   gainNode: GainNode;
+  reverb: ReverbNodes;
   sourceNode: AudioBufferSourceNode | null;
   buffer: AudioBuffer;
   startOffset: number;   // seconds — where playback was paused
@@ -32,6 +65,9 @@ export class AudioEngine {
   private readonly masterGain: GainNode;
   private readonly recorderDest: MediaStreamAudioDestinationNode;
   private readonly tracks: Map<string, TrackNodes> = new Map();
+  // Synthesised impulse responses are pure data (no per-track parameters),
+  // so one buffer per room preset is safely shared across every ConvolverNode.
+  private readonly impulseResponses: Map<ReverbRoom, AudioBuffer> = new Map();
 
   constructor() {
     this.ctx = new AudioContext();
@@ -54,10 +90,13 @@ export class AudioEngine {
 
   addTrack(id: string, buffer: AudioBuffer): void {
     const gainNode = this.ctx.createGain();
-    gainNode.connect(this.masterGain);
+    const reverb = this._createReverbNodes();
+    gainNode.connect(reverb.dryGain);
+    gainNode.connect(reverb.preDelay);
 
     this.tracks.set(id, {
       gainNode,
+      reverb,
       sourceNode: null,
       buffer,
       startOffset: 0,
@@ -81,6 +120,12 @@ export class AudioEngine {
     this._cancelFadeOut(track);
     this._stopSource(track);
     track.gainNode.disconnect();
+    track.reverb.dryGain.disconnect();
+    track.reverb.preDelay.disconnect();
+    track.reverb.convolver.disconnect();
+    track.reverb.damping.disconnect();
+    track.reverb.wetGain.disconnect();
+    track.reverb.outputGain.disconnect();
     this.tracks.delete(id);
   }
 
@@ -297,6 +342,42 @@ export class AudioEngine {
     track.seekFadeDuration = Math.max(0, Math.min(10, seekFadeDuration));
   }
 
+  // ── Reverb (insert effect) ──────────────────────────────────────────────────
+
+  setReverbSettings(
+    id: string,
+    room: ReverbRoom,
+    mix: number,
+    preDelayMs: number,
+    dampingAmount: number,
+    outputLevel: number,
+  ): void {
+    const track = this.tracks.get(id);
+    if (!track) return;
+    const reverb = track.reverb;
+    const now = this.ctx.currentTime;
+
+    reverb.room = room;
+    reverb.mix = Math.max(0, Math.min(100, mix));
+    reverb.preDelayMs = Math.max(0, Math.min(500, preDelayMs));
+    reverb.dampingAmount = Math.max(0, Math.min(100, dampingAmount));
+    reverb.outputLevel = Math.max(0, Math.min(100, outputLevel));
+
+    reverb.convolver.buffer = this._getImpulseResponse(reverb.room);
+
+    const wet = reverb.mix / 100;
+    reverb.dryGain.gain.setTargetAtTime(1 - wet, now, 0.01);
+    reverb.wetGain.gain.setTargetAtTime(wet, now, 0.01);
+
+    reverb.preDelay.delayTime.setTargetAtTime(reverb.preDelayMs / 1000, now, 0.01);
+
+    const dampingRatio = reverb.dampingAmount / 100;
+    const frequency = DAMPING_MAX_HZ - dampingRatio * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
+    reverb.damping.frequency.setTargetAtTime(frequency, now, 0.01);
+
+    reverb.outputGain.gain.setTargetAtTime(reverb.outputLevel / 100, now, 0.01);
+  }
+
   // ── State queries ──────────────────────────────────────────────────────────
 
   getCurrentTime(id: string): number {
@@ -330,6 +411,76 @@ export class AudioEngine {
   }
 
   // ── Private ────────────────────────────────────────────────────────────────
+
+  /**
+   * Builds the per-track reverb insert and wires its internal routing:
+   *   dryGain ────────────────────────────────┐
+   *   preDelay → convolver → damping → wetGain ┴→ outputGain → masterGain
+   * Callers connect the track's GainNode into both dryGain and preDelay.
+   */
+  private _createReverbNodes(): ReverbNodes {
+    const dryGain    = this.ctx.createGain();
+    const preDelay   = this.ctx.createDelay(0.5);
+    const convolver  = this.ctx.createConvolver();
+    const damping    = this.ctx.createBiquadFilter();
+    const wetGain    = this.ctx.createGain();
+    const outputGain = this.ctx.createGain();
+
+    damping.type = 'lowpass';
+    convolver.normalize = true;
+
+    preDelay.connect(convolver);
+    convolver.connect(damping);
+    damping.connect(wetGain);
+    dryGain.connect(outputGain);
+    wetGain.connect(outputGain);
+    outputGain.connect(this.masterGain);
+
+    const reverb: ReverbNodes = {
+      dryGain,
+      preDelay,
+      convolver,
+      damping,
+      wetGain,
+      outputGain,
+      room: 'hall',
+      mix: 0,
+      preDelayMs: 20,
+      dampingAmount: 50,
+      outputLevel: 100,
+    };
+
+    // Initialise gains/filter to match the default (mix = 0 ⇒ fully dry).
+    dryGain.gain.value = 1;
+    wetGain.gain.value = 0;
+    preDelay.delayTime.value = reverb.preDelayMs / 1000;
+    damping.frequency.value = DAMPING_MAX_HZ - (reverb.dampingAmount / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
+    outputGain.gain.value = reverb.outputLevel / 100;
+    convolver.buffer = this._getImpulseResponse(reverb.room);
+
+    return reverb;
+  }
+
+  /** Synthesises (and caches) a noise-burst impulse response for a room preset. */
+  private _getImpulseResponse(room: ReverbRoom): AudioBuffer {
+    const cached = this.impulseResponses.get(room);
+    if (cached) return cached;
+
+    const { duration, decay } = ROOM_IR_PRESETS[room];
+    const length = Math.max(1, Math.round(this.ctx.sampleRate * duration));
+    const impulse = this.ctx.createBuffer(2, length, this.ctx.sampleRate);
+
+    for (let channel = 0; channel < impulse.numberOfChannels; channel++) {
+      const data = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        const envelope = Math.pow(1 - i / length, decay);
+        data[i] = (Math.random() * 2 - 1) * envelope;
+      }
+    }
+
+    this.impulseResponses.set(room, impulse);
+    return impulse;
+  }
 
   private _stopSource(track: TrackNodes): void {
     if (track.sourceNode) {

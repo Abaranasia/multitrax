@@ -16,6 +16,7 @@ const mockAudioEngine = {
   setFadeOut: vi.fn(),
   setSeekFade: vi.fn(),
   setFadeDurations: vi.fn(),
+  setReverbSettings: vi.fn(),
   isPlaying: vi.fn().mockReturnValue(false),
   getCurrentTime: vi.fn().mockReturnValue(0),
   close: vi.fn(),
@@ -44,6 +45,11 @@ describe('TrackPlayer', () => {
     fadeInDuration: 5,
     fadeOutDuration: 5,
     seekFadeDuration: 2,
+    reverbRoom: 'hall',
+    reverbMix: 0,
+    reverbPreDelay: 20,
+    reverbDamping: 50,
+    reverbOutput: 100,
   };
 
   beforeEach(() => {
@@ -149,7 +155,7 @@ describe('TrackPlayer', () => {
     await waitFor(() => expect(mockAudioEngine.setFadeDurations).toHaveBeenCalledWith('track-1', 2.5, 3.5, 1));
   });
 
-  it('opens reverb settings, applies drafts and persists them, and cancel discards drafts', async () => {
+  it('opens reverb settings, updates draft values and applies them to engine', async () => {
     render(
       <AudioProvider>
         <TrackPlayer state={{ ...baseState }} x={10} y={20} />
@@ -172,23 +178,33 @@ describe('TrackPlayer', () => {
 
     fireEvent.click(applyBtn);
 
+    await waitFor(() =>
+      expect(mockAudioEngine.setReverbSettings).toHaveBeenCalledWith(
+        'track-1', 'cathedral', 60, 100, 20, 80,
+      ),
+    );
+
     // Overlay closes after apply
     expect(screen.queryByText('Apply')).toBeNull();
+  });
 
-    // Reopen and verify the applied values became the new draft baseline
+  it('discards reverb draft changes and does not call the engine when cancelled', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const reverbBtn = screen.getByTitle('Reverb settings');
     fireEvent.click(reverbBtn);
-    const reopenedSelect = document.querySelector('.reverb-settings-select') as HTMLSelectElement;
-    const reopenedRanges = document.querySelectorAll('.reverb-settings-panel input[type=range]');
-    expect(reopenedSelect.value).toBe('cathedral');
-    expect((reopenedRanges[0] as HTMLInputElement).value).toBe('60');
 
-    // Change again but cancel — should discard the draft
-    fireEvent.change(reopenedRanges[0], { target: { value: '5' } });
+    const ranges = document.querySelectorAll('.reverb-settings-panel input[type=range]');
+    fireEvent.change(ranges[0], { target: { value: '75' } });
+
     fireEvent.click(screen.getByText('Cancel'));
 
-    fireEvent.click(reverbBtn);
-    const afterCancelRanges = document.querySelectorAll('.reverb-settings-panel input[type=range]');
-    expect((afterCancelRanges[0] as HTMLInputElement).value).toBe('60');
+    expect(screen.queryByText('Apply')).toBeNull();
+    expect(mockAudioEngine.setReverbSettings).not.toHaveBeenCalled();
   });
 
   it('changes volume and calls engine.setVolume', async () => {

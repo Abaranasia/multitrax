@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react';
 import { AudioEngine } from '../audio/AudioEngine';
-import { TrackState } from '../domain/TrackState';
+import { ReverbRoom, TrackState } from '../domain/TrackState';
 
 interface TrackEntry {
   state: TrackState;
@@ -25,6 +25,14 @@ interface AudioContextValue {
   setFadeOut: (id: string, enabled: boolean) => void;
   setSeekFade: (id: string, enabled: boolean) => void;
   setFadeDurations: (id: string, fadeIn: number, fadeOut: number, seekFade: number) => void;
+  setReverbSettings: (
+    id: string,
+    room: ReverbRoom,
+    mix: number,
+    preDelay: number,
+    damping: number,
+    output: number,
+  ) => void;
   updatePosition: (id: string, x: number, y: number) => void;
   tickCurrentTimes: () => void;
 }
@@ -72,6 +80,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           fadeInDuration: 5,
           fadeOutDuration: 5,
           seekFadeDuration: 2,
+          reverbRoom: 'hall',
+          reverbMix: 0,
+          reverbPreDelay: 20,
+          reverbDamping: 50,
+          reverbOutput: 100,
         };
 
         newEntries.push({
@@ -222,6 +235,30 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [engine],
   );
 
+  const setReverbSettings = useCallback(
+    (id: string, room: ReverbRoom, mix: number, preDelay: number, damping: number, output: number) => {
+      engine.setReverbSettings(id, room, mix, preDelay, damping, output);
+      setTracks(prev =>
+        prev.map(t =>
+          t.state.id === id
+            ? {
+                ...t,
+                state: {
+                  ...t.state,
+                  reverbRoom: room,
+                  reverbMix: mix,
+                  reverbPreDelay: preDelay,
+                  reverbDamping: damping,
+                  reverbOutput: output,
+                },
+              }
+            : t,
+        ),
+      );
+    },
+    [engine],
+  );
+
   const updatePosition = useCallback((id: string, x: number, y: number) => {
     setTracks(prev => prev.map(t => (t.state.id === id ? { ...t, x, y } : t)));
   }, []);
@@ -257,6 +294,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setFadeOut,
         setSeekFade,
         setFadeDurations,
+        setReverbSettings,
         updatePosition,
         tickCurrentTimes,
       }}

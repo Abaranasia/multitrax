@@ -29,17 +29,59 @@ class FakeSource {
   stop() { this.started = false; if (this.onended) setTimeout(() => this.onended && this.onended(), 0); }
 }
 
+class FakeAudioParam {
+  value: number;
+  constructor(initial: number) { this.value = initial; }
+  setTargetAtTime(v: number) { this.value = v; }
+  setValueAtTime(v: number) { this.value = v; }
+  linearRampToValueAtTime(v: number) { this.value = v; }
+  cancelScheduledValues() {}
+}
+
+class FakeDelay {
+  delayTime = new FakeAudioParam(0);
+  connect() {}
+  disconnect() {}
+}
+
+class FakeConvolver {
+  buffer: any = null;
+  normalize = true;
+  connect() {}
+  disconnect() {}
+}
+
+class FakeBiquadFilter {
+  type = 'lowpass';
+  frequency = new FakeAudioParam(20000);
+  connect() {}
+  disconnect() {}
+}
+
 class FakeMediaStreamDestination {
   stream = {} as MediaStream;
 }
 
 class FakeAudioContext {
   currentTime = 0;
+  sampleRate = 44100;
   destination = {};
   state: 'running' | 'suspended' = 'running';
   createGain() { return new FakeGain(); }
   createMediaStreamDestination() { return new FakeMediaStreamDestination(); }
   createBufferSource() { return new FakeSource(); }
+  createDelay(_maxDelay?: number) { return new FakeDelay(); }
+  createConvolver() { return new FakeConvolver(); }
+  createBiquadFilter() { return new FakeBiquadFilter(); }
+  createBuffer(numberOfChannels: number, length: number, sampleRate: number) {
+    const channels = Array.from({ length: numberOfChannels }, () => new Float32Array(length));
+    return {
+      numberOfChannels,
+      length,
+      sampleRate,
+      getChannelData: (channel: number) => channels[channel],
+    };
+  }
   resume() { this.state = 'running'; return Promise.resolve(); }
   close() { this.state = 'suspended'; return Promise.resolve(); }
 }
@@ -119,6 +161,15 @@ describe('AudioEngine (unit)', () => {
     // but since implementation uses setTimeout, we can just call clearTimeout path by cancelFade
     // For test purpose ensure no exception and state remains valid
     expect(engine.getDuration('t5')).toBe(20);
+  });
+
+  it('setReverbSettings updates the reverb chain without throwing', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 6 } as unknown as AudioBuffer;
+    engine.addTrack('t7', buf);
+    engine.setReverbSettings('t7', 'cathedral', 60, 100, 20, 80);
+    // no throw; engine remains valid
+    expect(engine.getDuration('t7')).toBe(6);
   });
 
   it('close disconnects tracks and closes context', () => {

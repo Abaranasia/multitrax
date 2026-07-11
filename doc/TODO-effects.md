@@ -47,24 +47,25 @@ what's meant to stay a focused mixing/monitoring tool.
 - [ ] **3-D Spatial Audio** — `PannerNode` with HRTF model; full x/y/z position
   and orientation control; useful for immersive mixing.
 
-- [ ] **Reverb / Convolution** — `ConvolverNode`; loads an impulse-response WAV
-  as an `AudioBuffer`; free IR libraries widely available online.
-  **Decided parameter set (5 controls):**
-  - **Room / IR type** — preset dropdown; swaps `ConvolverNode.buffer` between
-    preloaded IR files (e.g. Small Room, Hall, Plate, Cathedral).
+- [x] **Reverb / Convolution** — `ConvolverNode`. **Implemented** — see
+  `AudioEngine.ts` (`_createReverbNodes`, `_getImpulseResponse`,
+  `setReverbSettings`) and `doc/DEVLOG.md` (2026-07-11 entries).
+  **Parameter set (5 controls):**
+  - **Room / IR type** — preset dropdown (Small Room, Hall, Plate, Cathedral);
+    swaps `ConvolverNode.buffer` between synthesised impulse responses
+    (no bundled IR audio files — each preset's IR is generated on demand as
+    exponential-decay-shaped noise and cached per room).
   - **Wet/Dry mix** — slider 0–100%; parallel dry `GainNode` + wet `GainNode`
     (through the convolver), crossfaded.
-  - **Pre-delay** — slider 0–~500 ms; `DelayNode` inserted before the convolver.
-  - **Damping / tone** — slider; `BiquadFilterNode` (lowpass or highshelf) on
-    the wet tail, cutting highs.
-  - **Output level** — slider; trim `GainNode` after the convolver.
+  - **Pre-delay** — slider 0–500 ms; `DelayNode` inserted before the convolver.
+  - **Damping / tone** — slider 0–100%; `BiquadFilterNode` (lowpass) on
+    the wet tail, mapped to a 20000–500 Hz cutoff.
+  - **Output level** — slider 0–100%; trim `GainNode` after the convolver.
   - Reuses the existing per-track settings-overlay pattern (sliders + Apply/Cancel).
   - **Future improvement (not in initial scope):** continuous **Room Size** and
-    **Decay Time** sliders require replacing static IR files with an
-    algorithmically generated impulse response (white noise shaped by an
-    exponential decay envelope). More DSP work, sounds less "real" than a
-    captured space, but removes the fixed-preset limitation. Revisit if the
-    static-IR version feels too limited.
+    **Decay Time** sliders require generalising the synthesised-IR approach
+    (parameterising duration/decay directly instead of fixed per-preset
+    values). Revisit if the fixed presets feel too limited.
 
 - [ ] **Delay / Echo** — `DelayNode` (up to 180 s); add a feedback `GainNode`
   looped back into the delay input for classic echo.

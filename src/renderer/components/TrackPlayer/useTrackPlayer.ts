@@ -20,6 +20,7 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     setFadeOut,
     setSeekFade,
     setFadeDurations,
+    setReverbSettings,
     removeTrack,
     updatePosition,
   } = useAudio();
@@ -44,40 +45,42 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     setSettingsOpen(false);
   }, [state.id, draftFadeIn, draftFadeOut, draftSeekFade, setFadeDurations]);
 
-  // ── Reverb settings (UI only for now — not yet wired into the audio engine) ──
+  // ── Reverb settings ────────────────────────────────────────────────────────
   const [reverbSettingsOpen, setReverbSettingsOpen] = useState(false);
-  const [reverbSettings, setReverbSettings] = useState({
-    room: 'hall',
-    mix: 30,
-    preDelay: 20,
-    damping: 50,
-    output: 100,
-  });
-  const [draftReverbRoom, setDraftReverbRoom] = useState(reverbSettings.room);
-  const [draftReverbMix, setDraftReverbMix] = useState(reverbSettings.mix);
-  const [draftReverbPreDelay, setDraftReverbPreDelay] = useState(reverbSettings.preDelay);
-  const [draftReverbDamping, setDraftReverbDamping] = useState(reverbSettings.damping);
-  const [draftReverbOutput, setDraftReverbOutput] = useState(reverbSettings.output);
+  const [draftReverbRoom, setDraftReverbRoom] = useState(state.reverbRoom);
+  const [draftReverbMix, setDraftReverbMix] = useState(state.reverbMix);
+  const [draftReverbPreDelay, setDraftReverbPreDelay] = useState(state.reverbPreDelay);
+  const [draftReverbDamping, setDraftReverbDamping] = useState(state.reverbDamping);
+  const [draftReverbOutput, setDraftReverbOutput] = useState(state.reverbOutput);
 
   const openReverbSettings = useCallback(() => {
-    setDraftReverbRoom(reverbSettings.room);
-    setDraftReverbMix(reverbSettings.mix);
-    setDraftReverbPreDelay(reverbSettings.preDelay);
-    setDraftReverbDamping(reverbSettings.damping);
-    setDraftReverbOutput(reverbSettings.output);
+    setDraftReverbRoom(state.reverbRoom);
+    setDraftReverbMix(state.reverbMix);
+    setDraftReverbPreDelay(state.reverbPreDelay);
+    setDraftReverbDamping(state.reverbDamping);
+    setDraftReverbOutput(state.reverbOutput);
     setReverbSettingsOpen(true);
-  }, [reverbSettings]);
+  }, [state.reverbRoom, state.reverbMix, state.reverbPreDelay, state.reverbDamping, state.reverbOutput]);
 
   const applyReverbSettings = useCallback(() => {
-    setReverbSettings({
-      room: draftReverbRoom,
-      mix: draftReverbMix,
-      preDelay: draftReverbPreDelay,
-      damping: draftReverbDamping,
-      output: draftReverbOutput,
-    });
+    setReverbSettings(
+      state.id,
+      draftReverbRoom,
+      draftReverbMix,
+      draftReverbPreDelay,
+      draftReverbDamping,
+      draftReverbOutput,
+    );
     setReverbSettingsOpen(false);
-  }, [draftReverbRoom, draftReverbMix, draftReverbPreDelay, draftReverbDamping, draftReverbOutput]);
+  }, [
+    state.id,
+    draftReverbRoom,
+    draftReverbMix,
+    draftReverbPreDelay,
+    draftReverbDamping,
+    draftReverbOutput,
+    setReverbSettings,
+  ]);
 
   const fmt = useCallback((v: number) => (v % 1 === 0 ? `${v}` : v.toFixed(1)), []);
 

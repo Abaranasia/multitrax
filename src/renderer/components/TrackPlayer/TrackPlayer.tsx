@@ -1,4 +1,4 @@
-import { TrackState } from '../../domain/TrackState';
+import { ReverbRoom, TrackState } from '../../domain/TrackState';
 import { formatTime } from '../../utils/formatTime';
 import { useTrackPlayer } from './useTrackPlayer';
 
@@ -258,14 +258,14 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             className="reverb-settings-panel"
             onClick={e => e.stopPropagation()}
           >
-            <div className="reverb-settings-title">🏛 Reverb</div>
+            <div className="reverb-settings-title">🎛️ Reverb</div>
 
             <div className="reverb-settings-field">
               <span className="reverb-settings-label">Room</span>
               <select
                 className="reverb-settings-select"
                 value={draftReverbRoom}
-                onChange={e => setDraftReverbRoom(e.target.value)}
+                onChange={e => setDraftReverbRoom(e.target.value as ReverbRoom)}
               >
                 <option value="small-room">Small Room</option>
                 <option value="hall">Hall</option>

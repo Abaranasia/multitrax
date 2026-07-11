@@ -163,7 +163,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
 
           {/* Reverb settings */}
           <button
-            className="btn-reverb"
+            className={`btn-reverb${state.reverbMix > 0 ? ' btn-reverb--active' : ''}`}
             onClick={openReverbSettings}
             title="Reverb settings"
           >

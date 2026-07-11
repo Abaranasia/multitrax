@@ -209,6 +209,24 @@ describe('TrackPlayer', () => {
     expect(mockAudioEngine.setReverbSettings).not.toHaveBeenCalled();
   });
 
+  it('shows the reverb button as active only when reverbMix is above 0', () => {
+    const { rerender } = render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, reverbMix: 0 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    expect(screen.getByTitle('Reverb settings').className).not.toContain('btn-reverb--active');
+
+    rerender(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, reverbMix: 40 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    expect(screen.getByTitle('Reverb settings').className).toContain('btn-reverb--active');
+  });
+
   it('changes volume and calls engine.setVolume', async () => {
     render(
       <AudioProvider>

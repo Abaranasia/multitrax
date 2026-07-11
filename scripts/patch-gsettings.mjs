@@ -5,7 +5,7 @@
 
 import { spawnSync } from 'child_process';
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, copyFileSync } from 'fs';
-import { join } from 'path';
+import { join } from 'path/posix';
 
 const SCHEMA_ID = 'org.gnome.desktop.interface';
 const CUSTOM_DIR = join(process.cwd(), '.gsettings-schemas');

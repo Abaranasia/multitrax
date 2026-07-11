@@ -18,6 +18,8 @@ interface AudioContextValue {
   play: (id: string) => void;
   pause: (id: string) => void;
   stop: (id: string) => void;
+  stopAll: () => void;
+  playAll: () => void;
   seek: (id: string, seconds: number) => void;
   setVolume: (id: string, value: number) => void;
   setLoop: (id: string, loop: boolean) => void;
@@ -159,6 +161,20 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     },
     [engine],
   );
+
+  const stopAll = useCallback(() => {
+    engine.stopAll();
+    setTracks(prev =>
+      prev.map(t => ({ ...t, state: { ...t.state, playing: false, currentTime: 0 } })),
+    );
+  }, [engine]);
+
+  const playAll = useCallback(() => {
+    engine.playAll();
+    setTracks(prev =>
+      prev.map(t => ({ ...t, state: { ...t.state, playing: true } })),
+    );
+  }, [engine]);
 
   const seek = useCallback(
     (id: string, seconds: number) => {
@@ -324,6 +340,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         play,
         pause,
         stop,
+        stopAll,
+        playAll,
         seek,
         setVolume,
         setLoop,

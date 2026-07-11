@@ -2,13 +2,13 @@
 /** @vitest-environment node */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { join } from 'path';
+import { join } from 'path/posix';
 
 const modulePath = '../../../scripts/patch-gsettings.mjs';
 
-// The script builds its output dir via path.join(process.cwd(), '.gsettings-schemas'),
-// which uses the platform's separator (backslash on Windows). Mirror that here instead
-// of hardcoding forward slashes, so this test passes on any OS.
+// The script builds its output dir via path/posix's join(process.cwd(), '.gsettings-schemas')
+// so paths are always forward-slash regardless of host OS (this is a Linux-only script).
+// Mirror that here rather than the platform-native `path` module.
 const CUSTOM_DIR = join('/tmp/workspace', '.gsettings-schemas');
 
 describe('patch-gsettings.mjs', () => {
@@ -20,11 +20,15 @@ describe('patch-gsettings.mjs', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.restoreAllMocks();
-
+    
+    // @ts-ignore
     cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue('/tmp/workspace');
+    // @ts-ignore
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // @ts-ignore
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: number) => {
+    // @ts-ignore
+    exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: string | number | null | undefined) => {
       throw new Error(`EXIT:${code ?? 0}`);
     });
   });

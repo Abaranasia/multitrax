@@ -302,6 +302,13 @@
 .btn-reverb:hover {
   color: #2dd4bf;
 }
+.btn-reverb--active {
+  border : 1px solid green;
+  background-color: greenyellow;
+}
+.btn-reverb--active:hover {
+  border : 1px solid orange;
+}
 
 /* Fade-duration settings overlay */
 .fade-settings-overlay {

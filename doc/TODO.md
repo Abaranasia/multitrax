@@ -131,9 +131,56 @@ what's meant to stay a focused mixing/monitoring tool.
 
 ## Track / UI features (non-effects)
 
+- [x] **Stop-all button** — dashboard-level control to stop every currently
+  running track at once.
+
+- [x] **Play All button** — dashboard-level control to start playback of every
+  loaded track at once, mirroring "Stop All". **Implemented** — see
+  `AudioEngine.ts` (`playAll`), `AudioContext.tsx` (`playAll`), `Canvas.tsx`
+  ("▶ Play All" button, disabled when there are no tracks or all tracks are
+  already playing) and `doc/DEVLOG.md` (2026-07-11 entry).
+
 - [ ] **Clone track** — context menu on right-click over a track, with an
   option to duplicate it (current settings/effects plus the loaded wav
   audio) as a new track.
 
-- [ ] **Stop-all button** — dashboard-level control to stop every currently
-  running track at once.
+- [ ] **Save / Load session** — persist the current set of tracks to an
+  external file so the whole setup (which files are loaded, their canvas
+  position, and their per-track settings) can be restored later. Would need a
+  serialisable snapshot of each `TrackEntry`/`TrackState` — file path (not the
+  raw audio, so the session file stays small), volume, loop, fade in/out/seek
+  settings and durations, plus reverb/delay parameters — written as JSON via a
+  new IPC save/open-dialog pair in `main.ts` (mirroring the existing
+  open-audio-files / save-recording handlers). Loading would re-resolve each
+  stored file path, re-decode it through `addTracks`, then re-apply the saved
+  settings via the existing per-track setters. Missing/moved source files
+  would need a clear "file not found" fallback per track rather than failing
+  the whole load.
+
+---
+
+## Coding improvements
+
+- [ ] **Extract fake Web Audio classes from `AudioEngine.test.ts` into a
+  fixtures file.** `FakeGain`, `FakeSource`, `FakeMediaStreamDestination`, and
+  `FakeAudioContext` currently live inline at the top of
+  `src/__tests__/audio/AudioEngine.test.ts`. Move them to a shared fixtures
+  module (e.g. `src/__tests__/audio/fixtures/fakeAudioContext.ts`) so they can
+  be reused by other audio-related test suites without duplication.
+
+- [ ] **Extract per-track overlays/dialogs into independent components.**
+  The fade-duration settings panel and the reverb options dialog currently
+  live inline inside `TrackPlayer.tsx` (markup) and `useTrackPlayer.ts`
+  (state/logic), rather than as their own components. Split each into its own
+  component (e.g. `FadeSettingsDialog`, `ReverbSettingsDialog`) plus its own
+  hook/use-case for the linked logic, following the existing per-track setter
+  pattern (`AudioContext` → `AudioEngine`). Relocate the existing overlay
+  related tests out of `TrackPlayer.test.tsx` into dedicated test suites for
+  the new components once extracted.
+
+- [x] **Write down a standing architecture rule for dialogs/overlays** (see
+  the new "Dialogs and overlays" convention added to `doc/ARCHITECTURE.md`):
+  every new dialog or overlay must be built as its own independent component
+  with its own tests, rather than inline markup/logic inside the track card.
+  Apply this rule to the two extraction items above and to all overlays added
+  from now on.

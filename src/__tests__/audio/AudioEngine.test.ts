@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { AudioEngine } from '@/renderer/audio/AudioEngine';
 
 // Minimal fake implementations of AudioContext nodes
@@ -63,7 +63,7 @@ class FakeMediaStreamDestination {
 }
 
 class FakeAudioContext {
-  currentTime = 0;
+  currentTime: number = 0;
   sampleRate = 44100;
   destination = {};
   state: 'running' | 'suspended' = 'running';
@@ -113,7 +113,7 @@ describe('AudioEngine (unit)', () => {
     expect(engine.isPlaying('t2')).toBe(true);
 
     // advance context time
-    engine.audioContext.currentTime += 2.5;
+    (engine.audioContext as any).currentTime += 2.5;
     const t = engine.getCurrentTime('t2');
     expect(t).toBeGreaterThanOrEqual(2.4);
 
@@ -128,7 +128,7 @@ describe('AudioEngine (unit)', () => {
     const buf = { duration: 5 } as unknown as AudioBuffer;
     engine.addTrack('t3', buf);
     engine.play('t3');
-    engine.audioContext.currentTime += 1.2;
+    (engine.audioContext as any).currentTime += 1.2;
     engine.stop('t3');
     expect(engine.getCurrentTime('t3')).toBe(0);
     expect(engine.isPlaying('t3')).toBe(false);
@@ -142,7 +142,7 @@ describe('AudioEngine (unit)', () => {
     engine.addTrack('t3b', buf2);
     engine.play('t3a');
     engine.play('t3b');
-    engine.audioContext.currentTime += 1.2;
+    (engine.audioContext as any).currentTime += 1.2;
 
     engine.stopAll();
 
@@ -186,7 +186,7 @@ describe('AudioEngine (unit)', () => {
     engine.play('t5');
     engine.setSeekFade('t5', true);
     // advance time slightly so startedAt != 0
-    engine.audioContext.currentTime += 0.1;
+    (engine.audioContext as any).currentTime += 0.1;
     engine.seek('t5', 3);
     // Because seek with fade schedules timeout, we fast-forward the fake timers
     // but since implementation uses setTimeout, we can just call clearTimeout path by cancelFade

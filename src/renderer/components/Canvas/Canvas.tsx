@@ -6,7 +6,7 @@ import { TrackPlayer } from '../TrackPlayer/TrackPlayer';
 import { RecorderBar } from '../Recorder/RecorderBar';
 
 export const Canvas = () => {
-  const { tracks, onDragOver, onDrop, onOpenFiles, stopAll } = useCanvas();
+  const { tracks, onDragOver, onDrop, onOpenFiles, stopAll, playAll } = useCanvas();
 
   return (
     <div className="canvas" onDragOver={onDragOver} onDrop={onDrop}>
@@ -33,6 +33,15 @@ export const Canvas = () => {
         disabled={!tracks.some(t => t.state.playing)}
       >
         ⏹ Stop All
+      </button>
+
+      <button
+        className="btn-play-all"
+        onClick={playAll}
+        title="Play all tracks"
+        disabled={tracks.length === 0 || tracks.every(t => t.state.playing)}
+      >
+        ▶ Play All
       </button>
 
       <RecorderBar />

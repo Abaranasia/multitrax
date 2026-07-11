@@ -178,6 +178,12 @@ export class AudioEngine {
     }
   }
 
+  playAll(): void {
+    for (const id of this.tracks.keys()) {
+      this.play(id);
+    }
+  }
+
   seek(id: string, seconds: number): void {
     const track = this.tracks.get(id);
     if (!track) return;

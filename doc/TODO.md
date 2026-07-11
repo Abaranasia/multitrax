@@ -70,14 +70,11 @@ Each effect node should be stored in `TrackNodes` and exposed via the standard
 
 ## Track / UI features (non-effects)
 
-- [ ] **Play All button** — dashboard-level control to start playback of every
-  loaded track at once, mirroring the existing "Stop All" button
-  (`AudioEngine.stopAll`, `AudioContext.stopAll`, `Canvas.tsx`). Would add an
-  `AudioEngine.playAll()` that iterates all track ids and calls the existing
-  per-track `play(id)`, an `AudioContext.playAll` action syncing `playing:
-  true` across all tracks, and a "▶ Play All" button next to "Stop All" in
-  `Canvas.tsx` (disabled when there are no tracks, or when all tracks are
-  already playing).
+- [x] **Play All button** — dashboard-level control to start playback of every
+  loaded track at once, mirroring "Stop All". **Implemented** — see
+  `AudioEngine.ts` (`playAll`), `AudioContext.tsx` (`playAll`), `Canvas.tsx`
+  ("▶ Play All" button, disabled when there are no tracks or all tracks are
+  already playing) and `doc/DEVLOG.md` (2026-07-11 entry).
 
 - [ ] **Save / Load session** — persist the current set of tracks to an
   external file so the whole setup (which files are loaded, their canvas

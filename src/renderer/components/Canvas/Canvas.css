@@ -49,3 +49,28 @@
   background: #c73652;
   transform: translateY(-1px);
 }
+
+.btn-stop-all {
+  position: fixed;
+  bottom: 24px;
+  right: 170px;
+  background: #3a3a5c;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(58, 58, 92, 0.4);
+  transition: background 0.15s, transform 0.1s;
+  z-index: 1000;
+}
+.btn-stop-all:hover:not(:disabled) {
+  background: #2a2a45;
+  transform: translateY(-1px);
+}
+.btn-stop-all:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

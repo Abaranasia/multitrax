@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen, cleanup, waitFor, createEvent } from '@
 
 const mockAddTracks = vi.fn();
 const mockTickCurrentTimes = vi.fn();
+const mockStopAll = vi.fn();
 const useAudioMock = vi.fn();
 
 vi.mock('@/renderer/context/AudioContext', () => ({
@@ -27,10 +28,12 @@ describe('Canvas', () => {
     cleanup();
     mockAddTracks.mockReset();
     mockTickCurrentTimes.mockReset();
+    mockStopAll.mockReset();
     useAudioMock.mockReturnValue({
       tracks: [],
       addTracks: mockAddTracks,
       tickCurrentTimes: mockTickCurrentTimes,
+      stopAll: mockStopAll,
     });
   });
 
@@ -126,10 +129,44 @@ describe('Canvas', () => {
       ],
       addTracks: mockAddTracks,
       tickCurrentTimes: mockTickCurrentTimes,
+      stopAll: mockStopAll,
     });
 
     render(<Canvas />);
 
     expect(screen.getByTestId('track-player').textContent).toBe('Test track');
+  });
+
+  it('disables the Stop All button when no tracks are playing', () => {
+    useAudioMock.mockReturnValueOnce({
+      tracks: [
+        { state: { id: '1', title: 'Test track', playing: false }, x: 10, y: 20 },
+      ],
+      addTracks: mockAddTracks,
+      tickCurrentTimes: mockTickCurrentTimes,
+      stopAll: mockStopAll,
+    });
+
+    render(<Canvas />);
+
+    expect((screen.getByTitle('Stop all tracks') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('enables the Stop All button and calls stopAll when a track is playing', () => {
+    useAudioMock.mockReturnValueOnce({
+      tracks: [
+        { state: { id: '1', title: 'Test track', playing: true }, x: 10, y: 20 },
+      ],
+      addTracks: mockAddTracks,
+      tickCurrentTimes: mockTickCurrentTimes,
+      stopAll: mockStopAll,
+    });
+
+    render(<Canvas />);
+
+    const stopAllBtn = screen.getByTitle('Stop all tracks') as HTMLButtonElement;
+    expect(stopAllBtn.disabled).toBe(false);
+    fireEvent.click(stopAllBtn);
+    expect(mockStopAll).toHaveBeenCalledTimes(1);
   });
 });

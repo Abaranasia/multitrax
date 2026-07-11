@@ -9,7 +9,7 @@ function isKnownAudio(name: string): boolean {
 }
 
 export const useCanvas = () => {
-  const { tracks, addTracks, tickCurrentTimes } = useAudio();
+  const { tracks, addTracks, tickCurrentTimes, stopAll } = useAudio();
 
   useEffect(() => {
     const id = setInterval(tickCurrentTimes, 100);
@@ -60,5 +60,6 @@ export const useCanvas = () => {
     onDragOver,
     onDrop,
     onOpenFiles,
+    stopAll,
   };
 };

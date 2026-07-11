@@ -162,3 +162,29 @@ The project already existed with the following features before the logged sessio
   and the audio engine, how recording works, and how files are loaded.
 - Created `doc/DEVLOG.md` (this file): chronological development log seeded with
   all changes made during this session; to be updated with each future change.
+
+---
+
+## [2026-07-11] — Dashboard "Stop All" button
+
+**Files:** `src/renderer/audio/AudioEngine.ts`,
+`src/renderer/context/AudioContext.tsx`,
+`src/renderer/components/Canvas/useCanvas.ts`,
+`src/renderer/components/Canvas/Canvas.tsx`,
+`src/renderer/components/Canvas/Canvas.css`
+
+- Added `AudioEngine.stopAll()`: iterates every track id and calls the existing
+  per-track `stop(id)`, reusing its fade-out/reset behaviour rather than
+  duplicating it.
+- Added `stopAll` action to `AudioContext`: calls `engine.stopAll()` then syncs
+  `playing: false, currentTime: 0` across every track in `TrackEntry[]` state
+  in a single `setTracks` pass.
+- Threaded `stopAll` through `useCanvas` and added a "⏹ Stop All" button in
+  `Canvas.tsx`, next to "+ Open Files". Disabled via
+  `!tracks.some(t => t.state.playing)` when nothing is playing.
+- Styled `.btn-stop-all` in `Canvas.css` to match `.btn-open`'s look or
+  positioning (fixed bottom-right, to the left of "+ Open Files"), using a
+  neutral colour instead of the accent red.
+- Added tests: `AudioEngine.test.ts` (stop two playing tracks via `stopAll`,
+  assert both stopped and reset), `Canvas.test.tsx` (button disabled with no
+  playing tracks, calls `stopAll` when enabled).

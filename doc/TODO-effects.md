@@ -24,6 +24,22 @@ Each effect node should be stored in `TrackNodes` and exposed via the standard
 
 - [ ] **Reverb / Convolution** — `ConvolverNode`; loads an impulse-response WAV
   as an `AudioBuffer`; free IR libraries widely available online.
+  **Decided parameter set (5 controls):**
+  - **Room / IR type** — preset dropdown; swaps `ConvolverNode.buffer` between
+    preloaded IR files (e.g. Small Room, Hall, Plate, Cathedral).
+  - **Wet/Dry mix** — slider 0–100%; parallel dry `GainNode` + wet `GainNode`
+    (through the convolver), crossfaded.
+  - **Pre-delay** — slider 0–~500 ms; `DelayNode` inserted before the convolver.
+  - **Damping / tone** — slider; `BiquadFilterNode` (lowpass or highshelf) on
+    the wet tail, cutting highs.
+  - **Output level** — slider; trim `GainNode` after the convolver.
+  - Reuses the existing per-track settings-overlay pattern (sliders + Apply/Cancel).
+  - **Future improvement (not in initial scope):** continuous **Room Size** and
+    **Decay Time** sliders require replacing static IR files with an
+    algorithmically generated impulse response (white noise shaped by an
+    exponential decay envelope). More DSP work, sounds less "real" than a
+    captured space, but removes the fixed-preset limitation. Revisit if the
+    static-IR version feels too limited.
 
 - [ ] **Delay / Echo** — `DelayNode` (up to 180 s); add a feedback `GainNode`
   looped back into the delay input for classic echo.

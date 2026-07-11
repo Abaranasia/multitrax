@@ -213,3 +213,26 @@ The app supports: MP3, WAV, OGG, FLAC, AAC, M4A, Opus, WebM.
 When a file is loaded, it is fully decoded into raw audio samples and held in
 memory for the entire session. This means seek and loop are instantaneous — there
 is no streaming or disk access after the initial load.
+
+---
+
+## Convention: dialogs and overlays are independent components
+
+Every dialog or overlay (e.g. the fade-duration settings panel, the reverb
+options panel) must be built as its own component — its own file, its own
+markup, and its own state/logic hook — rather than inline inside the track
+card component. Each such component must ship with its own test suite.
+
+**Why:** keeping overlay markup and logic inline in `TrackPlayer.tsx` /
+`useTrackPlayer.ts` makes that pair grow unbounded as more effects gain their
+own settings panel, and forces their tests to live mixed in with the track
+card's own tests. Independent components stay small, are individually
+testable, and can be reused (e.g. the same dialog shell for future effects)
+without touching the track card at all.
+
+**How to apply:** when adding a new per-track settings panel or any other
+overlay, create a dedicated component (and paired hook, if it owns non-trivial
+state or logic) under its own file, wire it into the track card as a child,
+and add its tests to a dedicated test file rather than the track card's.
+See `doc/TODO.md` ("Coding improvements") for the pending extraction of the
+existing fade and reverb panels into this shape.

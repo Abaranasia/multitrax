@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { AudioEngine } from '@/renderer/audio/AudioEngine';
 
 // Minimal fake implementations of AudioContext nodes
@@ -29,17 +29,59 @@ class FakeSource {
   stop() { this.started = false; if (this.onended) setTimeout(() => this.onended && this.onended(), 0); }
 }
 
+class FakeAudioParam {
+  value: number;
+  constructor(initial: number) { this.value = initial; }
+  setTargetAtTime(v: number) { this.value = v; }
+  setValueAtTime(v: number) { this.value = v; }
+  linearRampToValueAtTime(v: number) { this.value = v; }
+  cancelScheduledValues() {}
+}
+
+class FakeDelay {
+  delayTime = new FakeAudioParam(0);
+  connect() {}
+  disconnect() {}
+}
+
+class FakeConvolver {
+  buffer: any = null;
+  normalize = true;
+  connect() {}
+  disconnect() {}
+}
+
+class FakeBiquadFilter {
+  type = 'lowpass';
+  frequency = new FakeAudioParam(20000);
+  connect() {}
+  disconnect() {}
+}
+
 class FakeMediaStreamDestination {
   stream = {} as MediaStream;
 }
 
 class FakeAudioContext {
-  currentTime = 0;
+  currentTime: number = 0;
+  sampleRate = 44100;
   destination = {};
   state: 'running' | 'suspended' = 'running';
   createGain() { return new FakeGain(); }
   createMediaStreamDestination() { return new FakeMediaStreamDestination(); }
   createBufferSource() { return new FakeSource(); }
+  createDelay(_maxDelay?: number) { return new FakeDelay(); }
+  createConvolver() { return new FakeConvolver(); }
+  createBiquadFilter() { return new FakeBiquadFilter(); }
+  createBuffer(numberOfChannels: number, length: number, sampleRate: number) {
+    const channels = Array.from({ length: numberOfChannels }, () => new Float32Array(length));
+    return {
+      numberOfChannels,
+      length,
+      sampleRate,
+      getChannelData: (channel: number) => channels[channel],
+    };
+  }
   resume() { this.state = 'running'; return Promise.resolve(); }
   close() { this.state = 'suspended'; return Promise.resolve(); }
 }
@@ -71,7 +113,7 @@ describe('AudioEngine (unit)', () => {
     expect(engine.isPlaying('t2')).toBe(true);
 
     // advance context time
-    engine.audioContext.currentTime += 2.5;
+    (engine.audioContext as any).currentTime += 2.5;
     const t = engine.getCurrentTime('t2');
     expect(t).toBeGreaterThanOrEqual(2.4);
 
@@ -86,7 +128,7 @@ describe('AudioEngine (unit)', () => {
     const buf = { duration: 5 } as unknown as AudioBuffer;
     engine.addTrack('t3', buf);
     engine.play('t3');
-    engine.audioContext.currentTime += 1.2;
+    (engine.audioContext as any).currentTime += 1.2;
     engine.stop('t3');
     expect(engine.getCurrentTime('t3')).toBe(0);
     expect(engine.isPlaying('t3')).toBe(false);
@@ -100,7 +142,7 @@ describe('AudioEngine (unit)', () => {
     engine.addTrack('t3b', buf2);
     engine.play('t3a');
     engine.play('t3b');
-    engine.audioContext.currentTime += 1.2;
+    (engine.audioContext as any).currentTime += 1.2;
 
     engine.stopAll();
 
@@ -144,12 +186,21 @@ describe('AudioEngine (unit)', () => {
     engine.play('t5');
     engine.setSeekFade('t5', true);
     // advance time slightly so startedAt != 0
-    engine.audioContext.currentTime += 0.1;
+    (engine.audioContext as any).currentTime += 0.1;
     engine.seek('t5', 3);
     // Because seek with fade schedules timeout, we fast-forward the fake timers
     // but since implementation uses setTimeout, we can just call clearTimeout path by cancelFade
     // For test purpose ensure no exception and state remains valid
     expect(engine.getDuration('t5')).toBe(20);
+  });
+
+  it('setReverbSettings updates the reverb chain without throwing', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 6 } as unknown as AudioBuffer;
+    engine.addTrack('t7', buf);
+    engine.setReverbSettings('t7', 'cathedral', 60, 100, 20, 80);
+    // no throw; engine remains valid
+    expect(engine.getDuration('t7')).toBe(6);
   });
 
   it('close disconnects tracks and closes context', () => {

@@ -18,6 +18,7 @@ const mockAudioEngine = {
   setFadeOut: vi.fn(),
   setSeekFade: vi.fn(),
   setFadeDurations: vi.fn(),
+  setReverbSettings: vi.fn(),
   isPlaying: vi.fn().mockReturnValue(false),
   getCurrentTime: vi.fn().mockReturnValue(0),
   close: vi.fn(),
@@ -46,6 +47,11 @@ describe('TrackPlayer', () => {
     fadeInDuration: 5,
     fadeOutDuration: 5,
     seekFadeDuration: 2,
+    reverbRoom: 'hall',
+    reverbMix: 0,
+    reverbPreDelay: 20,
+    reverbDamping: 50,
+    reverbOutput: 100,
   };
 
   beforeEach(() => {
@@ -149,6 +155,76 @@ describe('TrackPlayer', () => {
     fireEvent.click(applyBtn);
 
     await waitFor(() => expect(mockAudioEngine.setFadeDurations).toHaveBeenCalledWith('track-1', 2.5, 3.5, 1));
+  });
+
+  it('opens reverb settings, updates draft values and applies them to engine', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const reverbBtn = screen.getByTitle('Reverb settings');
+    fireEvent.click(reverbBtn);
+
+    const applyBtn = await screen.findByText('Apply');
+    const select = document.querySelector('.reverb-settings-select') as HTMLSelectElement;
+    const ranges = document.querySelectorAll('.reverb-settings-panel input[type=range]');
+    expect(ranges.length).toBe(4);
+
+    fireEvent.change(select, { target: { value: 'cathedral' } });
+    fireEvent.change(ranges[0], { target: { value: '60' } }); // mix
+    fireEvent.change(ranges[1], { target: { value: '100' } }); // pre-delay
+    fireEvent.change(ranges[2], { target: { value: '20' } }); // damping
+    fireEvent.change(ranges[3], { target: { value: '80' } }); // output
+
+    fireEvent.click(applyBtn);
+
+    await waitFor(() =>
+      expect(mockAudioEngine.setReverbSettings).toHaveBeenCalledWith(
+        'track-1', 'cathedral', 60, 100, 20, 80,
+      ),
+    );
+
+    // Overlay closes after apply
+    expect(screen.queryByText('Apply')).toBeNull();
+  });
+
+  it('discards reverb draft changes and does not call the engine when cancelled', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const reverbBtn = screen.getByTitle('Reverb settings');
+    fireEvent.click(reverbBtn);
+
+    const ranges = document.querySelectorAll('.reverb-settings-panel input[type=range]');
+    fireEvent.change(ranges[0], { target: { value: '75' } });
+
+    fireEvent.click(screen.getByText('Cancel'));
+
+    expect(screen.queryByText('Apply')).toBeNull();
+    expect(mockAudioEngine.setReverbSettings).not.toHaveBeenCalled();
+  });
+
+  it('shows the reverb button as active only when reverbMix is above 0', () => {
+    const { rerender } = render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, reverbMix: 0 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    expect(screen.getByTitle('Reverb settings').className).not.toContain('btn-reverb--active');
+
+    rerender(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, reverbMix: 40 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    expect(screen.getByTitle('Reverb settings').className).toContain('btn-reverb--active');
   });
 
   it('changes volume and calls engine.setVolume', async () => {

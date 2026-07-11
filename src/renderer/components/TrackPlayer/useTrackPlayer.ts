@@ -20,6 +20,7 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     setFadeOut,
     setSeekFade,
     setFadeDurations,
+    setReverbSettings,
     removeTrack,
     updatePosition,
   } = useAudio();
@@ -43,6 +44,43 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     setFadeDurations(state.id, draftFadeIn, draftFadeOut, draftSeekFade);
     setSettingsOpen(false);
   }, [state.id, draftFadeIn, draftFadeOut, draftSeekFade, setFadeDurations]);
+
+  // ── Reverb settings ────────────────────────────────────────────────────────
+  const [reverbSettingsOpen, setReverbSettingsOpen] = useState(false);
+  const [draftReverbRoom, setDraftReverbRoom] = useState(state.reverbRoom);
+  const [draftReverbMix, setDraftReverbMix] = useState(state.reverbMix);
+  const [draftReverbPreDelay, setDraftReverbPreDelay] = useState(state.reverbPreDelay);
+  const [draftReverbDamping, setDraftReverbDamping] = useState(state.reverbDamping);
+  const [draftReverbOutput, setDraftReverbOutput] = useState(state.reverbOutput);
+
+  const openReverbSettings = useCallback(() => {
+    setDraftReverbRoom(state.reverbRoom);
+    setDraftReverbMix(state.reverbMix);
+    setDraftReverbPreDelay(state.reverbPreDelay);
+    setDraftReverbDamping(state.reverbDamping);
+    setDraftReverbOutput(state.reverbOutput);
+    setReverbSettingsOpen(true);
+  }, [state.reverbRoom, state.reverbMix, state.reverbPreDelay, state.reverbDamping, state.reverbOutput]);
+
+  const applyReverbSettings = useCallback(() => {
+    setReverbSettings(
+      state.id,
+      draftReverbRoom,
+      draftReverbMix,
+      draftReverbPreDelay,
+      draftReverbDamping,
+      draftReverbOutput,
+    );
+    setReverbSettingsOpen(false);
+  }, [
+    state.id,
+    draftReverbRoom,
+    draftReverbMix,
+    draftReverbPreDelay,
+    draftReverbDamping,
+    draftReverbOutput,
+    setReverbSettings,
+  ]);
 
   const fmt = useCallback((v: number) => (v % 1 === 0 ? `${v}` : v.toFixed(1)), []);
 
@@ -90,6 +128,20 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     setDraftSeekFade,
     openSettings,
     applySettings,
+    reverbSettingsOpen,
+    setReverbSettingsOpen,
+    draftReverbRoom,
+    setDraftReverbRoom,
+    draftReverbMix,
+    setDraftReverbMix,
+    draftReverbPreDelay,
+    setDraftReverbPreDelay,
+    draftReverbDamping,
+    setDraftReverbDamping,
+    draftReverbOutput,
+    setDraftReverbOutput,
+    openReverbSettings,
+    applyReverbSettings,
     fmt,
     onMouseDown,
     onProgressClick,

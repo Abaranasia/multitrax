@@ -14,11 +14,15 @@ describe('patch-gsettings.mjs', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.restoreAllMocks();
-
+    
+    // @ts-ignore
     cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue('/tmp/workspace');
+    // @ts-ignore
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // @ts-ignore
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: number) => {
+    // @ts-ignore
+    exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: string | number | null | undefined) => {
       throw new Error(`EXIT:${code ?? 0}`);
     });
   });

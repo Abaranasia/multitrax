@@ -216,3 +216,69 @@ The project already existed with the following features before the logged sessio
   `Canvas.test.tsx` (button disabled with no tracks or all tracks playing,
   calls `playAll` when enabled).
 - Checked off the "Play All button" item in `doc/TODO.md`.
+
+## [2026-07-11] — Reverb: settings UI (button + dialog, not yet wired)
+
+**Files:** `src/renderer/components/TrackPlayer/TrackPlayer.tsx`,
+`src/renderer/components/TrackPlayer/useTrackPlayer.ts`,
+`src/renderer/components/TrackPlayer/TrackPlayer.css`,
+`src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx`,
+`doc/TODO-effects.md`
+
+- Decided the reverb parameter set (5 controls): Room preset, Wet/Dry mix,
+  Pre-delay, Damping, Output level. Documented in `doc/TODO-effects.md` along
+  with a deferred alternative (algorithmic IR generation for continuous
+  Room Size / Decay Time sliders).
+- Added a 🎛️ "Reverb settings" button to the track controls row (before the
+  ⚙ fade-duration button), opening a settings overlay with the 5 controls,
+  following the existing Apply/Cancel draft pattern.
+- The reverb panel has more rows than the fade-duration panel, so
+  `.track-player--reverb-open` grows the card's `min-height` while the
+  overlay is open to avoid clipping.
+- At this point the dialog only held local component state — no audio engine
+  wiring yet.
+
+---
+
+## [2026-07-11] — Reverb: audio chain wiring
+
+**Files:** `src/renderer/domain/TrackState.ts`, `src/renderer/audio/AudioEngine.ts`,
+`src/renderer/context/AudioContext.tsx`, `src/renderer/components/TrackPlayer/useTrackPlayer.ts`,
+`src/__tests__/audio/AudioEngine.test.ts`, `src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx`
+
+- Decided to keep reverb (and future effects) as **per-track inserts** rather
+  than a shared "effects rack" with a visual patchbay — reuses the existing
+  `TrackState` + `TrackNodes` + `AudioEngine` setter pattern instead of adding
+  a routing graph and cable-drag UI. Recorded in `doc/TODO-effects.md`,
+  along with a follow-up TODO for a future shared reverb send/return bus
+  (more CPU-efficient and closer to how real consoles route reverb).
+- Added `reverbRoom`, `reverbMix`, `reverbPreDelay`, `reverbDamping`,
+  `reverbOutput` to `TrackState` (new `ReverbRoom` union type: `small-room` |
+  `hall` | `plate` | `cathedral`). Default `reverbMix: 0` so new tracks are
+  fully dry until the user opts in.
+- `AudioEngine.ts`: each track's `GainNode` now feeds a per-track reverb
+  insert instead of connecting directly to `masterGain`:
+  `gainNode → [dryGain │ preDelay → convolver → damping(lowpass) → wetGain] → outputGain → masterGain`.
+  `dryGain`/`wetGain` crossfade the mix, `preDelay` is a `DelayNode` (0–500 ms),
+  `damping` is a `BiquadFilterNode` mapping 0–100% to a 20000–500 Hz lowpass
+  cutoff, `outputGain` trims the combined signal.
+- No real IR audio files are bundled, so each room preset's impulse response
+  is synthesised on demand (`_getImpulseResponse`): exponential-decay-shaped
+  noise, one `AudioBuffer` per preset duration/decay pair (Small Room 0.4 s,
+  Hall 2.2 s, Plate 1.4 s, Cathedral 4.5 s). Buffers are cached per room and
+  safely shared across every track's `ConvolverNode` since they're read-only
+  data.
+- Added `AudioEngine.setReverbSettings(id, room, mix, preDelay, damping, output)`
+  and the matching `AudioContext` callback, wired through
+  `useTrackPlayer`'s existing Apply/Cancel draft flow (same shape as
+  `setFadeDurations`).
+- Updated `AudioEngine.test.ts`'s `FakeAudioContext` fixture with fakes for
+  `createDelay`/`createConvolver`/`createBiquadFilter`/`createBuffer` so the
+  existing unit tests keep working now that `addTrack` builds the reverb
+  subgraph; added a smoke test for `setReverbSettings`.
+- Verified end-to-end in-browser: dropped a synthetic WAV, changed all 5
+  reverb controls, applied, and confirmed playback still runs with no
+  console errors; instrumented `AudioContext.prototype` factory methods to
+  confirm `addTrack` creates exactly the expected node graph
+  (`gainNode`, `dryGain`, `preDelay`, `convolver`, `damping`, `wetGain`,
+  `outputGain`).

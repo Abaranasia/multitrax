@@ -179,9 +179,9 @@ describe('TrackPlayer', () => {
 
     fireEvent.change(ranges[0], { target: { value: '450' } }); // time
     fireEvent.change(ranges[1], { target: { value: '60' } });  // feedback
-    fireEvent.change(ranges[2], { target: { value: '40' } });  // mix
-    fireEvent.change(ranges[3], { target: { value: '30' } });  // tone
-    fireEvent.change(ranges[4], { target: { value: '90' } });  // output
+    fireEvent.change(ranges[2], { target: { value: '30' } });  // tone
+    fireEvent.change(ranges[3], { target: { value: '90' } });  // output
+    fireEvent.change(ranges[4], { target: { value: '40' } });  // mix (bottom field)
 
     fireEvent.click(applyBtn);
 
@@ -230,10 +230,10 @@ describe('TrackPlayer', () => {
     expect(ranges.length).toBe(4);
 
     fireEvent.change(select, { target: { value: 'cathedral' } });
-    fireEvent.change(ranges[0], { target: { value: '60' } }); // mix
-    fireEvent.change(ranges[1], { target: { value: '100' } }); // pre-delay
-    fireEvent.change(ranges[2], { target: { value: '20' } }); // damping
-    fireEvent.change(ranges[3], { target: { value: '80' } }); // output
+    fireEvent.change(ranges[0], { target: { value: '100' } }); // pre-delay
+    fireEvent.change(ranges[1], { target: { value: '20' } });  // damping
+    fireEvent.change(ranges[2], { target: { value: '80' } });  // output
+    fireEvent.change(ranges[3], { target: { value: '60' } });  // mix (bottom field)
 
     fireEvent.click(applyBtn);
 

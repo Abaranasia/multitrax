@@ -177,7 +177,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
 
           {/* Delay settings */}
           <button
-            className="btn-delay"
+            className={`btn-delay${state.delayMix > 0 ? ' btn-delay--active' : ''}`}
             onClick={openDelaySettings}
             title="Delay settings"
           >
@@ -304,16 +304,6 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             </div>
 
             <div className="delay-settings-field">
-              <span className="delay-settings-label">Mix</span>
-              <input
-                type="range" min={0} max={100} step={1}
-                value={draftDelayMix}
-                onChange={e => setDraftDelayMix(Number(e.target.value))}
-              />
-              <span className="delay-settings-value">{draftDelayMix}%</span>
-            </div>
-
-            <div className="delay-settings-field">
               <span className="delay-settings-label">Tone</span>
               <input
                 type="range" min={0} max={100} step={1}
@@ -331,6 +321,16 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
                 onChange={e => setDraftDelayOutput(Number(e.target.value))}
               />
               <span className="delay-settings-value">{draftDelayOutput}%</span>
+            </div>
+
+            <div className="delay-settings-field">
+              <span className="delay-settings-label delay-settings-label--mix">Mix</span>
+              <input
+                type="range" min={0} max={100} step={1}
+                value={draftDelayMix}
+                onChange={e => setDraftDelayMix(Number(e.target.value))}
+              />
+              <span className="delay-settings-value delay-settings-value--mix">{draftDelayMix}%</span>
             </div>
 
             <div className="delay-settings-actions">
@@ -369,16 +369,6 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             </div>
 
             <div className="reverb-settings-field">
-              <span className="reverb-settings-label">Mix</span>
-              <input
-                type="range" min={0} max={100} step={1}
-                value={draftReverbMix}
-                onChange={e => setDraftReverbMix(Number(e.target.value))}
-              />
-              <span className="reverb-settings-value">{draftReverbMix}%</span>
-            </div>
-
-            <div className="reverb-settings-field">
               <span className="reverb-settings-label">Pre-delay</span>
               <input
                 type="range" min={0} max={500} step={10}
@@ -406,6 +396,16 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
                 onChange={e => setDraftReverbOutput(Number(e.target.value))}
               />
               <span className="reverb-settings-value">{draftReverbOutput}%</span>
+            </div>
+
+            <div className="reverb-settings-field">
+              <span className="reverb-settings-label reverb-settings-label--mix">Mix</span>
+              <input
+                type="range" min={0} max={100} step={1}
+                value={draftReverbMix}
+                onChange={e => setDraftReverbMix(Number(e.target.value))}
+              />
+              <span className="reverb-settings-value reverb-settings-value--mix">{draftReverbMix}%</span>
             </div>
 
             <div className="reverb-settings-actions">

@@ -285,6 +285,13 @@
 .btn-delay:hover {
   color: #f59e0b;
 }
+.btn-delay--active {
+  border : 1px solid green;
+  background-color: greenyellow;
+}
+.btn-delay--active:hover {
+  border : 1px solid orange;
+}
 
 /* Reverb settings button */
 .btn-reverb {
@@ -478,6 +485,13 @@
   flex-shrink: 0;
 }
 
+/* Mix is the master control — it's what actually switches the effect on or
+   off, unlike the other fields which just shape an already-active effect. */
+.delay-settings-label--mix,
+.delay-settings-value--mix {
+  color: #f97316;
+}
+
 .delay-settings-actions {
   display: flex;
   gap: 8px;
@@ -586,6 +600,13 @@
   width: 40px;
   text-align: right;
   flex-shrink: 0;
+}
+
+/* Mix is the master control — it's what actually switches the effect on or
+   off, unlike the other fields which just shape an already-active effect. */
+.reverb-settings-label--mix,
+.reverb-settings-value--mix {
+  color: #f97316;
 }
 
 .reverb-settings-actions {

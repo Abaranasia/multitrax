@@ -107,3 +107,26 @@ what's meant to stay a focused mixing/monitoring tool.
 - [ ] **Tape Saturation / Vintage Warmth** — `WaveShaperNode` soft-clip curve
   combined with a mild high-frequency roll-off `BiquadFilterNode`; medium
   complexity.
+
+---
+
+## Track / UI features (non-effects)
+
+- [x] **Play All button** — dashboard-level control to start playback of every
+  loaded track at once, mirroring "Stop All". **Implemented** — see
+  `AudioEngine.ts` (`playAll`), `AudioContext.tsx` (`playAll`), `Canvas.tsx`
+  ("▶ Play All" button, disabled when there are no tracks or all tracks are
+  already playing) and `doc/DEVLOG.md` (2026-07-11 entry).
+
+- [ ] **Save / Load session** — persist the current set of tracks to an
+  external file so the whole setup (which files are loaded, their canvas
+  position, and their per-track settings) can be restored later. Would need a
+  serialisable snapshot of each `TrackEntry`/`TrackState` — file path (not the
+  raw audio, so the session file stays small), volume, loop, fade in/out/seek
+  settings and durations, plus reverb/delay parameters — written as JSON via a
+  new IPC save/open-dialog pair in `main.ts` (mirroring the existing
+  open-audio-files / save-recording handlers). Loading would re-resolve each
+  stored file path, re-decode it through `addTracks`, then re-apply the saved
+  settings via the existing per-track setters. Missing/moved source files
+  would need a clear "file not found" fallback per track rather than failing
+  the whole load.

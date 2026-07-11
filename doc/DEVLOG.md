@@ -165,6 +165,58 @@ The project already existed with the following features before the logged sessio
 
 ---
 
+## [2026-07-11] — Dashboard "Stop All" button
+
+**Files:** `src/renderer/audio/AudioEngine.ts`,
+`src/renderer/context/AudioContext.tsx`,
+`src/renderer/components/Canvas/useCanvas.ts`,
+`src/renderer/components/Canvas/Canvas.tsx`,
+`src/renderer/components/Canvas/Canvas.css`
+
+- Added `AudioEngine.stopAll()`: iterates every track id and calls the existing
+  per-track `stop(id)`, reusing its fade-out/reset behaviour rather than
+  duplicating it.
+- Added `stopAll` action to `AudioContext`: calls `engine.stopAll()` then syncs
+  `playing: false, currentTime: 0` across every track in `TrackEntry[]` state
+  in a single `setTracks` pass.
+- Threaded `stopAll` through `useCanvas` and added a "⏹ Stop All" button in
+  `Canvas.tsx`, next to "+ Open Files". Disabled via
+  `!tracks.some(t => t.state.playing)` when nothing is playing.
+- Styled `.btn-stop-all` in `Canvas.css` to match `.btn-open`'s look or
+  positioning (fixed bottom-right, to the left of "+ Open Files"), using a
+  neutral colour instead of the accent red.
+- Added tests: `AudioEngine.test.ts` (stop two playing tracks via `stopAll`,
+  assert both stopped and reset), `Canvas.test.tsx` (button disabled with no
+  playing tracks, calls `stopAll` when enabled).
+
+---
+
+## [2026-07-11] — Dashboard "Play All" button
+
+**Files:** `src/renderer/audio/AudioEngine.ts`,
+`src/renderer/context/AudioContext.tsx`,
+`src/renderer/components/Canvas/useCanvas.ts`,
+`src/renderer/components/Canvas/Canvas.tsx`,
+`src/renderer/components/Canvas/Canvas.css`
+
+- Added `AudioEngine.playAll()`: mirrors `stopAll()`, iterating every track id
+  and calling the existing per-track `play(id)`, which already no-ops on
+  tracks that are already playing.
+- Added `playAll` action to `AudioContext`: calls `engine.playAll()` then sets
+  `playing: true` across every track in `TrackEntry[]` state in a single
+  `setTracks` pass (no `currentTime` reset — playback resumes from each
+  track's existing offset, unlike `stopAll`).
+- Threaded `playAll` through `useCanvas` and added a "▶ Play All" button in
+  `Canvas.tsx`, next to "⏹ Stop All". Disabled when there are no tracks, or
+  when every track is already playing.
+- Styled `.btn-play-all` in `Canvas.css` matching `.btn-stop-all`'s layout,
+  positioned further left, using a green accent instead of the stop button's
+  neutral colour.
+- Added tests: `AudioEngine.test.ts` (`playAll` starts every track playing),
+  `Canvas.test.tsx` (button disabled with no tracks or all tracks playing,
+  calls `playAll` when enabled).
+- Checked off the "Play All button" item in `doc/TODO.md`.
+
 ## [2026-07-11] — Reverb: settings UI (button + dialog, not yet wired)
 
 **Files:** `src/renderer/components/TrackPlayer/TrackPlayer.tsx`,

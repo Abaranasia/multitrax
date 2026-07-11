@@ -134,6 +134,37 @@ describe('AudioEngine (unit)', () => {
     expect(engine.isPlaying('t3')).toBe(false);
   });
 
+  it('stopAll stops every playing track and resets current time', () => {
+    const engine = new AudioEngine();
+    const buf1 = { duration: 5 } as unknown as AudioBuffer;
+    const buf2 = { duration: 8 } as unknown as AudioBuffer;
+    engine.addTrack('t3a', buf1);
+    engine.addTrack('t3b', buf2);
+    engine.play('t3a');
+    engine.play('t3b');
+    engine.audioContext.currentTime += 1.2;
+
+    engine.stopAll();
+
+    expect(engine.isPlaying('t3a')).toBe(false);
+    expect(engine.isPlaying('t3b')).toBe(false);
+    expect(engine.getCurrentTime('t3a')).toBe(0);
+    expect(engine.getCurrentTime('t3b')).toBe(0);
+  });
+
+  it('playAll starts playback on every track', () => {
+    const engine = new AudioEngine();
+    const buf1 = { duration: 5 } as unknown as AudioBuffer;
+    const buf2 = { duration: 8 } as unknown as AudioBuffer;
+    engine.addTrack('t3c', buf1);
+    engine.addTrack('t3d', buf2);
+
+    engine.playAll();
+
+    expect(engine.isPlaying('t3c')).toBe(true);
+    expect(engine.isPlaying('t3d')).toBe(true);
+  });
+
   it('setVolume clamps value and updates gain', () => {
     const engine = new AudioEngine();
     const buf = { duration: 2 } as unknown as AudioBuffer;

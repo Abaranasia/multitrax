@@ -114,7 +114,7 @@
 .track-controls {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   cursor: default;
 }
 
@@ -230,6 +230,41 @@
 .toggle--seek-fade.loop-on .loop-label       { color: #22c55e; }
 .toggle--seek-fade:hover .loop-label         { color: #86efac; }
 .toggle--seek-fade.loop-on:hover .loop-track { background: #166534; }
+
+/* Pan */
+.pan-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.pan-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #888;
+  width: 10px;
+  flex-shrink: 0;
+  text-align: center;
+}
+.pan-control input[type='range'] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #0f3460;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.pan-control input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e94560;
+  cursor: pointer;
+}
 
 /* Volume */
 .volume-control {

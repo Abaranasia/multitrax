@@ -2,8 +2,14 @@
 /** @vitest-environment node */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { join } from 'path/posix';
 
 const modulePath = '../../../scripts/patch-gsettings.mjs';
+
+// The script builds its output dir via path/posix's join(process.cwd(), '.gsettings-schemas')
+// so paths are always forward-slash regardless of host OS (this is a Linux-only script).
+// Mirror that here rather than the platform-native `path` module.
+const CUSTOM_DIR = join('/tmp/workspace', '.gsettings-schemas');
 
 describe('patch-gsettings.mjs', () => {
   let cwdSpy: ReturnType<typeof vi.spyOn>;
@@ -46,7 +52,7 @@ describe('patch-gsettings.mjs', () => {
 
     await expect(import(modulePath)).rejects.toThrow('EXIT:0');
 
-    expect(fsMock.mkdirSync).toHaveBeenCalledWith('/tmp/workspace/.gsettings-schemas', { recursive: true });
+    expect(fsMock.mkdirSync).toHaveBeenCalledWith(CUSTOM_DIR, { recursive: true });
     expect(warnSpy).toHaveBeenCalledWith('patch-gsettings: schema dir not found, skipping');
   });
 
@@ -78,14 +84,14 @@ describe('patch-gsettings.mjs', () => {
 
     await import(modulePath);
 
-    expect(fsMock.mkdirSync).toHaveBeenCalledWith('/tmp/workspace/.gsettings-schemas', { recursive: true });
+    expect(fsMock.mkdirSync).toHaveBeenCalledWith(CUSTOM_DIR, { recursive: true });
     expect(fsMock.copyFileSync).toHaveBeenCalledTimes(2);
     expect(fsMock.writeFileSync).toHaveBeenCalledTimes(1);
     expect(fsMock.writeFileSync).toHaveBeenCalledWith(
-      '/tmp/workspace/.gsettings-schemas/' + ifaceFile,
+      join(CUSTOM_DIR, ifaceFile),
       expect.stringContaining('name="font-antialiasing"'),
     );
-    expect(spawnSyncMock).toHaveBeenCalledWith('glib-compile-schemas', ['/tmp/workspace/.gsettings-schemas'], { stdio: 'inherit' });
-    expect(logSpy).toHaveBeenCalledWith('patch-gsettings: compiled schemas -> /tmp/workspace/.gsettings-schemas');
+    expect(spawnSyncMock).toHaveBeenCalledWith('glib-compile-schemas', [CUSTOM_DIR], { stdio: 'inherit' });
+    expect(logSpy).toHaveBeenCalledWith(`patch-gsettings: compiled schemas -> ${CUSTOM_DIR}`);
   });
 });

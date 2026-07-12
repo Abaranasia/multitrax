@@ -12,8 +12,9 @@ import { ReverbRoom } from '../domain/TrackState';
 const FADE_DURATION = 5;      // seconds (play/stop fades)
 const SEEK_FADE_DURATION = 2; // seconds (seek cross-fade)
 
-// Lowpass cutoff range for the reverb "damping" control: 0% = no damping
-// (fully open, bright tail), 100% = heavy damping (dark, muffled tail).
+// Lowpass cutoff range shared by the delay "tone" and reverb "damping"
+// controls: 0% = no damping (fully open, bright), 100% = heavy damping
+// (dark, muffled).
 const DAMPING_MIN_HZ = 500;
 const DAMPING_MAX_HZ = 20000;
 
@@ -25,6 +26,35 @@ const ROOM_IR_PRESETS: Record<ReverbRoom, { duration: number; decay: number }> =
   plate: { duration: 1.4, decay: 2.5 },
   cathedral: { duration: 4.5, decay: 1.5 },
 };
+
+// Delay time is user-controllable up to 2 s; createDelay() needs this as its
+// maxDelayTime up front.
+const DELAY_TIME_MAX_S = 2.0;
+const DELAY_TIME_MAX_MS = DELAY_TIME_MAX_S * 1000;
+// Feedback is capped below 100% so the delay→feedbackGain→damping→delay loop
+// gain always stays under 1.0 — repeats decay to silence and never runaway
+// or self-oscillate.
+const DELAY_FEEDBACK_MAX = 90;
+
+/**
+ * Per-track delay/echo insert: dry/wet split around a DelayNode with an
+ * internal feedback loop. `outputGain` is intentionally left unconnected by
+ * `_createDelayNodes` — this insert sits before reverb in the chain, so the
+ * caller (`addTrack`) wires `outputGain` onward into reverb's entry points.
+ */
+interface DelayNodes {
+  dryGain: GainNode;
+  delayNode: DelayNode;
+  feedbackGain: GainNode;
+  damping: BiquadFilterNode;
+  wetGain: GainNode;
+  outputGain: GainNode;
+  delayTimeMs: number;    // 1–2000 (ms)
+  feedback: number;       // 0–90 (%)
+  mix: number;            // 0–100 (%)
+  dampingAmount: number;  // 0–100 (%)
+  outputLevel: number;    // 0–100 (%)
+}
 
 /** Per-track reverb insert: GainNode → [dry/wet split] → outputGain → masterGain. */
 interface ReverbNodes {
@@ -43,6 +73,7 @@ interface ReverbNodes {
 
 interface TrackNodes {
   gainNode: GainNode;
+  delay: DelayNodes;
   reverb: ReverbNodes;
   sourceNode: AudioBufferSourceNode | null;
   buffer: AudioBuffer;
@@ -90,12 +121,18 @@ export class AudioEngine {
 
   addTrack(id: string, buffer: AudioBuffer): void {
     const gainNode = this.ctx.createGain();
+    const delay = this._createDelayNodes();
     const reverb = this._createReverbNodes();
-    gainNode.connect(reverb.dryGain);
-    gainNode.connect(reverb.preDelay);
+
+    // Chain order: gainNode → delay insert → reverb insert → masterGain.
+    gainNode.connect(delay.dryGain);
+    gainNode.connect(delay.delayNode);
+    delay.outputGain.connect(reverb.dryGain);
+    delay.outputGain.connect(reverb.preDelay);
 
     this.tracks.set(id, {
       gainNode,
+      delay,
       reverb,
       sourceNode: null,
       buffer,
@@ -120,6 +157,12 @@ export class AudioEngine {
     this._cancelFadeOut(track);
     this._stopSource(track);
     track.gainNode.disconnect();
+    track.delay.dryGain.disconnect();
+    track.delay.delayNode.disconnect();
+    track.delay.feedbackGain.disconnect();
+    track.delay.damping.disconnect();
+    track.delay.wetGain.disconnect();
+    track.delay.outputGain.disconnect();
     track.reverb.dryGain.disconnect();
     track.reverb.preDelay.disconnect();
     track.reverb.convolver.disconnect();
@@ -354,6 +397,43 @@ export class AudioEngine {
     track.seekFadeDuration = Math.max(0, Math.min(10, seekFadeDuration));
   }
 
+  // ── Delay (insert effect) ───────────────────────────────────────────────────
+
+  setDelaySettings(
+    id: string,
+    delayTimeMs: number,
+    feedback: number,
+    mix: number,
+    dampingAmount: number,
+    outputLevel: number,
+  ): void {
+    const track = this.tracks.get(id);
+    if (!track) return;
+    const delay = track.delay;
+    const now = this.ctx.currentTime;
+
+    // Floor of 1ms (not 0) because this DelayNode sits inside a feedback
+    // cycle, unlike reverb's preDelay which doesn't.
+    delay.delayTimeMs = Math.max(1, Math.min(DELAY_TIME_MAX_MS, delayTimeMs));
+    delay.feedback = Math.max(0, Math.min(DELAY_FEEDBACK_MAX, feedback));
+    delay.mix = Math.max(0, Math.min(100, mix));
+    delay.dampingAmount = Math.max(0, Math.min(100, dampingAmount));
+    delay.outputLevel = Math.max(0, Math.min(100, outputLevel));
+
+    delay.delayNode.delayTime.setTargetAtTime(delay.delayTimeMs / 1000, now, 0.01);
+    delay.feedbackGain.gain.setTargetAtTime(delay.feedback / 100, now, 0.01);
+
+    const wet = delay.mix / 100;
+    delay.dryGain.gain.setTargetAtTime(1 - wet, now, 0.01);
+    delay.wetGain.gain.setTargetAtTime(wet, now, 0.01);
+
+    const dampingRatio = delay.dampingAmount / 100;
+    const frequency = DAMPING_MAX_HZ - dampingRatio * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
+    delay.damping.frequency.setTargetAtTime(frequency, now, 0.01);
+
+    delay.outputGain.gain.setTargetAtTime(delay.outputLevel / 100, now, 0.01);
+  }
+
   // ── Reverb (insert effect) ──────────────────────────────────────────────────
 
   setReverbSettings(
@@ -423,6 +503,61 @@ export class AudioEngine {
   }
 
   // ── Private ────────────────────────────────────────────────────────────────
+
+  /**
+   * Builds the per-track delay/echo insert and wires its internal routing:
+   *   dryGain ─────────────────────────────────────┐
+   *   delayNode ──────────────────────────→ wetGain ┴→ outputGain
+   *      └→ feedbackGain → damping ─┘ (feedback loop closes back into delayNode)
+   * Callers connect the track's GainNode into both dryGain and delayNode, and
+   * connect outputGain onward (into reverb's entry points, since delay sits
+   * before reverb in the chain).
+   */
+  private _createDelayNodes(): DelayNodes {
+    const dryGain      = this.ctx.createGain();
+    const delayNode    = this.ctx.createDelay(DELAY_TIME_MAX_S);
+    const feedbackGain = this.ctx.createGain();
+    const damping      = this.ctx.createBiquadFilter();
+    const wetGain      = this.ctx.createGain();
+    const outputGain   = this.ctx.createGain();
+
+    damping.type = 'lowpass';
+
+    // Feedback cycle: legal because delayNode carries inherent non-zero
+    // delay (Web Audio requires >=1 DelayNode with delay in any cycle).
+    delayNode.connect(wetGain);
+    delayNode.connect(feedbackGain);
+    feedbackGain.connect(damping);
+    damping.connect(delayNode);
+
+    dryGain.connect(outputGain);
+    wetGain.connect(outputGain);
+    // outputGain intentionally left unconnected here — see addTrack().
+
+    const delay: DelayNodes = {
+      dryGain,
+      delayNode,
+      feedbackGain,
+      damping,
+      wetGain,
+      outputGain,
+      delayTimeMs: 300,
+      feedback: 35,
+      mix: 0,
+      dampingAmount: 50,
+      outputLevel: 100,
+    };
+
+    // Initialise gains/filter to match the default (mix = 0 ⇒ fully dry).
+    dryGain.gain.value = 1;
+    wetGain.gain.value = 0;
+    delayNode.delayTime.value = delay.delayTimeMs / 1000;
+    feedbackGain.gain.value = delay.feedback / 100;
+    damping.frequency.value = DAMPING_MAX_HZ - (delay.dampingAmount / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
+    outputGain.gain.value = delay.outputLevel / 100;
+
+    return delay;
+  }
 
   /**
    * Builds the per-track reverb insert and wires its internal routing:

@@ -13,8 +13,8 @@
     "start": "pnpm build && electron .",
     "pack": "pnpm build && electron-builder",
     "test": "vitest watch",
-    "test:no-watch": "TZ=UTC vitest run",
-    "test:coverage": "TZ=UTC vitest run --coverage"
+    "test:no-watch": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "",

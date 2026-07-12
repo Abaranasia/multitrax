@@ -23,6 +23,20 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
     setDraftSeekFade,
     openSettings,
     applySettings,
+    delaySettingsOpen,
+    setDelaySettingsOpen,
+    draftDelayTime,
+    setDraftDelayTime,
+    draftDelayFeedback,
+    setDraftDelayFeedback,
+    draftDelayMix,
+    setDraftDelayMix,
+    draftDelayDamping,
+    setDraftDelayDamping,
+    draftDelayOutput,
+    setDraftDelayOutput,
+    openDelaySettings,
+    applyDelaySettings,
     reverbSettingsOpen,
     setReverbSettingsOpen,
     draftReverbRoom,
@@ -55,7 +69,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
   return (
     <div
       ref={cardRef}
-      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}`}
+      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}${delaySettingsOpen ? ' track-player--delay-open' : ''}`}
       style={{ left: x, top: y }}
       onMouseDown={onMouseDown}
     >
@@ -64,6 +78,30 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
         <span className="track-title" title={state.title}>
           {state.title}
         </span>
+
+        {/* Effects section — per-track effect toggles live here, separate from
+            the transport/toggle controls below, so this row has room to grow
+            as more effects are added. */}
+        <div className="track-effects">
+          {/* Delay settings */}
+          <button
+            className={`btn-delay${state.delayMix > 0 ? ' btn-delay--active' : ''}`}
+            onClick={openDelaySettings}
+            title="Delay settings"
+          >
+            D
+          </button>
+
+          {/* Reverb settings */}
+          <button
+            className={`btn-reverb${state.reverbMix > 0 ? ' btn-reverb--active' : ''}`}
+            onClick={openReverbSettings}
+            title="Reverb settings"
+          >
+            R
+          </button>
+        </div>
+
         <button className="btn-close" onClick={() => removeTrack(state.id)} title="Remove track">
           ✕
         </button>
@@ -161,15 +199,6 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <span className="loop-label">S</span>
           </label>
 
-          {/* Reverb settings */}
-          <button
-            className={`btn-reverb${state.reverbMix > 0 ? ' btn-reverb--active' : ''}`}
-            onClick={openReverbSettings}
-            title="Reverb settings"
-          >
-            🎛️
-          </button>
-
           {/* Fade-duration settings */}
           <button
             className="btn-settings"
@@ -247,6 +276,77 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
         </div>
       )}
 
+      {/* ── Delay settings overlay ───────────────────────────────────────── */}
+      {delaySettingsOpen && (
+        <div
+          className="delay-settings-overlay"
+          onMouseDown={e => e.stopPropagation()}
+          onClick={() => setDelaySettingsOpen(false)}
+        >
+          <div
+            className="delay-settings-panel"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="delay-settings-title">·•● Delay</div>
+
+            <div className="delay-settings-field">
+              <span className="delay-settings-label">Time</span>
+              <input
+                type="range" min={1} max={2000} step={10}
+                value={draftDelayTime}
+                onChange={e => setDraftDelayTime(Number(e.target.value))}
+              />
+              <span className="delay-settings-value">{draftDelayTime}ms</span>
+            </div>
+
+            <div className="delay-settings-field">
+              <span className="delay-settings-label">Feedback</span>
+              <input
+                type="range" min={0} max={90} step={1}
+                value={draftDelayFeedback}
+                onChange={e => setDraftDelayFeedback(Number(e.target.value))}
+              />
+              <span className="delay-settings-value">{draftDelayFeedback}%</span>
+            </div>
+
+            <div className="delay-settings-field">
+              <span className="delay-settings-label">Tone</span>
+              <input
+                type="range" min={0} max={100} step={1}
+                value={draftDelayDamping}
+                onChange={e => setDraftDelayDamping(Number(e.target.value))}
+              />
+              <span className="delay-settings-value">{draftDelayDamping}%</span>
+            </div>
+
+            <div className="delay-settings-field">
+              <span className="delay-settings-label">Output</span>
+              <input
+                type="range" min={0} max={100} step={1}
+                value={draftDelayOutput}
+                onChange={e => setDraftDelayOutput(Number(e.target.value))}
+              />
+              <span className="delay-settings-value">{draftDelayOutput}%</span>
+            </div>
+
+            <div className="delay-settings-field">
+              <span className="delay-settings-label delay-settings-label--mix">Mix</span>
+              <input
+                type="range" min={0} max={100} step={1}
+                value={draftDelayMix}
+                onChange={e => setDraftDelayMix(Number(e.target.value))}
+              />
+              <span className="delay-settings-value delay-settings-value--mix">{draftDelayMix}%</span>
+            </div>
+
+            <div className="delay-settings-actions">
+              <button className="delay-settings-apply" onClick={applyDelaySettings}>Apply</button>
+              <button className="delay-settings-cancel" onClick={() => setDelaySettingsOpen(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Reverb settings overlay ──────────────────────────────────────── */}
       {reverbSettingsOpen && (
         <div
@@ -272,16 +372,6 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
                 <option value="plate">Plate</option>
                 <option value="cathedral">Cathedral</option>
               </select>
-            </div>
-
-            <div className="reverb-settings-field">
-              <span className="reverb-settings-label">Mix</span>
-              <input
-                type="range" min={0} max={100} step={1}
-                value={draftReverbMix}
-                onChange={e => setDraftReverbMix(Number(e.target.value))}
-              />
-              <span className="reverb-settings-value">{draftReverbMix}%</span>
             </div>
 
             <div className="reverb-settings-field">
@@ -312,6 +402,16 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
                 onChange={e => setDraftReverbOutput(Number(e.target.value))}
               />
               <span className="reverb-settings-value">{draftReverbOutput}%</span>
+            </div>
+
+            <div className="reverb-settings-field">
+              <span className="reverb-settings-label reverb-settings-label--mix">Mix</span>
+              <input
+                type="range" min={0} max={100} step={1}
+                value={draftReverbMix}
+                onChange={e => setDraftReverbMix(Number(e.target.value))}
+              />
+              <span className="reverb-settings-value reverb-settings-value--mix">{draftReverbMix}%</span>
             </div>
 
             <div className="reverb-settings-actions">

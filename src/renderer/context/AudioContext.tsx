@@ -27,6 +27,14 @@ interface AudioContextValue {
   setFadeOut: (id: string, enabled: boolean) => void;
   setSeekFade: (id: string, enabled: boolean) => void;
   setFadeDurations: (id: string, fadeIn: number, fadeOut: number, seekFade: number) => void;
+  setDelaySettings: (
+    id: string,
+    delayTime: number,
+    feedback: number,
+    mix: number,
+    damping: number,
+    output: number,
+  ) => void;
   setReverbSettings: (
     id: string,
     room: ReverbRoom,
@@ -74,7 +82,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           duration: audioBuffer.duration,
           currentTime: 0,
           volume: 1,
-          loop: false,
+          loop: true,
           playing: false,
           fadeIn: false,
           fadeOut: false,
@@ -82,6 +90,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           fadeInDuration: 5,
           fadeOutDuration: 5,
           seekFadeDuration: 2,
+          delayTime: 300,
+          delayFeedback: 35,
+          delayMix: 0,
+          delayDamping: 50,
+          delayOutput: 100,
           reverbRoom: 'hall',
           reverbMix: 0,
           reverbPreDelay: 20,
@@ -251,6 +264,30 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [engine],
   );
 
+  const setDelaySettings = useCallback(
+    (id: string, delayTime: number, feedback: number, mix: number, damping: number, output: number) => {
+      engine.setDelaySettings(id, delayTime, feedback, mix, damping, output);
+      setTracks(prev =>
+        prev.map(t =>
+          t.state.id === id
+            ? {
+                ...t,
+                state: {
+                  ...t.state,
+                  delayTime,
+                  delayFeedback: feedback,
+                  delayMix: mix,
+                  delayDamping: damping,
+                  delayOutput: output,
+                },
+              }
+            : t,
+        ),
+      );
+    },
+    [engine],
+  );
+
   const setReverbSettings = useCallback(
     (id: string, room: ReverbRoom, mix: number, preDelay: number, damping: number, output: number) => {
       engine.setReverbSettings(id, room, mix, preDelay, damping, output);
@@ -312,6 +349,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setFadeOut,
         setSeekFade,
         setFadeDurations,
+        setDelaySettings,
         setReverbSettings,
         updatePosition,
         tickCurrentTimes,

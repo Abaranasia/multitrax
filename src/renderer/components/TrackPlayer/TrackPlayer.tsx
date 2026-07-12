@@ -1,6 +1,7 @@
 import { ReverbRoom, TrackState } from '../../domain/TrackState';
 import { formatTime } from '../../utils/formatTime';
 import { useTrackPlayer } from './useTrackPlayer';
+import { TrackContextMenu } from './TrackContextMenu';
 
 import './TrackPlayer.css';
 
@@ -64,6 +65,9 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
     setSeekFade,
     removeTrack,
     setVolume,
+    contextMenuPosition,
+    onContextMenu,
+    duplicate,
   } = useTrackPlayer({ state, x, y });
 
   return (
@@ -72,6 +76,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
       className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}${delaySettingsOpen ? ' track-player--delay-open' : ''}`}
       style={{ left: x, top: y }}
       onMouseDown={onMouseDown}
+      onContextMenu={onContextMenu}
     >
       {/* Header */}
       <div className="track-header">
@@ -420,6 +425,11 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Right-click context menu ─────────────────────────────────────── */}
+      {contextMenuPosition && (
+        <TrackContextMenu x={contextMenuPosition.x} y={contextMenuPosition.y} onDuplicate={duplicate} />
       )}
     </div>
   );

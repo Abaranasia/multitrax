@@ -6,6 +6,7 @@ const mockAudioEngine = {
   audioContext: { decodeAudioData: vi.fn(async (b: ArrayBuffer) => ({ duration: 3 } as unknown as AudioBuffer)) },
   addTrack: vi.fn(),
   removeTrack: vi.fn(),
+  getBuffer: vi.fn((_id: string) => ({ duration: 12 } as unknown as AudioBuffer)),
   play: vi.fn(),
   pause: vi.fn(),
   stop: vi.fn(),
@@ -31,7 +32,7 @@ vi.mock('@/renderer/audio/AudioEngine', () => ({
 
 import { TrackPlayer } from '@/renderer/components/TrackPlayer/TrackPlayer';
 import { TrackState } from '@/renderer/domain/TrackState';
-import { AudioProvider } from '@/renderer/context/AudioContext';
+import { AudioProvider, useAudio } from '@/renderer/context/AudioContext';
 
 describe('TrackPlayer', () => {
   const baseState: TrackState = {
@@ -64,9 +65,30 @@ describe('TrackPlayer', () => {
     cleanup();
     vi.restoreAllMocks();
     Object.keys(mockAudioEngine).forEach(k => (mockAudioEngine as any)[k] = (mockAudioEngine as any)[k] || vi.fn());
+
+    if (!globalThis.crypto || typeof globalThis.crypto.randomUUID !== 'function') {
+      Object.defineProperty(globalThis, 'crypto', {
+        value: { randomUUID: vi.fn(() => baseState.id) },
+        configurable: true,
+      });
+    } else {
+      vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => baseState.id as `${string}-${string}-${string}-${string}-${string}`);
+    }
   });
 
   afterEach(() => cleanup());
+
+  // Registers a track matching `state.id` into AudioContext's internal track
+  // list (via addTracks) before rendering, so context actions that look the
+  // track up by id — like duplicateTrack — have something to find.
+  const SeededTrackPlayer = ({ state, x, y }: { state: TrackState; x: number; y: number }) => {
+    const audio = useAudio();
+    React.useEffect(() => {
+      void audio.addTracks([{ path: '/sample.wav', name: state.title, buffer: new ArrayBuffer(4) }]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    return <TrackPlayer state={state} x={x} y={y} />;
+  };
 
   it('calls play and pause through the audio engine when playback button is clicked', async () => {
     render(
@@ -282,6 +304,43 @@ describe('TrackPlayer', () => {
     );
 
     expect(screen.getByTitle('Reverb settings').className).toContain('btn-reverb--active');
+  });
+
+  it('opens a context menu on right-click and duplicates the track', async () => {
+    render(
+      <AudioProvider>
+        <SeededTrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    await waitFor(() => expect(mockAudioEngine.addTrack).toHaveBeenCalledWith('track-1', expect.anything()));
+    mockAudioEngine.addTrack.mockClear();
+
+    expect(screen.queryByText('Duplicate')).toBeNull();
+
+    fireEvent.contextMenu(screen.getByTitle(baseState.title), { clientX: 100, clientY: 150 });
+
+    const duplicateItem = await screen.findByText('Duplicate');
+    fireEvent.click(duplicateItem);
+
+    await waitFor(() => expect(mockAudioEngine.addTrack).toHaveBeenCalled());
+    expect(mockAudioEngine.getBuffer).toHaveBeenCalledWith('track-1');
+    // Menu closes after the action is taken
+    expect(screen.queryByText('Duplicate')).toBeNull();
+  });
+
+  it('closes the context menu when clicking outside of it', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    fireEvent.contextMenu(screen.getByTitle(baseState.title), { clientX: 100, clientY: 150 });
+    await screen.findByText('Duplicate');
+
+    fireEvent.mouseDown(document.body);
+    await waitFor(() => expect(screen.queryByText('Duplicate')).toBeNull());
   });
 
   it('changes volume and calls engine.setVolume', async () => {

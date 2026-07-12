@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { TrackState } from '../../domain/TrackState';
 import { useAudio } from '../../context/AudioContext';
+import { useTrackContextMenu } from './useTrackContextMenu';
 
 interface UseTrackPlayerProps {
   state: TrackState;
@@ -23,11 +24,28 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     setDelaySettings,
     setReverbSettings,
     removeTrack,
+    duplicateTrack,
     updatePosition,
   } = useAudio();
 
   const cardRef = useRef<HTMLDivElement>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
+
+  const { position: contextMenuPosition, open: openContextMenu, close: closeContextMenu } =
+    useTrackContextMenu();
+
+  const onContextMenu = useCallback(
+    (e: ReactMouseEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      openContextMenu(e.clientX, e.clientY);
+    },
+    [openContextMenu],
+  );
+
+  const duplicate = useCallback(() => {
+    duplicateTrack(state.id);
+    closeContextMenu();
+  }, [duplicateTrack, state.id, closeContextMenu]);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [draftFadeIn, setDraftFadeIn] = useState(state.fadeInDuration);
@@ -207,5 +225,9 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     setSeekFade,
     removeTrack,
     setVolume,
+    contextMenuPosition,
+    onContextMenu,
+    closeContextMenu,
+    duplicate,
   };
 };

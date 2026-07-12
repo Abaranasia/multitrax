@@ -134,6 +134,14 @@ describe('AudioEngine (unit)', () => {
     expect(engine.isPlaying('t3')).toBe(false);
   });
 
+  it('getBuffer returns the same buffer reference passed to addTrack, or undefined for an unknown id', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 8 } as unknown as AudioBuffer;
+    engine.addTrack('t1b', buf);
+    expect(engine.getBuffer('t1b')).toBe(buf);
+    expect(engine.getBuffer('nonexistent')).toBeUndefined();
+  });
+
   it('stopAll stops every playing track and resets current time', () => {
     const engine = new AudioEngine();
     const buf1 = { duration: 5 } as unknown as AudioBuffer;

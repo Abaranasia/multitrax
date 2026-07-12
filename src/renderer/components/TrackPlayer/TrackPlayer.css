@@ -37,18 +37,32 @@
 .track-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   margin-bottom: 8px;
 }
 
 .track-title {
+  flex: 1;
+  min-width: 0;
   font-weight: 600;
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 310px;
   color: #e94560;
+}
+
+/* Effects section — houses per-track effect toggles (delay, reverb, and any
+   future additions), kept separate from the title and close button so it can
+   grow without crowding either. */
+.track-effects {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  border: 1px solid #666;
+  border-radius: 15px;
+  padding: 0 10px;
 }
 
 .btn-close {
@@ -60,6 +74,7 @@
   padding: 2px 4px;
   border-radius: 4px;
   transition: color 0.15s;
+  flex-shrink: 0;
 }
 .btn-close:hover {
   color: #e94560;
@@ -252,7 +267,8 @@
   text-align: right;
 }
 
-/* Settings gear button */
+/* Settings gear button — pushed to the right end of the controls row,
+   separated from the transport/toggle buttons on its left. */
 .btn-settings {
   background: none;
   border: none;
@@ -264,57 +280,48 @@
   line-height: 1;
   transition: color 0.15s;
   flex-shrink: 0;
+  margin-left: auto;
 }
 .btn-settings:hover {
   color: #ccc;
 }
 
-/* Delay settings button */
-.btn-delay {
-  background: none;
-  border: none;
-  color: #555;
-  cursor: pointer;
-  font-size: 13px;
-  padding: 2px 3px;
-  border-radius: 4px;
-  line-height: 1;
-  transition: color 0.15s;
-  flex-shrink: 0;
-}
-.btn-delay:hover {
-  color: #f59e0b;
-}
-.btn-delay--active {
-  border : 1px solid green;
-  background-color: greenyellow;
-}
-.btn-delay--active:hover {
-  border : 1px solid orange;
-}
-
-/* Reverb settings button */
+/* Delay / Reverb settings buttons — white by default, orange on hover,
+   filled rounded green when the effect is active (mix > 0). */
+.btn-delay,
 .btn-reverb {
   background: none;
-  border: none;
-  color: #555;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: #AAA;
   cursor: pointer;
-  font-size: 13px;
-  padding: 2px 3px;
-  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   line-height: 1;
-  transition: color 0.15s;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
   flex-shrink: 0;
 }
+.btn-delay:hover,
 .btn-reverb:hover {
-  color: #2dd4bf;
+  color: #f59e0b;
 }
+.btn-delay--active,
 .btn-reverb--active {
-  border : 1px solid green;
-  background-color: greenyellow;
+  color: #fff;
+  background-color: #22c55e;
+  border-color: #16a34a;
 }
+.btn-delay--active:hover,
 .btn-reverb--active:hover {
-  border : 1px solid orange;
+  color: #fff;
+  background-color: #f59e0b;
+  border-color: #d97706;
 }
 
 /* Fade-duration settings overlay */

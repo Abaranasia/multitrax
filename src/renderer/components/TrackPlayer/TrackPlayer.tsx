@@ -78,6 +78,30 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
         <span className="track-title" title={state.title}>
           {state.title}
         </span>
+
+        {/* Effects section — per-track effect toggles live here, separate from
+            the transport/toggle controls below, so this row has room to grow
+            as more effects are added. */}
+        <div className="track-effects">
+          {/* Delay settings */}
+          <button
+            className={`btn-delay${state.delayMix > 0 ? ' btn-delay--active' : ''}`}
+            onClick={openDelaySettings}
+            title="Delay settings"
+          >
+            D
+          </button>
+
+          {/* Reverb settings */}
+          <button
+            className={`btn-reverb${state.reverbMix > 0 ? ' btn-reverb--active' : ''}`}
+            onClick={openReverbSettings}
+            title="Reverb settings"
+          >
+            R
+          </button>
+        </div>
+
         <button className="btn-close" onClick={() => removeTrack(state.id)} title="Remove track">
           ✕
         </button>
@@ -174,24 +198,6 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             </span>
             <span className="loop-label">S</span>
           </label>
-
-          {/* Delay settings */}
-          <button
-            className={`btn-delay${state.delayMix > 0 ? ' btn-delay--active' : ''}`}
-            onClick={openDelaySettings}
-            title="Delay settings"
-          >
-            ·•●
-          </button>
-
-          {/* Reverb settings */}
-          <button
-            className={`btn-reverb${state.reverbMix > 0 ? ' btn-reverb--active' : ''}`}
-            onClick={openReverbSettings}
-            title="Reverb settings"
-          >
-            🎛️
-          </button>
 
           {/* Fade-duration settings */}
           <button

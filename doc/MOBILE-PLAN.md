@@ -100,3 +100,13 @@ multitrax/ (pnpm workspace root)
   just an implementation detail.
 - Import UX: in-app picker only, or also support "Open with Multitrax" from the
   OS Files/share sheet?
+- **Ionic as a UI component layer, on top of Capacitor** — not an alternative
+  to Capacitor (same team builds both), but a component library on top of it:
+  prebuilt, gesture-correct bottom sheets (`IonModal`) and sliders (`IonRange`)
+  for exactly the touch UI this plan flags as "must rebuild." Tradeoff: its
+  Shadow DOM, platform-adaptive (iOS/Material) components sit awkwardly next
+  to this project's BEM + co-located CSS convention and the desktop app's own
+  custom visual identity — a second UI paradigm alongside our own. Default is
+  to skip it and build plain Capacitor + custom components first; revisit only
+  if the hand-rolled bottom sheets/sliders in Phase 3 turn out to be more
+  gesture-work than expected.

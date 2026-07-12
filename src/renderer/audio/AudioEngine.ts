@@ -56,7 +56,7 @@ interface DelayNodes {
   outputLevel: number;    // 0–100 (%)
 }
 
-/** Per-track reverb insert: GainNode → [dry/wet split] → outputGain → masterGain. */
+/** Per-track reverb insert: GainNode → [dry/wet split] → outputGain → pannerNode. */
 interface ReverbNodes {
   dryGain: GainNode;
   preDelay: DelayNode;
@@ -75,6 +75,7 @@ interface TrackNodes {
   gainNode: GainNode;
   delay: DelayNodes;
   reverb: ReverbNodes;
+  pannerNode: StereoPannerNode;
   sourceNode: AudioBufferSourceNode | null;
   buffer: AudioBuffer;
   startOffset: number;   // seconds — where playback was paused
@@ -82,6 +83,7 @@ interface TrackNodes {
   loop: boolean;
   playing: boolean;
   volume: number;        // target volume (0–1), independent of gain ramp
+  pan: number;           // target pan (-1 to 1), independent of ramp
   fadeIn: boolean;
   fadeOut: boolean;
   seekFade: boolean;
@@ -123,17 +125,21 @@ export class AudioEngine {
     const gainNode = this.ctx.createGain();
     const delay = this._createDelayNodes();
     const reverb = this._createReverbNodes();
+    const pannerNode = this.ctx.createStereoPanner();
 
-    // Chain order: gainNode → delay insert → reverb insert → masterGain.
+    // Chain order: gainNode → delay insert → reverb insert → pannerNode → masterGain.
     gainNode.connect(delay.dryGain);
     gainNode.connect(delay.delayNode);
     delay.outputGain.connect(reverb.dryGain);
     delay.outputGain.connect(reverb.preDelay);
+    reverb.outputGain.connect(pannerNode);
+    pannerNode.connect(this.masterGain);
 
     this.tracks.set(id, {
       gainNode,
       delay,
       reverb,
+      pannerNode,
       sourceNode: null,
       buffer,
       startOffset: 0,
@@ -141,6 +147,7 @@ export class AudioEngine {
       loop: false,
       playing: false,
       volume: 1,
+      pan: 0,
       fadeIn: false,
       fadeOut: false,
       seekFade: false,
@@ -169,6 +176,7 @@ export class AudioEngine {
     track.reverb.damping.disconnect();
     track.reverb.wetGain.disconnect();
     track.reverb.outputGain.disconnect();
+    track.pannerNode.disconnect();
     this.tracks.delete(id);
   }
 
@@ -356,6 +364,15 @@ export class AudioEngine {
     // Cancel any ongoing fade ramp and jump to the new volume immediately
     track.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
     track.gainNode.gain.setTargetAtTime(track.volume, this.ctx.currentTime, 0.01);
+  }
+
+  // ── Pan ────────────────────────────────────────────────────────────────────
+
+  setPan(id: string, value: number): void {
+    const track = this.tracks.get(id);
+    if (!track) return;
+    track.pan = Math.max(-1, Math.min(1, value));
+    track.pannerNode.pan.setTargetAtTime(track.pan, this.ctx.currentTime, 0.01);
   }
 
   // ── Loop ───────────────────────────────────────────────────────────────────
@@ -567,8 +584,10 @@ export class AudioEngine {
   /**
    * Builds the per-track reverb insert and wires its internal routing:
    *   dryGain ────────────────────────────────┐
-   *   preDelay → convolver → damping → wetGain ┴→ outputGain → masterGain
-   * Callers connect the track's GainNode into both dryGain and preDelay.
+   *   preDelay → convolver → damping → wetGain ┴→ outputGain
+   * Callers connect the track's GainNode into both dryGain and preDelay, and
+   * connect outputGain onward (into the panner, since reverb no longer sits
+   * last in the chain).
    */
   private _createReverbNodes(): ReverbNodes {
     const dryGain    = this.ctx.createGain();
@@ -586,7 +605,8 @@ export class AudioEngine {
     damping.connect(wetGain);
     dryGain.connect(outputGain);
     wetGain.connect(outputGain);
-    outputGain.connect(this.masterGain);
+    // outputGain intentionally left unconnected here — see addTrack(), which
+    // now wires it onward into the panner (reverb no longer sits last).
 
     const reverb: ReverbNodes = {
       dryGain,

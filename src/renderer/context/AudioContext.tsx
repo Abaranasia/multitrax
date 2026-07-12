@@ -82,7 +82,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           duration: audioBuffer.duration,
           currentTime: 0,
           volume: 1,
-          loop: false,
+          loop: true,
           playing: false,
           fadeIn: false,
           fadeOut: false,

@@ -19,6 +19,7 @@ const mockAudioEngine = {
   setFadeOut: vi.fn(),
   setSeekFade: vi.fn(),
   setFadeDurations: vi.fn(),
+  setFilterSettings: vi.fn(),
   setDelaySettings: vi.fn(),
   setReverbSettings: vi.fn(),
   isPlaying: vi.fn().mockReturnValue(false),
@@ -49,6 +50,11 @@ describe('TrackPlayer', () => {
     fadeInDuration: 5,
     fadeOutDuration: 5,
     seekFadeDuration: 2,
+    filterType: 'lowpass',
+    filterCutoff: 1000,
+    filterResonance: 1,
+    filterMix: 0,
+    filterOutput: 100,
     delayTime: 300,
     delayFeedback: 35,
     delayMix: 0,
@@ -183,6 +189,76 @@ describe('TrackPlayer', () => {
     fireEvent.click(applyBtn);
 
     await waitFor(() => expect(mockAudioEngine.setFadeDurations).toHaveBeenCalledWith('track-1', 2.5, 3.5, 1));
+  });
+
+  it('opens filter settings, updates draft values and applies them to engine', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const filterBtn = screen.getByTitle('Filter settings');
+    fireEvent.click(filterBtn);
+
+    const applyBtn = await screen.findByText('Apply');
+    const select = document.querySelector('.filter-settings-select') as HTMLSelectElement;
+    const ranges = document.querySelectorAll('.filter-settings-panel input[type=range]');
+    expect(ranges.length).toBe(4);
+
+    fireEvent.change(select, { target: { value: 'highpass' } });
+    fireEvent.change(ranges[0], { target: { value: '500' } });  // cutoff
+    fireEvent.change(ranges[1], { target: { value: '4' } });    // resonance
+    fireEvent.change(ranges[2], { target: { value: '90' } });   // output
+    fireEvent.change(ranges[3], { target: { value: '70' } });   // mix (bottom field)
+
+    fireEvent.click(applyBtn);
+
+    await waitFor(() =>
+      expect(mockAudioEngine.setFilterSettings).toHaveBeenCalledWith(
+        'track-1', 'highpass', 500, 4, 70, 90,
+      ),
+    );
+
+    // Overlay closes after apply
+    expect(screen.queryByText('Apply')).toBeNull();
+  });
+
+  it('discards filter draft changes and does not call the engine when cancelled', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const filterBtn = screen.getByTitle('Filter settings');
+    fireEvent.click(filterBtn);
+
+    const ranges = document.querySelectorAll('.filter-settings-panel input[type=range]');
+    fireEvent.change(ranges[0], { target: { value: '5000' } });
+
+    fireEvent.click(screen.getByText('Cancel'));
+
+    expect(screen.queryByText('Apply')).toBeNull();
+    expect(mockAudioEngine.setFilterSettings).not.toHaveBeenCalled();
+  });
+
+  it('shows the filter button as active only when filterMix is above 0', () => {
+    const { rerender } = render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, filterMix: 0 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    expect(screen.getByTitle('Filter settings').className).not.toContain('btn-filter--active');
+
+    rerender(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, filterMix: 40 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    expect(screen.getByTitle('Filter settings').className).toContain('btn-filter--active');
   });
 
   it('opens delay settings, updates draft values and applies them to engine', async () => {

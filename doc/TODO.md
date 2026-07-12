@@ -41,8 +41,14 @@ what's meant to stay a focused mixing/monitoring tool.
 - [ ] **Compressor / Limiter** — `DynamicsCompressorNode`; params: threshold,
   knee, ratio, attack, release; doubles as a master limiter at gain=1.
 
-- [ ] **Stereo Pan** — `StereoPannerNode`; range -1 (full left) to +1 (full
-  right); straightforward drop-in before `masterGain`.
+- [x] **Stereo Pan** — `StereoPannerNode`; range -1 (full left) to +1 (full
+  right). **Implemented** — see `AudioEngine.ts` (`setPan`) and
+  `TrackPlayer.tsx` (the pan slider, rendered above the volume control).
+  Unlike Delay/Reverb, this is an always-visible plain `<input type="range">`
+  applied live on every change — no settings dialog, no draft/Apply/Cancel,
+  same treatment as the Volume slider. Sits as the last stage of the
+  per-track chain, right before `masterGain`: `gainNode → delay → reverb →
+  pannerNode → masterGain`. Double-clicking the slider recenters it to 0%.
 
 - [ ] **3-D Spatial Audio** — `PannerNode` with HRTF model; full x/y/z position
   and orientation control; useful for immersive mixing.

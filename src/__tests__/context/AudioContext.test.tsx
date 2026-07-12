@@ -17,6 +17,7 @@ const mockAudioEngine = {
   stop: vi.fn(),
   seek: vi.fn(),
   setVolume: vi.fn(),
+  setPan: vi.fn(),
   setLoop: vi.fn(),
   setFadeIn: vi.fn(),
   setFadeOut: vi.fn(),
@@ -244,5 +245,6 @@ describe('AudioContext', () => {
     expect(mockAudioEngine.addTrack).toHaveBeenLastCalledWith(CLONE_ID, clonedBuffer);
     expect(screen.getByTestId('clone-title').textContent).toBe('Guitar copy');
     expect(screen.getByTestId('clone-playing').textContent).toBe('false');
+    expect(mockAudioEngine.setPan).toHaveBeenCalledWith(CLONE_ID, 0);
   });
 });

@@ -14,6 +14,7 @@ interface AudioContextValue {
   engine: AudioEngine;
   tracks: TrackEntry[];
   addTracks: (files: { path: string; name: string; buffer: ArrayBuffer }[]) => Promise<void>;
+  duplicateTrack: (id: string) => void;
   removeTrack: (id: string) => void;
   play: (id: string) => void;
   pause: (id: string) => void;
@@ -118,6 +119,51 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setTracks(prev => [...prev, ...newEntries]);
     },
     [engine],
+  );
+
+  const duplicateTrack = useCallback(
+    (id: string) => {
+      const source = tracks.find(t => t.state.id === id);
+      const buffer = engine.getBuffer(id);
+      if (!source || !buffer) return;
+
+      const newId = crypto.randomUUID();
+      engine.addTrack(newId, buffer);
+      engine.setDelaySettings(
+        newId,
+        source.state.delayTime,
+        source.state.delayFeedback,
+        source.state.delayMix,
+        source.state.delayDamping,
+        source.state.delayOutput,
+      );
+      engine.setReverbSettings(
+        newId,
+        source.state.reverbRoom,
+        source.state.reverbMix,
+        source.state.reverbPreDelay,
+        source.state.reverbDamping,
+        source.state.reverbOutput,
+      );
+      engine.setVolume(newId, source.state.volume);
+      engine.setLoop(newId, source.state.loop);
+
+      const newEntry: TrackEntry = {
+        state: {
+          ...source.state,
+          id: newId,
+          title: `${source.state.title} copy`,
+          currentTime: 0,
+          playing: false,
+        },
+        filePath: source.filePath,
+        x: source.x + 20,
+        y: source.y + 20,
+      };
+
+      setTracks(prev => [...prev, newEntry]);
+    },
+    [engine, tracks],
   );
 
   const removeTrack = useCallback(
@@ -336,6 +382,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         engine,
         tracks,
         addTracks,
+        duplicateTrack,
         removeTrack,
         play,
         pause,

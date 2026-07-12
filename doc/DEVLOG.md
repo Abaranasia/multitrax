@@ -336,3 +336,62 @@ The project already existed with the following features before the logged sessio
   controls, applied, and confirmed playback still runs with no console
   errors; visually confirmed the `·•●` icon renders as three clean,
   distinctly-sized growing circles.
+
+---
+
+## [2026-07-12] — Clone track (right-click context menu)
+
+**Files:** `src/renderer/audio/AudioEngine.ts`, `src/renderer/context/AudioContext.tsx`,
+`src/renderer/components/TrackPlayer/TrackContextMenu.tsx` (new),
+`src/renderer/components/TrackPlayer/TrackContextMenu.css` (new),
+`src/renderer/components/TrackPlayer/useTrackContextMenu.ts` (new),
+`src/renderer/components/TrackPlayer/useTrackPlayer.ts`, `src/renderer/components/TrackPlayer/TrackPlayer.tsx`,
+`src/__tests__/audio/AudioEngine.test.ts`, `src/__tests__/context/AudioContext.test.tsx`,
+`src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx`,
+`src/__tests__/components/TrackPlayer/TrackContextMenu.test.tsx` (new), `doc/TODO.md`
+
+- Added `AudioEngine.getBuffer(id)`, a small accessor returning a track's
+  decoded `AudioBuffer` by reference. An `AudioBuffer` is just decoded PCM
+  data, safe to share across tracks (the same principle already used for
+  cached reverb impulse responses), so cloning never re-decodes or re-reads
+  the source wav file — it hands the same buffer object to a new
+  `AudioEngine.addTrack` call.
+- Added `AudioContext.duplicateTrack(id)`: looks up the source `TrackEntry`,
+  calls `engine.addTrack(newId, sourceBuffer)`, then re-applies the source's
+  delay/reverb/volume/loop settings through the existing per-track setters
+  (`addTrack` always builds a fresh, default-parameter node graph, so the
+  clone's effects only match once these are replayed). Builds a new
+  `TrackState` copying every field except `id` (fresh `crypto.randomUUID()`),
+  `currentTime` (reset to 0) and `playing` (reset to false); title gets a
+  " copy" suffix. The new `TrackEntry` keeps the source's `filePath` and is
+  placed offset `+20/+20` from the source card, mirroring the existing
+  `nextPos` offset used when adding tracks.
+- No context-menu component existed anywhere in the codebase yet, so built
+  one from scratch as its own component + hook, per the `ARCHITECTURE.md`
+  "dialogs and overlays are independent components" convention:
+  `TrackContextMenu.tsx` (menu shell, `position: fixed` at the click
+  coordinates so it isn't clipped by the track card's `overflow: hidden`)
+  and `useTrackContextMenu.ts` (open/close state, closes on outside
+  mousedown or Escape). Wired into `TrackPlayer.tsx` via a new
+  `onContextMenu` handler on the card root, alongside the existing fade/delay/
+  reverb overlays.
+- Added tests: `AudioEngine.test.ts` (`getBuffer` returns the same reference
+  passed to `addTrack`, `undefined` for an unknown id), `AudioContext.test.tsx`
+  (`duplicateTrack` reuses the same buffer, copies settings, resets
+  transient state), `TrackContextMenu.test.tsx` (renders at the given
+  coordinates, calls `onDuplicate` on click), and `TrackPlayer.test.tsx`
+  (right-click opens the menu and Duplicate triggers it end-to-end; clicking
+  outside closes it).
+- Hit one mock-related snag while writing the `AudioContext`/`TrackPlayer`
+  test mocks: `getBuffer: vi.fn().mockReturnValue(...)` gets silently wiped
+  by the existing `vi.restoreAllMocks()` in `beforeEach` (which behaves like
+  `mockReset()` for a bare `vi.fn()`, unlike an implementation passed
+  directly to the `vi.fn(impl)` constructor, which survives). Fixed by
+  defining `getBuffer` with its implementation passed straight into `vi.fn()`,
+  matching the existing `decodeAudioData` mock's pattern.
+- Verified end-to-end in-browser: dropped a synthetic WAV, right-clicked the
+  card, clicked Duplicate — a "… copy" card appeared offset on the canvas
+  with the same duration; changed the original's delay mix to 75% and
+  duplicated again, confirming the new clone's delay panel showed identical
+  values while the earlier clone (made before the change) was unaffected.
+- Checked off the "Clone track" item in `doc/TODO.md`.

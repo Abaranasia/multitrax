@@ -492,6 +492,11 @@ export class AudioEngine {
     return this.tracks.get(id)?.buffer.duration ?? 0;
   }
 
+  /** Returns the decoded AudioBuffer backing a track, e.g. for cloning it into a new track. */
+  getBuffer(id: string): AudioBuffer | undefined {
+    return this.tracks.get(id)?.buffer;
+  }
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   close(): void {

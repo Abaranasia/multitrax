@@ -140,9 +140,15 @@ what's meant to stay a focused mixing/monitoring tool.
   ("▶ Play All" button, disabled when there are no tracks or all tracks are
   already playing) and `doc/DEVLOG.md` (2026-07-11 entry).
 
-- [ ] **Clone track** — context menu on right-click over a track, with an
+- [x] **Clone track** — context menu on right-click over a track, with an
   option to duplicate it (current settings/effects plus the loaded wav
-  audio) as a new track.
+  audio) as a new track. **Implemented** — see `AudioEngine.ts` (`getBuffer`),
+  `AudioContext.tsx` (`duplicateTrack`), and the new `TrackContextMenu.tsx` /
+  `useTrackContextMenu.ts` (right-click menu, wired into `TrackPlayer.tsx`).
+  The cloned track reuses the same decoded `AudioBuffer` by reference (no
+  re-decode) and copies volume/loop/fade/delay/reverb settings via the
+  existing per-track setters; it's dropped onto the canvas offset by
+  `+20/+20` from the source card.
 
 - [ ] **Save / Load session** — persist the current set of tracks to an
   external file so the whole setup (which files are loaded, their canvas

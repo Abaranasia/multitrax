@@ -38,6 +38,16 @@ what's meant to stay a focused mixing/monitoring tool.
   `bandpass`, `lowshelf`, `highshelf`, `peaking`, `notch`, `allpass`);
   chain multiple nodes for a parametric EQ.
 
+- [ ] **Filter** — single sweepable `BiquadFilterNode` per track (distinct from
+  the multi-band Equalizer above): lowpass/highpass/bandpass type switch,
+  cutoff frequency, resonance (Q), output level — the classic one-knob
+  "Filter" control on DJ mixers. Sits **before** delay/reverb in the chain
+  (tone-shaping happens first): `gainNode → filter insert → delay insert →
+  reverb insert → masterGain`. Follows the same per-track insert pattern as
+  Delay/Reverb (`TrackState` fields + `AudioEngine` setter + settings-overlay
+  draft/Apply/Cancel UI) — lower effort than the other open items since no
+  new node type or dependency is required.
+
 - [ ] **Compressor / Limiter** — `DynamicsCompressorNode`; params: threshold,
   knee, ratio, attack, release; doubles as a master limiter at gain=1.
 

@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#07080f;font-family:'Manrope','Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit}a:hover{color:inherit}
+.mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.root{display:flex;flex-wrap:wrap;gap:32px;padding:40px;align-items:flex-start}
+.opt{display:flex;flex-direction:column;gap:14px}
+.optbadge{display:flex;align-items:center;gap:12px}
+.chip-id{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#07080f;background:#e8e9f0;border-radius:6px;padding:3px 8px;letter-spacing:.02em}
+.opt-name{color:#e8e9f0;font-size:17px;font-weight:700}
+.opt-sub{color:#6b6f85;font-size:13px;font-weight:500}
+.opt-nav{margin-left:auto;display:flex;gap:6px}
+.opt-nav a{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#6b6f85;background:#14161f;border:1px solid #22242f;border-radius:5px;padding:3px 7px;text-decoration:none}
+.opt-nav a:hover{color:#e8e9f0;border-color:#3a3d4d}
+
+/* ============ SHARED ATOMS ============ */
+.win{border-radius:16px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.55)}
+.tbtn{border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.wf{display:block;width:100%}
+
+/* ============================================================
+   OPTION 1A — LANES (DAW timeline)
+   ============================================================ */
+.lanes{width:1240px;background:#0d0f1a;border:1px solid #1c1f2e}
+.ln-top{display:flex;align-items:center;gap:20px;padding:14px 20px;background:linear-gradient(180deg,#14172a,#101322);border-bottom:1px solid #1c1f2e}
+.ln-logo{display:flex;align-items:center;gap:10px}
+.ln-mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#ff4d6d,#a855f7);display:flex;align-items:center;justify-content:center}
+.ln-mark span{width:3px;height:14px;border-radius:2px;background:#fff;box-shadow:6px 0 #fff,-6px 0 rgba(255,255,255,.55)}
+.ln-brand{color:#f0f1f7;font-size:15px;font-weight:800;letter-spacing:-.01em}
+.ln-transport{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ln-tp{width:38px;height:38px;border-radius:11px;background:#1b1f33;color:#c3c7db;font-size:15px}
+.ln-tp:hover{background:#242942;color:#fff}
+.ln-tp.play{width:46px;height:46px;background:linear-gradient(135deg,#ff4d6d,#e0344f);color:#fff;font-size:17px;box-shadow:0 6px 20px rgba(255,77,109,.4)}
+.ln-tp.rec{color:#ff5a6e}
+.ln-tp.rec .dot{width:11px;height:11px;border-radius:50%;background:#ff4d6d;box-shadow:0 0 0 4px rgba(255,77,109,.18)}
+.ln-clock{margin-left:14px;display:flex;flex-direction:column;gap:1px}
+.ln-clock .t{color:#f0f1f7;font-size:22px;font-weight:600;letter-spacing:.02em}
+.ln-clock .l{color:#5a5e78;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.14em}
+.ln-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.ln-sess{display:flex;align-items:center;gap:2px;background:#14172a;border:1px solid #22273c;border-radius:10px;padding:3px}
+.ln-sess button{padding:6px 11px;border-radius:7px;background:none;color:#9296b0;font-size:12px;font-weight:600}
+.ln-sess button:hover{background:#1e2338;color:#f0f1f7}
+.ln-sess .name{color:#c3c7db;font-size:12px;font-weight:700;padding:0 8px 0 10px;display:flex;align-items:center;gap:7px}
+.ln-sess .name em{font-style:normal;color:#5a5e78;font-size:10px;font-weight:600}
+.ln-master{display:flex;align-items:center;gap:9px;background:#14172a;border:1px solid #22273c;border-radius:10px;padding:8px 13px}
+.ln-master .ic{color:#9296b0;font-size:13px}
+.ln-mfill{width:80px;height:5px;border-radius:3px;background:#262b40;position:relative}
+.ln-mfill i{position:absolute;left:0;top:0;height:100%;width:78%;border-radius:3px;background:linear-gradient(90deg,#a855f7,#ff4d6d)}
+.ln-mfill b{position:absolute;left:78%;top:50%;transform:translate(-50%,-50%);width:13px;height:13px;border-radius:50%;background:#f0f1f7;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.ln-mv{color:#c3c7db;font-size:12px;font-weight:600;width:30px;text-align:right}
+
+.ln-ruler{display:flex;align-items:flex-end;height:26px;padding:0 20px 0 250px;background:#0a0c16;border-bottom:1px solid #161927}
+.ln-ruler .tk{flex:1;color:#43465c;font-size:9.5px;font-weight:600;border-left:1px solid #1a1d2b;padding:0 0 3px 6px}
+
+.ln-body{display:flex;flex-direction:column}
+.lane{display:flex;align-items:stretch;border-bottom:1px solid #14172400;border-bottom:1px solid #14162200;border-bottom:1px solid #131622;min-height:78px}
+.lane:hover{background:#0f1220}
+.lane.sel{background:#12152a}
+.ln-hd{width:250px;flex-shrink:0;display:flex;align-items:center;gap:11px;padding:0 14px 0 16px;border-right:1px solid #161927}
+.ln-clr{width:4px;height:44px;border-radius:3px;flex-shrink:0}
+.ln-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.ln-nm{color:#eceef5;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ln-tags{display:flex;gap:5px;align-items:center}
+.ln-tag{font-size:10px;font-weight:700;color:#6b6f85;border:1px solid #262b40;border-radius:5px;padding:1px 5px;letter-spacing:.02em}
+.ln-tag.on{color:#fff;border-color:transparent}
+.ln-tag.d{background:#7c3f0e}.ln-tag.r{background:#0f6d63}.ln-tag.eq{background:#4c1d95}
+.ln-ms{display:flex;flex-direction:column;gap:4px}
+.ln-msq{width:24px;height:19px;border-radius:5px;font-size:10px;font-weight:800;background:#1a1d2e;color:#5a5e78}
+.ln-msq.m.on{background:#ff4d6d;color:#fff}
+.ln-msq.s.on{background:#f5a623;color:#0d0f1a}
+.ln-wfwrap{flex:1;position:relative;display:flex;align-items:center;padding:12px 20px 12px 0;min-width:0}
+.ln-canvas{height:52px}
+.ln-play{position:absolute;top:6px;bottom:6px;width:2px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.6)}
+.ln-play::before{content:"";position:absolute;top:-2px;left:-4px;width:10px;height:6px;border-radius:2px;background:#fff}
+.ln-vol{width:150px;flex-shrink:0;display:flex;align-items:center;gap:9px;padding:0 18px;border-left:1px solid #161927}
+.ln-knob{width:38px;height:38px;border-radius:50%;background:conic-gradient(from 220deg,#ff4d6d 0deg,#a855f7 200deg,#1c2036 200deg,#1c2036 360deg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ln-knob i{width:28px;height:28px;border-radius:50%;background:#151828;position:relative}
+.ln-knob i::after{content:"";position:absolute;top:3px;left:50%;transform:translateX(-50%);width:2px;height:8px;border-radius:1px;background:#e8e9f0}
+.ln-vnum{color:#9296b0;font-size:11px;font-weight:600}
+.ln-add{display:flex;align-items:center;justify-content:center;gap:9px;height:52px;margin:12px 20px;border:1.5px dashed #262b40;border-radius:12px;color:#5a5e78;font-size:12.5px;font-weight:600}
+.ln-add:hover{border-color:#ff4d6d55;color:#9296b0}
+
+/* Lanes — inline FX panel (delay) attached under selected lane */
+.ln-fx{background:#0b0d18;border-top:1px solid #1c1f2e;border-bottom:1px solid #131622;padding:14px 20px 16px 250px;display:flex;gap:26px}
+.ln-fxcol{display:flex;flex-direction:column;gap:11px;min-width:210px}
+.ln-fxh{display:flex;align-items:center;gap:8px}
+.ln-fxdot{width:9px;height:9px;border-radius:50%}
+.ln-fxh .nm{color:#eceef5;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em}
+.ln-fxh .st{margin-left:auto;font-size:9.5px;font-weight:700;color:#22c55e;letter-spacing:.08em}
+.ln-fxrow{display:flex;align-items:center;gap:10px}
+.ln-fxlab{width:60px;color:#6b6f85;font-size:10.5px;font-weight:600}
+.ln-fxsl{flex:1;height:4px;border-radius:2px;background:#20243a;position:relative}
+.ln-fxsl i{position:absolute;left:0;top:0;height:100%;border-radius:2px}
+.ln-fxsl b{position:absolute;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:#eceef5;box-shadow:0 2px 5px rgba(0,0,0,.5)}
+.ln-fxval{width:44px;text-align:right;color:#9296b0;font-size:10.5px;font-weight:600}
+
+/* ============================================================
+   OPTION 1B — CARDS (glass canvas)
+   ============================================================ */
+.cards{width:1060px;height:720px;position:relative;background:radial-gradient(120% 100% at 20% -10%,#1a2140 0%,#0b0e1c 55%,#070912 100%);border:1px solid #1a1f38}
+.cd-top{position:absolute;top:20px;left:22px;right:22px;display:flex;align-items:center;gap:14px;z-index:5}
+.cd-sess{display:flex;align-items:center;gap:11px;background:rgba(20,24,44,.72);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.07);border-radius:13px;padding:9px 15px}
+.cd-mark{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#2dd4bf,#38bdf8);display:flex;align-items:center;justify-content:center;color:#06121a;font-weight:900;font-size:14px}
+.cd-sname{color:#eef1f8;font-size:13px;font-weight:700;display:flex;flex-direction:column;line-height:1.25}
+.cd-sname em{font-style:normal;color:#6d7492;font-size:10px;font-weight:600}
+.cd-sactions{display:flex;gap:3px;margin-left:6px}
+.cd-sactions button{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.05);color:#aeb4cc;font-size:13px}
+.cd-sactions button:hover{background:rgba(255,255,255,.12);color:#fff}
+.cd-mtr{margin-left:auto;display:flex;align-items:center;gap:10px;background:rgba(20,24,44,.72);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.07);border-radius:13px;padding:9px 15px}
+.cd-mtr .l{color:#6d7492;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em}
+.cd-mtr .t{color:#eef1f8;font-size:16px;font-weight:600}
+
+.card{position:absolute;width:320px;background:rgba(22,26,48,.66);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:15px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.card.foc{border-color:rgba(45,212,191,.4);box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 0 1px rgba(45,212,191,.25)}
+.cd-hd{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.cd-grip{color:#454b66;font-size:14px;cursor:grab;letter-spacing:-2px}
+.cd-nm{flex:1;min-width:0;color:#2dd4bf;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cd-fx{display:flex;gap:4px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:13px;padding:3px 5px}
+.cd-fxb{width:19px;height:19px;border-radius:50%;font-size:10px;font-weight:800;color:#7a809c;background:none}
+.cd-fxb.on{color:#06121a;background:#2dd4bf}
+.cd-fxb.on.warm{background:#fb7185}
+.cd-x{color:#565c78;font-size:13px;background:none}
+.cd-x:hover{color:#fb7185}
+.cd-time{display:flex;justify-content:space-between;margin-bottom:8px}
+.cd-time .c{color:#c8cde2;font-size:12px;font-weight:600}
+.cd-time .d{color:#565c78;font-size:12px;font-weight:600}
+.cd-canvas{height:46px;margin-bottom:11px}
+.cd-ctrls{display:flex;align-items:center;gap:7px}
+.cd-pb{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.06);color:#dfe3f2;font-size:14px}
+.cd-pb:hover{background:rgba(255,255,255,.12)}
+.cd-pb.play{background:linear-gradient(135deg,#2dd4bf,#14b8a6);color:#06121a}
+.cd-tg{display:flex;gap:5px;margin-left:auto}
+.cd-tgb{min-width:26px;height:26px;padding:0 4px;border-radius:7px;font-size:10px;font-weight:800;background:rgba(255,255,255,.05);color:#6d7492}
+.cd-tgb.on{color:#06121a}
+.cd-tgb.on.l{background:#a855f7;color:#fff}
+.cd-tgb.on.i{background:#38bdf8;color:#06121a}
+.cd-tgb.on.o{background:#fb923c;color:#06121a}
+.cd-vol{display:flex;align-items:center;gap:8px;margin-top:11px;padding-top:11px;border-top:1px solid rgba(255,255,255,.06)}
+.cd-vol .ic{color:#8a90ab;font-size:12px}
+.cd-vsl{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.08);position:relative}
+.cd-vsl i{position:absolute;left:0;top:0;height:100%;border-radius:2px;background:linear-gradient(90deg,#2dd4bf,#38bdf8)}
+.cd-vsl b{position:absolute;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.5)}
+.cd-vv{color:#8a90ab;font-size:11px;font-weight:600;width:32px;text-align:right}
+/* reverb panel inside a focused card */
+.cd-rev{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:9px}
+.cd-revh{display:flex;align-items:center;gap:7px}
+.cd-revh .nm{color:#eef1f8;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em}
+.cd-revh .rm{margin-left:auto;font-size:10px;font-weight:700;color:#fb923c}
+.cd-selr{display:flex;gap:5px}
+.cd-selr .o{flex:1;text-align:center;font-size:10px;font-weight:700;color:#7a809c;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:5px 0}
+.cd-selr .o.on{color:#06121a;background:#2dd4bf;border-color:transparent}
+.cd-revrow{display:flex;align-items:center;gap:9px}
+.cd-revlab{width:56px;color:#7a809c;font-size:10px;font-weight:600}
+.cd-revsl{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.08);position:relative}
+.cd-revsl i{position:absolute;left:0;top:0;height:100%;border-radius:2px;background:#2dd4bf}
+.cd-revsl b{position:absolute;top:50%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:50%;background:#fff}
+.cd-revval{width:40px;text-align:right;color:#8a90ab;font-size:10px;font-weight:600}
+.cd-dock{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:7px;background:rgba(16,19,36,.82);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:9px 11px;box-shadow:0 16px 40px rgba(0,0,0,.5)}
+.cd-dpb{height:40px;padding:0 16px;border-radius:11px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;background:rgba(255,255,255,.06);color:#dfe3f2}
+.cd-dpb.play{background:linear-gradient(135deg,#2dd4bf,#14b8a6);color:#06121a}
+.cd-dpb.rec{background:rgba(251,113,133,.14);color:#fb7185}
+.cd-dpb.rec .dot{width:9px;height:9px;border-radius:50%;background:#fb7185}
+.cd-dpb.open{background:linear-gradient(135deg,#fb7185,#f43f5e);color:#fff}
+.cd-dsep{width:1px;height:26px;background:rgba(255,255,255,.1)}
+
+/* ============================================================
+   OPTION 1C — RACK (mixing console)
+   ============================================================ */
+.rack{width:940px;background:linear-gradient(180deg,#1a1d26,#12141b);border:1px solid #2a2e3a}
+.rk-top{display:flex;align-items:center;gap:16px;padding:15px 20px;border-bottom:1px solid #262a36;background:linear-gradient(180deg,#22262f,#1a1d26)}
+.rk-brand{display:flex;align-items:center;gap:9px}
+.rk-mark{width:28px;height:28px;border-radius:7px;background:#f5a623;color:#1a1d26;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;box-shadow:0 0 16px rgba(245,166,35,.35)}
+.rk-bn{color:#e9ebf0;font-size:14px;font-weight:800;letter-spacing:.02em}
+.rk-bn em{font-style:normal;color:#6a6f7e;font-weight:600}
+.rk-tp{display:flex;align-items:center;gap:7px;margin-left:6px}
+.rk-tb{width:36px;height:36px;border-radius:8px;background:#2b303c;color:#c4c8d4;font-size:14px;border:1px solid #363b48}
+.rk-tb:hover{background:#333947}
+.rk-tb.play{background:#f5a623;color:#1a1d26;border-color:#d98e0f}
+.rk-tb.rec{color:#ff6b6b}
+.rk-tb.rec .dot{width:10px;height:10px;border-radius:50%;background:#ff6b6b}
+.rk-clock{margin-left:8px;color:#e9ebf0;font-size:19px;font-weight:600;letter-spacing:.03em}
+.rk-clock small{color:#6a6f7e;font-size:11px;font-weight:600;margin-left:3px}
+.rk-sess{margin-left:auto;display:flex;align-items:center;gap:3px;background:#20242e;border:1px solid #2e333f;border-radius:9px;padding:3px}
+.rk-sess button{padding:6px 11px;border-radius:6px;background:none;color:#8b90a0;font-size:12px;font-weight:600}
+.rk-sess button:hover{background:#2b303c;color:#e9ebf0}
+.rk-sess .cur{color:#f5a623;font-size:12px;font-weight:700;padding:0 10px}
+.rk-body{display:flex;padding:18px;gap:10px}
+.strip{width:132px;flex-shrink:0;background:#191c24;border:1px solid #262a34;border-radius:12px;padding:12px 11px;display:flex;flex-direction:column;align-items:center;gap:11px}
+.strip.master{background:linear-gradient(180deg,#23262f,#191c24);border-color:#343a47}
+.rk-tt{color:#e9ebf0;font-size:12px;font-weight:800;width:100%;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strip.master .rk-tt{color:#f5a623}
+.rk-wf{width:100%;height:30px;border-radius:5px;overflow:hidden;background:#12141b}
+.rk-fxstack{display:flex;gap:5px;width:100%;justify-content:center}
+.rk-fxq{width:26px;height:26px;border-radius:6px;font-size:10px;font-weight:800;background:#22262f;color:#6a6f7e;border:1px solid #2e333f}
+.rk-fxq.on{color:#1a1d26;border-color:transparent}
+.rk-fxq.on.d{background:#f5a623}.rk-fxq.on.r{background:#4ecdc4}.rk-fxq.on.eq{background:#a78bfa}
+.rk-pan{width:100%;display:flex;flex-direction:column;align-items:center;gap:5px}
+.rk-panl{color:#5f6474;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
+.rk-pandial{width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#2b303c,#191c24);border:1px solid #363b48;position:relative}
+.rk-pandial::after{content:"";position:absolute;top:5px;left:50%;transform:translateX(-50%);width:2px;height:11px;border-radius:1px;background:#f5a623}
+.rk-fader{flex:1;width:100%;display:flex;gap:9px;align-items:stretch;padding:4px 0}
+.rk-track{width:8px;border-radius:5px;background:#12141b;position:relative;margin:0 auto;border:1px solid #262a34}
+.rk-track i{position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:4px;border-radius:3px;background:linear-gradient(180deg,#f5a623,#d98e0f)}
+.rk-cap{position:absolute;left:50%;width:30px;height:15px;border-radius:4px;background:linear-gradient(180deg,#4a5060,#2b303c);border:1px solid #565c6c;transform:translate(-50%,50%)}
+.rk-meter{width:9px;border-radius:4px;background:#12141b;border:1px solid #262a34;position:relative;overflow:hidden;display:flex;flex-direction:column-reverse}
+.rk-meter i{width:100%;display:block}
+.rk-mnum{color:#8b90a0;font-size:10px;font-weight:700}
+.rk-ms{display:flex;gap:6px;width:100%}
+.rk-msb{flex:1;height:24px;border-radius:6px;font-size:11px;font-weight:800;background:#22262f;color:#6a6f7e;border:1px solid #2e333f}
+.rk-msb.m.on{background:#ff6b6b;color:#fff;border-color:transparent}
+.rk-msb.s.on{background:#f5a623;color:#1a1d26;border-color:transparent}
+</style>
+</helmet>
+<div class="root">
+
+<!-- ============ TURN 1 — three redesign directions ============ -->
+
+<section class="opt" id="1a">
+<div class="optbadge">
+<span class="chip-id">1a</span>
+<span class="opt-name">Lanes</span>
+<span class="opt-sub">DAW timeline — stacked track lanes, inline FX rack</span>
+<span class="opt-nav"><a href="#1a">1a</a><a href="#1b">1b</a><a href="#1c">1c</a></span>
+</div>
+<div class="lanes win">
+<div class="ln-top">
+<div class="ln-logo"><div class="ln-mark"><span></span></div><div class="ln-brand">Multitrack</div></div>
+<div class="ln-transport">
+<button class="tbtn ln-tp">⏮</button>
+<button class="tbtn ln-tp play">▶</button>
+<button class="tbtn ln-tp">⏹</button>
+<button class="tbtn ln-tp rec"><span class="dot"></span></button>
+</div>
+<div class="ln-clock"><div class="t mono">01:12.4</div><div class="l">Session Time</div></div>
+<div class="ln-right">
+<div class="ln-sess"><span class="name">Live Set 03 <em>· edited 2m ago</em></span><button>Save</button><button>Load</button><button>New</button></div>
+<div class="ln-master"><span class="ic">🔊</span><div class="ln-mfill"><i></i><b></b></div><span class="ln-mv mono">78</span></div>
+</div>
+</div>
+<div class="ln-ruler"><div class="tk">0:00</div><div class="tk">0:20</div><div class="tk">0:40</div><div class="tk">1:00</div><div class="tk">1:20</div><div class="tk">1:40</div><div class="tk">2:00</div><div class="tk">2:20</div></div>
+<div class="ln-body">
+
+<div class="lane">
+<div class="ln-hd"><div class="ln-clr" style="background:#ff4d6d"></div><div class="ln-meta"><div class="ln-nm">Lead Vocal</div><div class="ln-tags"><span class="ln-tag on r">R</span><span class="ln-tag">D</span><span class="ln-tag">EQ</span></div></div><div class="ln-ms"><button class="tbtn ln-msq m">M</button><button class="tbtn ln-msq s on">S</button></div></div>
+<div class="ln-wfwrap"><canvas class="wf ln-canvas" data-seed="7" data-c1="#ff4d6d" data-c2="#ff8fa3" data-prog="42"></canvas><div class="ln-play" style="left:42%"></div></div>
+<div class="ln-vol"><div class="ln-knob"><i></i></div><span class="ln-vnum mono">82</span></div>
+</div>
+
+<div class="lane sel">
+<div class="ln-hd"><div class="ln-clr" style="background:#a855f7"></div><div class="ln-meta"><div class="ln-nm">Rhodes Keys</div><div class="ln-tags"><span class="ln-tag on d">D</span><span class="ln-tag">R</span><span class="ln-tag">EQ</span></div></div><div class="ln-ms"><button class="tbtn ln-msq m">M</button><button class="tbtn ln-msq s">S</button></div></div>
+<div class="ln-wfwrap"><canvas class="wf ln-canvas" data-seed="3" data-c1="#a855f7" data-c2="#d8b4fe" data-prog="42"></canvas><div class="ln-play" style="left:42%"></div></div>
+<div class="ln-vol"><div class="ln-knob"><i></i></div><span class="ln-vnum mono">64</span></div>
+</div>
+
+<!-- inline delay FX panel under selected lane -->
+<div class="ln-fx">
+<div class="ln-fxcol">
+<div class="ln-fxh"><span class="ln-fxdot" style="background:#f5a623"></span><span class="nm">Delay</span><span class="st">● ON</span></div>
+<div class="ln-fxrow"><span class="ln-fxlab">Time</span><div class="ln-fxsl"><i style="width:31%;background:#f5a623"></i><b style="left:31%"></b></div><span class="ln-fxval mono">320 ms</span></div>
+<div class="ln-fxrow"><span class="ln-fxlab">Feedback</span><div class="ln-fxsl"><i style="width:45%;background:#f5a623"></i><b style="left:45%"></b></div><span class="ln-fxval mono">41 %</span></div>
+<div class="ln-fxrow"><span class="ln-fxlab">Mix</span><div class="ln-fxsl"><i style="width:28%;background:#f97316"></i><b style="left:28%"></b></div><span class="ln-fxval mono">28 %</span></div>
+</div>
+<div class="ln-fxcol">
+<div class="ln-fxh"><span class="ln-fxdot" style="background:#2dd4bf"></span><span class="nm">Reverb</span><span class="st" style="color:#5a5e78">○ OFF</span></div>
+<div class="ln-fxrow"><span class="ln-fxlab">Room</span><div class="ln-fxsl"><i style="width:50%;background:#334155"></i><b style="left:50%"></b></div><span class="ln-fxval">Hall</span></div>
+<div class="ln-fxrow"><span class="ln-fxlab">Pre-delay</span><div class="ln-fxsl"><i style="width:20%;background:#334155"></i><b style="left:20%"></b></div><span class="ln-fxval mono">40 ms</span></div>
+<div class="ln-fxrow"><span class="ln-fxlab">Mix</span><div class="ln-fxsl"><i style="width:0%;background:#334155"></i><b style="left:0%"></b></div><span class="ln-fxval mono">0 %</span></div>
+</div>
+<div class="ln-fxcol">
+<div class="ln-fxh"><span class="ln-fxdot" style="background:#38bdf8"></span><span class="nm">Fades</span><span class="st" style="color:#5a5e78">3 s</span></div>
+<div class="ln-fxrow"><span class="ln-fxlab" style="width:auto">Fade in</span><div class="ln-fxsl" style="max-width:90px"><i style="width:30%;background:#38bdf8"></i><b style="left:30%"></b></div><span class="ln-fxval mono">3.0 s</span></div>
+<div class="ln-fxrow"><span class="ln-fxlab" style="width:auto">Fade out</span><div class="ln-fxsl" style="max-width:90px"><i style="width:40%;background:#fb923c"></i><b style="left:40%"></b></div><span class="ln-fxval mono">4.0 s</span></div>
+<div class="ln-fxrow"><span class="ln-fxlab" style="width:auto">Seek fade</span><div class="ln-fxsl" style="max-width:90px"><i style="width:12%;background:#22c55e"></i><b style="left:12%"></b></div><span class="ln-fxval mono">1.0 s</span></div>
+</div>
+</div>
+
+<div class="lane">
+<div class="ln-hd"><div class="ln-clr" style="background:#2dd4bf"></div><div class="ln-meta"><div class="ln-nm">Bass DI</div><div class="ln-tags"><span class="ln-tag">D</span><span class="ln-tag">R</span><span class="ln-tag on eq">EQ</span></div></div><div class="ln-ms"><button class="tbtn ln-msq m on">M</button><button class="tbtn ln-msq s">S</button></div></div>
+<div class="ln-wfwrap"><canvas class="wf ln-canvas" data-seed="11" data-c1="#2dd4bf" data-c2="#5eead4" data-prog="42"></canvas><div class="ln-play" style="left:42%"></div></div>
+<div class="ln-vol"><div class="ln-knob"><i></i></div><span class="ln-vnum mono">71</span></div>
+</div>
+
+<div class="lane">
+<div class="ln-hd"><div class="ln-clr" style="background:#f5a623"></div><div class="ln-meta"><div class="ln-nm">Drums OH</div><div class="ln-tags"><span class="ln-tag">D</span><span class="ln-tag on r">R</span><span class="ln-tag">EQ</span></div></div><div class="ln-ms"><button class="tbtn ln-msq m">M</button><button class="tbtn ln-msq s">S</button></div></div>
+<div class="ln-wfwrap"><canvas class="wf ln-canvas" data-seed="19" data-c1="#f5a623" data-c2="#fcd34d" data-prog="42"></canvas><div class="ln-play" style="left:42%"></div></div>
+<div class="ln-vol"><div class="ln-knob"><i></i></div><span class="ln-vnum mono">88</span></div>
+</div>
+
+</div>
+<button class="tbtn ln-add">＋　Drop audio files or click to add a track</button>
+</div>
+</section>
+
+
+<section class="opt" id="1b">
+<div class="optbadge">
+<span class="chip-id">1b</span>
+<span class="opt-name">Cards</span>
+<span class="opt-sub">Evolved floating canvas — glass cards, drag anywhere</span>
+<span class="opt-nav"><a href="#1a">1a</a><a href="#1b">1b</a><a href="#1c">1c</a></span>
+</div>
+<div class="cards win">
+<div class="cd-top">
+<div class="cd-sess"><div class="cd-mark">M</div><div class="cd-sname">Live Set 03<em>4 tracks · autosaved</em></div><div class="cd-sactions"><button title="New">✚</button><button title="Save">⤓</button><button title="Load">⤒</button></div></div>
+<div class="cd-mtr"><span class="l">Session</span><span class="t mono">01:12.4</span></div>
+</div>
+
+<div class="card foc" style="left:40px;top:96px">
+<div class="cd-hd"><span class="cd-grip">⣿</span><span class="cd-nm">Lead Vocal</span><div class="cd-fx"><button class="tbtn cd-fxb on warm">D</button><button class="tbtn cd-fxb on">R</button><button class="tbtn cd-fxb">Q</button></div><button class="tbtn cd-x">✕</button></div>
+<div class="cd-time"><span class="c mono">0:31</span><span class="d mono">2:18</span></div>
+<canvas class="wf cd-canvas" data-seed="7" data-c1="#2dd4bf" data-c2="#38bdf8" data-prog="22"></canvas>
+<div class="cd-ctrls"><button class="tbtn cd-pb play">⏸</button><button class="tbtn cd-pb">⏹</button><div class="cd-tg"><button class="tbtn cd-tgb on l">L</button><button class="tbtn cd-tgb on i">I</button><button class="tbtn cd-tgb">O</button><button class="tbtn cd-tgb">S</button></div></div>
+<div class="cd-rev">
+<div class="cd-revh"><span class="nm">Reverb</span><span class="rm mono">34% wet</span></div>
+<div class="cd-selr"><span class="o">Room</span><span class="o on">Hall</span><span class="o">Plate</span><span class="o">Cathedral</span></div>
+<div class="cd-revrow"><span class="cd-revlab">Pre-delay</span><div class="cd-revsl"><i style="width:24%"></i><b style="left:24%"></b></div><span class="cd-revval mono">60ms</span></div>
+<div class="cd-revrow"><span class="cd-revlab">Damping</span><div class="cd-revsl"><i style="width:55%"></i><b style="left:55%"></b></div><span class="cd-revval mono">55%</span></div>
+</div>
+<div class="cd-vol"><span class="ic">🔊</span><div class="cd-vsl"><i style="width:82%"></i><b style="left:82%"></b></div><span class="cd-vv mono">82%</span></div>
+</div>
+
+<div class="card" style="left:392px;top:96px">
+<div class="cd-hd"><span class="cd-grip">⣿</span><span class="cd-nm">Rhodes Keys</span><div class="cd-fx"><button class="tbtn cd-fxb on">D</button><button class="tbtn cd-fxb">R</button><button class="tbtn cd-fxb">Q</button></div><button class="tbtn cd-x">✕</button></div>
+<div class="cd-time"><span class="c mono">0:31</span><span class="d mono">3:05</span></div>
+<canvas class="wf cd-canvas" data-seed="3" data-c1="#a855f7" data-c2="#d8b4fe" data-prog="17"></canvas>
+<div class="cd-ctrls"><button class="tbtn cd-pb play">⏸</button><button class="tbtn cd-pb">⏹</button><div class="cd-tg"><button class="tbtn cd-tgb">L</button><button class="tbtn cd-tgb on i">I</button><button class="tbtn cd-tgb on o">O</button><button class="tbtn cd-tgb">S</button></div></div>
+<div class="cd-vol"><span class="ic">🔊</span><div class="cd-vsl"><i style="width:64%"></i><b style="left:64%"></b></div><span class="cd-vv mono">64%</span></div>
+</div>
+
+<div class="card" style="left:392px;top:352px">
+<div class="cd-hd"><span class="cd-grip">⣿</span><span class="cd-nm">Bass DI</span><div class="cd-fx"><button class="tbtn cd-fxb">D</button><button class="tbtn cd-fxb">R</button><button class="tbtn cd-fxb on">Q</button></div><button class="tbtn cd-x">✕</button></div>
+<div class="cd-time"><span class="c mono">0:31</span><span class="d mono">2:18</span></div>
+<canvas class="wf cd-canvas" data-seed="11" data-c1="#2dd4bf" data-c2="#5eead4" data-prog="22"></canvas>
+<div class="cd-ctrls"><button class="tbtn cd-pb">▶</button><button class="tbtn cd-pb">⏹</button><div class="cd-tg"><button class="tbtn cd-tgb on l">L</button><button class="tbtn cd-tgb">I</button><button class="tbtn cd-tgb">O</button><button class="tbtn cd-tgb on i" style="background:#22c55e">S</button></div></div>
+<div class="cd-vol"><span class="ic">🔇</span><div class="cd-vsl"><i style="width:71%"></i><b style="left:71%"></b></div><span class="cd-vv mono">71%</span></div>
+</div>
+
+<div class="card" style="left:40px;top:520px;width:320px">
+<div class="cd-hd"><span class="cd-grip">⣿</span><span class="cd-nm">Drums OH</span><div class="cd-fx"><button class="tbtn cd-fxb">D</button><button class="tbtn cd-fxb on">R</button><button class="tbtn cd-fxb">Q</button></div><button class="tbtn cd-x">✕</button></div>
+<div class="cd-time"><span class="c mono">0:31</span><span class="d mono">2:44</span></div>
+<canvas class="wf cd-canvas" data-seed="19" data-c1="#fb923c" data-c2="#fcd34d" data-prog="19"></canvas>
+<div class="cd-ctrls"><button class="tbtn cd-pb play">⏸</button><button class="tbtn cd-pb">⏹</button><div class="cd-tg"><button class="tbtn cd-tgb">L</button><button class="tbtn cd-tgb">I</button><button class="tbtn cd-tgb on o">O</button><button class="tbtn cd-tgb">S</button></div></div>
+<div class="cd-vol"><span class="ic">🔊</span><div class="cd-vsl"><i style="width:88%"></i><b style="left:88%"></b></div><span class="cd-vv mono">88%</span></div>
+</div>
+
+<div class="cd-dock">
+<button class="tbtn cd-dpb play">▶ Play All</button>
+<button class="tbtn cd-dpb">⏹ Stop</button>
+<div class="cd-dsep"></div>
+<button class="tbtn cd-dpb rec"><span class="dot"></span> Record</button>
+<button class="tbtn cd-dpb open">＋ Open Files</button>
+</div>
+</div>
+</section>
+
+
+<section class="opt" id="1c">
+<div class="optbadge">
+<span class="chip-id">1c</span>
+<span class="opt-name">Rack</span>
+<span class="opt-sub">Mixing console — vertical channel strips, faders & meters</span>
+<span class="opt-nav"><a href="#1a">1a</a><a href="#1b">1b</a><a href="#1c">1c</a></span>
+</div>
+<div class="rack win">
+<div class="rk-top">
+<div class="rk-brand"><div class="rk-mark">M</div><div class="rk-bn">Multitrack <em>· Console</em></div></div>
+<div class="rk-tp"><button class="tbtn rk-tb play">▶</button><button class="tbtn rk-tb">⏹</button><button class="tbtn rk-tb rec"><span class="dot"></span></button></div>
+<div class="rk-clock mono">01:12.4 <small>/ 03:05</small></div>
+<div class="rk-sess"><span class="cur">Live Set 03</span><button>Save</button><button>Load</button><button>New</button></div>
+</div>
+<div class="rk-body">
+
+<div class="strip">
+<div class="rk-tt">Lead Vocal</div>
+<div class="rk-wf"><canvas class="wf" style="height:30px" data-seed="7" data-c1="#ff6b6b" data-c2="#ffa8a8" data-prog="42"></canvas></div>
+<div class="rk-fxstack"><button class="tbtn rk-fxq d">D</button><button class="tbtn rk-fxq on r">R</button><button class="tbtn rk-fxq eq">Q</button></div>
+<div class="rk-pan"><span class="rk-panl">Pan L2</span><div class="rk-pandial" style="transform:rotate(-24deg)"></div></div>
+<div class="rk-fader"><div class="rk-track" style="height:150px"><i style="height:82%"></i><div class="rk-cap" style="bottom:82%"></div></div><div class="rk-meter" style="height:150px"><i style="height:64%;background:linear-gradient(180deg,#4ecdc4,#f5a623 82%,#ff6b6b)"></i></div></div>
+<div class="rk-mnum mono">-2.4 dB</div>
+<div class="rk-ms"><button class="tbtn rk-msb m">M</button><button class="tbtn rk-msb s on">S</button></div>
+</div>
+
+<div class="strip">
+<div class="rk-tt">Rhodes Keys</div>
+<div class="rk-wf"><canvas class="wf" style="height:30px" data-seed="3" data-c1="#a78bfa" data-c2="#d8b4fe" data-prog="42"></canvas></div>
+<div class="rk-fxstack"><button class="tbtn rk-fxq on d">D</button><button class="tbtn rk-fxq r">R</button><button class="tbtn rk-fxq eq">Q</button></div>
+<div class="rk-pan"><span class="rk-panl">Pan R1</span><div class="rk-pandial" style="transform:rotate(12deg)"></div></div>
+<div class="rk-fader"><div class="rk-track" style="height:150px"><i style="height:64%"></i><div class="rk-cap" style="bottom:64%"></div></div><div class="rk-meter" style="height:150px"><i style="height:48%;background:linear-gradient(180deg,#4ecdc4,#f5a623 82%,#ff6b6b)"></i></div></div>
+<div class="rk-mnum mono">-6.1 dB</div>
+<div class="rk-ms"><button class="tbtn rk-msb m">M</button><button class="tbtn rk-msb s">S</button></div>
+</div>
+
+<div class="strip">
+<div class="rk-tt">Bass DI</div>
+<div class="rk-wf"><canvas class="wf" style="height:30px" data-seed="11" data-c1="#4ecdc4" data-c2="#96f2e6" data-prog="42"></canvas></div>
+<div class="rk-fxstack"><button class="tbtn rk-fxq d">D</button><button class="tbtn rk-fxq r">R</button><button class="tbtn rk-fxq on eq">Q</button></div>
+<div class="rk-pan"><span class="rk-panl">Center</span><div class="rk-pandial"></div></div>
+<div class="rk-fader"><div class="rk-track" style="height:150px"><i style="height:71%"></i><div class="rk-cap" style="bottom:71%"></div></div><div class="rk-meter" style="height:150px"><i style="height:38%;background:linear-gradient(180deg,#4ecdc4,#f5a623 82%,#ff6b6b)"></i></div></div>
+<div class="rk-mnum mono">-4.0 dB</div>
+<div class="rk-ms"><button class="tbtn rk-msb m on">M</button><button class="tbtn rk-msb s">S</button></div>
+</div>
+
+<div class="strip">
+<div class="rk-tt">Drums OH</div>
+<div class="rk-wf"><canvas class="wf" style="height:30px" data-seed="19" data-c1="#f5a623" data-c2="#fcd34d" data-prog="42"></canvas></div>
+<div class="rk-fxstack"><button class="tbtn rk-fxq d">D</button><button class="tbtn rk-fxq on r">R</button><button class="tbtn rk-fxq eq">Q</button></div>
+<div class="rk-pan"><span class="rk-panl">Pan R3</span><div class="rk-pandial" style="transform:rotate(36deg)"></div></div>
+<div class="rk-fader"><div class="rk-track" style="height:150px"><i style="height:88%"></i><div class="rk-cap" style="bottom:88%"></div></div><div class="rk-meter" style="height:150px"><i style="height:74%;background:linear-gradient(180deg,#4ecdc4,#f5a623 82%,#ff6b6b)"></i></div></div>
+<div class="rk-mnum mono">-1.0 dB</div>
+<div class="rk-ms"><button class="tbtn rk-msb m">M</button><button class="tbtn rk-msb s">S</button></div>
+</div>
+
+<div class="strip master">
+<div class="rk-tt">Master</div>
+<div class="rk-wf" style="background:#20242e;display:flex;align-items:center;justify-content:center;color:#6a6f7e;font-size:9px;font-weight:700;letter-spacing:.1em">OUT</div>
+<div class="rk-fxstack"><button class="tbtn rk-fxq" style="width:auto;padding:0 8px">REC</button></div>
+<div class="rk-pan"><span class="rk-panl">Balance</span><div class="rk-pandial"></div></div>
+<div class="rk-fader"><div class="rk-track" style="height:150px;width:10px"><i style="height:78%;width:5px;background:linear-gradient(180deg,#fff,#f5a623)"></i><div class="rk-cap" style="bottom:78%;width:34px"></div></div><div class="rk-meter" style="height:150px"><i style="height:70%;background:linear-gradient(180deg,#4ecdc4,#f5a623 82%,#ff6b6b)"></i></div><div class="rk-meter" style="height:150px"><i style="height:66%;background:linear-gradient(180deg,#4ecdc4,#f5a623 82%,#ff6b6b)"></i></div></div>
+<div class="rk-mnum mono">-0.8 dB</div>
+<div class="rk-ms"><button class="tbtn rk-msb" style="flex:1">DIM</button></div>
+</div>
+
+</div>
+</div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.draw();
+    // redraw on font load / resize for crispness
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => this.draw());
+    this._r = () => this.draw();
+    window.addEventListener('resize', this._r);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._r);
+  }
+  draw() {
+    const canvases = this.el ? this.el.querySelectorAll('canvas.wf') : document.querySelectorAll('canvas.wf');
+    canvases.forEach(cv => this.drawWave(cv));
+  }
+  drawWave(cv) {
+    const cw = cv.clientWidth, ch = cv.clientHeight;
+    if (!cw || !ch) return;
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(cw * dpr);
+    cv.height = Math.round(ch * dpr);
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cw, ch);
+
+    const seed = +cv.dataset.seed || 1;
+    const c1 = cv.dataset.c1 || '#ff4d6d';
+    const c2 = cv.dataset.c2 || '#a855f7';
+    const prog = (+cv.dataset.prog || 0) / 100;
+
+    let s = seed * 9301 + 49297;
+    const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+
+    const gap = 1;
+    const barW = 2;
+    const step = barW + gap;
+    const bars = Math.floor(cw / step);
+    const mid = ch / 2;
+
+    const grad = ctx.createLinearGradient(0, 0, cw, 0);
+    grad.addColorStop(0, c1);
+    grad.addColorStop(1, c2);
+
+    for (let i = 0; i < bars; i++) {
+      const x = i * step;
+      const t = i / bars;
+      // musical envelope: a few swells + transient noise
+      const env = 0.28
+        + 0.42 * Math.abs(Math.sin(i * 0.055 + seed))
+        + 0.30 * Math.pow(rnd(), 1.8);
+      const bh = Math.max(1.5, Math.min(1, env) * ch * 0.92);
+      const played = t <= prog;
+      if (played) {
+        ctx.fillStyle = grad;
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.fillStyle = c2;
+        ctx.globalAlpha = 0.22;
+      }
+      const r = Math.min(barW / 2, bh / 2);
+      this.roundRect(ctx, x, mid - bh / 2, barW, bh, r);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

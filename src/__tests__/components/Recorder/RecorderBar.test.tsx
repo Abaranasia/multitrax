@@ -78,7 +78,7 @@ describe('RecorderBar', () => {
   });
 
   it('renders Record button and idle time', () => {
-    render(
+    const { container } = render(
       <AudioProvider>
         <RecorderBar />
       </AudioProvider>,
@@ -86,6 +86,7 @@ describe('RecorderBar', () => {
 
     expect(screen.getByText('Record')).toBeTruthy();
     expect(screen.getByText('--:--')).toBeTruthy();
+    expect(container.querySelector('.recorder-bar')?.className).toContain('recorder-bar--top-right');
   });
 
   it('starts recording, updates elapsed time and triggers save on stop', async () => {

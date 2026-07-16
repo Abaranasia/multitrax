@@ -77,6 +77,20 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         engine.addTrack(id, audioBuffer);
 
+        const waveform = Array.from({ length: 48 }, (_, index) => {
+          const sliceStart = (index / 48) * (audioBuffer.length ?? 0);
+          const sliceEnd = ((index + 1) / 48) * (audioBuffer.length ?? 0);
+          const channelData = typeof audioBuffer.getChannelData === 'function'
+            ? audioBuffer.getChannelData(0)
+            : null;
+          let peak = 0;
+          for (let i = sliceStart; i < sliceEnd; i += 1) {
+            const value = channelData ? Math.abs(channelData[Math.floor(i)] ?? 0) : 0;
+            if (value > peak) peak = value;
+          }
+          return Math.min(1, peak * 1.4);
+        });
+
         const state: TrackState = {
           id,
           title: file.name,
@@ -101,6 +115,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           reverbPreDelay: 20,
           reverbDamping: 50,
           reverbOutput: 100,
+          waveform,
         };
 
         newEntries.push({

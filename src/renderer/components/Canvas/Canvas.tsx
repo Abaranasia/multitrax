@@ -22,27 +22,29 @@ export const Canvas = () => {
         <TrackPlayer key={t.state.id} state={t.state} x={t.x} y={t.y} />
       ))}
 
-      <button className="btn-open" onClick={onOpenFiles} title="Open audio files">
-        + Open Files
-      </button>
+      <div className="controls-bar" role="group" aria-label="Playback controls">
+        <button
+          className="btn-play-all"
+          onClick={playAll}
+          title="Play all tracks"
+          disabled={tracks.length === 0 || tracks.every(t => t.state.playing)}
+        >
+          ▶ Play All
+        </button>
 
-      <button
-        className="btn-stop-all"
-        onClick={stopAll}
-        title="Stop all tracks"
-        disabled={!tracks.some(t => t.state.playing)}
-      >
-        ⏹ Stop All
-      </button>
+        <button
+          className="btn-stop-all"
+          onClick={stopAll}
+          title="Stop all tracks"
+          disabled={!tracks.some(t => t.state.playing)}
+        >
+          ⏹ Stop All
+        </button>
 
-      <button
-        className="btn-play-all"
-        onClick={playAll}
-        title="Play all tracks"
-        disabled={tracks.length === 0 || tracks.every(t => t.state.playing)}
-      >
-        ▶ Play All
-      </button>
+        <button className="btn-open" onClick={onOpenFiles} title="Open audio files">
+          + Open Files
+        </button>
+      </div>
 
       <RecorderBar />
     </div>

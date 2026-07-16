@@ -90,6 +90,17 @@ describe('TrackPlayer', () => {
     return <TrackPlayer state={state} x={x} y={y} />;
   };
 
+  it('renders a waveform preview for the track', () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, waveform: [0.2, 0.6, 0.4] }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    expect(document.querySelector('.waveform-bars')).toBeTruthy();
+    expect(document.querySelectorAll('.waveform-bar').length).toBe(3);
+  });
+
   it('calls play and pause through the audio engine when playback button is clicked', async () => {
     render(
       <AudioProvider>

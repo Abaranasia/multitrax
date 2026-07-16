@@ -118,9 +118,21 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
         <span className="track-duration">{formatTime(state.duration)}</span>
       </div>
 
-      {/* Progress bar */}
-      <div className="progress-bar" onClick={onProgressClick} title="Seek">
-        <div className="progress-fill" style={{ width: `${progress}%` }} />
+      {/* Waveform preview */}
+      <div className="waveform-shell" onClick={onProgressClick} title="Seek">
+        <div className="waveform-bars" role="img" aria-label={`Waveform preview for ${state.title}`}>
+          {state.waveform?.map((value, index) => (
+            <span
+              key={`${state.id}-${index}`}
+              className="waveform-bar"
+              style={{
+                height: `${Math.max(10, value * 100)}%`,
+                opacity: index < Math.round((progress / 100) * (state.waveform?.length ?? 0)) ? 1 : 0.45,
+              }}
+            />
+          ))}
+        </div>
+        <div className="waveform-progress" style={{ width: `${progress}%` }} />
       </div>
 
       {/* Controls */}

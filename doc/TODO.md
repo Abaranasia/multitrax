@@ -38,6 +38,17 @@ what's meant to stay a focused mixing/monitoring tool.
   `bandpass`, `lowshelf`, `highshelf`, `peaking`, `notch`, `allpass`);
   chain multiple nodes for a parametric EQ.
 
+- [x] **Filter** — single sweepable `BiquadFilterNode` per track (distinct from
+  the multi-band Equalizer above): lowpass/highpass/bandpass type switch,
+  cutoff frequency, resonance (Q), mix, output level — the classic one-knob
+  "Filter" control on DJ mixers. **Implemented** — see `AudioEngine.ts`
+  (`_createFilterNodes`, `setFilterSettings`) and the new
+  `FilterSettingsDialog.tsx` / `useFilterSettingsDialog.ts` (built as an
+  independent component + hook per `doc/ARCHITECTURE.md`'s dialogs/overlays
+  convention, unlike the older inline Delay/Reverb panels). Sits **before**
+  delay/reverb in the chain (tone-shaping happens first):
+  `gainNode → filter insert → delay insert → reverb insert → masterGain`.
+
 - [ ] **Compressor / Limiter** — `DynamicsCompressorNode`; params: threshold,
   knee, ratio, attack, release; doubles as a master limiter at gain=1.
 
@@ -175,14 +186,17 @@ what's meant to stay a focused mixing/monitoring tool.
   be reused by other audio-related test suites without duplication.
 
 - [ ] **Extract per-track overlays/dialogs into independent components.**
-  The fade-duration settings panel and the reverb options dialog currently
-  live inline inside `TrackPlayer.tsx` (markup) and `useTrackPlayer.ts`
-  (state/logic), rather than as their own components. Split each into its own
-  component (e.g. `FadeSettingsDialog`, `ReverbSettingsDialog`) plus its own
-  hook/use-case for the linked logic, following the existing per-track setter
-  pattern (`AudioContext` → `AudioEngine`). Relocate the existing overlay
-  related tests out of `TrackPlayer.test.tsx` into dedicated test suites for
-  the new components once extracted.
+  The fade-duration settings panel and the reverb (and delay) options dialogs
+  currently live inline inside `TrackPlayer.tsx` (markup) and
+  `useTrackPlayer.ts` (state/logic), rather than as their own components.
+  Split each into its own component (e.g. `FadeSettingsDialog`,
+  `ReverbSettingsDialog`) plus its own hook/use-case for the linked logic,
+  following the existing per-track setter pattern (`AudioContext` →
+  `AudioEngine`). Relocate the existing overlay related tests out of
+  `TrackPlayer.test.tsx` into dedicated test suites for the new components
+  once extracted. `FilterSettingsDialog.tsx` / `useFilterSettingsDialog.ts`
+  (see the Filter effect above) are a concrete example of the target shape —
+  use them as the template.
 
 - [x] **Write down a standing architecture rule for dialogs/overlays** (see
   the new "Dialogs and overlays" convention added to `doc/ARCHITECTURE.md`):

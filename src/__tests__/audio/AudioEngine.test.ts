@@ -54,6 +54,7 @@ class FakeConvolver {
 class FakeBiquadFilter {
   type = 'lowpass';
   frequency = new FakeAudioParam(20000);
+  Q = new FakeAudioParam(1);
   connect() {}
   disconnect() {}
 }
@@ -200,6 +201,15 @@ describe('AudioEngine (unit)', () => {
     // but since implementation uses setTimeout, we can just call clearTimeout path by cancelFade
     // For test purpose ensure no exception and state remains valid
     expect(engine.getDuration('t5')).toBe(20);
+  });
+
+  it('setFilterSettings updates the filter chain without throwing', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 6 } as unknown as AudioBuffer;
+    engine.addTrack('t9', buf);
+    engine.setFilterSettings('t9', 'highpass', 500, 4, 70, 90);
+    // no throw; engine remains valid
+    expect(engine.getDuration('t9')).toBe(6);
   });
 
   it('setDelaySettings updates the delay chain without throwing', () => {

@@ -97,8 +97,13 @@ describe('TrackPlayer', () => {
       </AudioProvider>,
     );
 
-    expect(document.querySelector('.waveform-bars')).toBeTruthy();
-    expect(document.querySelectorAll('.waveform-bar').length).toBe(3);
+    expect(document.querySelector('.waveform-canvas')).toBeTruthy();
+    const canvas = document.querySelector('.waveform-canvas') as HTMLCanvasElement;
+    expect(canvas).toBeTruthy();
+    expect(canvas.width).toBeGreaterThan(0);
+    expect(canvas.height).toBeGreaterThan(0);
+    expect(canvas.style.width).toBe('100%');
+    expect(canvas.style.height).toBe('100%');
   });
 
   it('calls play and pause through the audio engine when playback button is clicked', async () => {

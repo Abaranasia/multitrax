@@ -180,6 +180,16 @@ what's meant to stay a focused mixing/monitoring tool.
   would need a clear "file not found" fallback per track rather than failing
   the whole load.
 
+- [ ] **Dashboard track-view reorganization** — add a dashboard-level action to
+  reorganize the visible track views in a consistent layout, such as aligning
+  cards by size, spacing, or a predictable grid/order when the user requests it.
+  This should help reduce visual clutter when many tracks are loaded.
+
+- [ ] **Mixer-style vertical track view** — add a second view mode that displays
+  track information in a vertical, console-like layout with one track per row,
+  making it easier to compare levels, mute/solo states, and per-track controls
+  at a glance.
+
 ---
 
 ## Coding improvements

@@ -153,24 +153,23 @@ describe('TrackPlayer', () => {
     );
 
     // Loop toggle
-    const loopLabel = screen.getByTitle('Enable loop');
-    const loopInput = loopLabel.querySelector('input') as HTMLInputElement;
-    fireEvent.click(loopInput);
+    const loopButton = screen.getByTitle('Enable loop');
+    fireEvent.click(loopButton);
     await waitFor(() => expect(mockAudioEngine.setLoop).toHaveBeenCalledWith('track-1', true));
 
     // Fade in toggle
-    const fadeInInput = document.querySelector('.toggle--fade-in input') as HTMLInputElement;
-    fireEvent.click(fadeInInput);
+    const fadeInButton = document.querySelector('.toggle--fade-in') as HTMLButtonElement;
+    fireEvent.click(fadeInButton);
     await waitFor(() => expect(mockAudioEngine.setFadeIn).toHaveBeenCalledWith('track-1', true));
 
     // Fade out toggle
-    const fadeOutInput = document.querySelector('.toggle--fade-out input') as HTMLInputElement;
-    fireEvent.click(fadeOutInput);
+    const fadeOutButton = document.querySelector('.toggle--fade-out') as HTMLButtonElement;
+    fireEvent.click(fadeOutButton);
     await waitFor(() => expect(mockAudioEngine.setFadeOut).toHaveBeenCalledWith('track-1', true));
 
     // Seek fade toggle
-    const seekFadeInput = document.querySelector('.toggle--seek-fade input') as HTMLInputElement;
-    fireEvent.click(seekFadeInput);
+    const seekFadeButton = document.querySelector('.toggle--seek-fade') as HTMLButtonElement;
+    fireEvent.click(seekFadeButton);
     await waitFor(() => expect(mockAudioEngine.setSeekFade).toHaveBeenCalledWith('track-1', true));
   });
 

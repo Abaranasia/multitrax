@@ -211,78 +211,56 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             ⏹
           </button>
 
-          {/* Loop toggle */}
-          <label
-            className={`loop-toggle toggle--loop${state.loop ? ' loop-on' : ''}`}
-            title={state.loop ? 'Disable loop' : 'Enable loop'}
-          >
-            <input
-              type="checkbox"
-              checked={state.loop}
-              onChange={e => setLoop(state.id, e.target.checked)}
-            />
-            <span className="loop-track">
-              <span className="loop-thumb" />
-            </span>
-            <span className="loop-label">L</span>
-          </label>
+          <div className="controls-group">
+            {/* Loop toggle */}
+            <button
+              type="button"
+              className={`loop-toggle toggle--loop${state.loop ? ' loop-on' : ''}`}
+              title={state.loop ? 'Disable loop' : 'Enable loop'}
+              onClick={() => setLoop(state.id, !state.loop)}
+            >
+              <span className="loop-label">L</span>
+            </button>
 
-          {/* Fade In toggle */}
-          <label
-            className={`loop-toggle toggle--fade-in${state.fadeIn ? ' loop-on' : ''}`}
-            title={state.fadeIn ? 'Disable fade in' : `Enable ${fmt(state.fadeInDuration)}s fade in on play`}
-          >
-            <input
-              type="checkbox"
-              checked={state.fadeIn}
-              onChange={e => setFadeIn(state.id, e.target.checked)}
-            />
-            <span className="loop-track">
-              <span className="loop-thumb" />
-            </span>
-            <span className="loop-label">I</span>
-          </label>
+            {/* Fade In toggle */}
+            <button
+              type="button"
+              className={`loop-toggle toggle--fade-in${state.fadeIn ? ' loop-on' : ''}`}
+              title={state.fadeIn ? 'Disable fade in' : `Enable ${fmt(state.fadeInDuration)}s fade in on play`}
+              onClick={() => setFadeIn(state.id, !state.fadeIn)}
+            >
+              <span className="loop-label">I</span>
+            </button>
 
-          {/* Fade Out toggle */}
-          <label
-            className={`loop-toggle toggle--fade-out${state.fadeOut ? ' loop-on' : ''}`}
-            title={state.fadeOut ? 'Disable fade out' : `Enable ${fmt(state.fadeOutDuration)}s fade out on stop/pause`}
-          >
-            <input
-              type="checkbox"
-              checked={state.fadeOut}
-              onChange={e => setFadeOut(state.id, e.target.checked)}
-            />
-            <span className="loop-track">
-              <span className="loop-thumb" />
-            </span>
-            <span className="loop-label">O</span>
-          </label>
+            {/* Fade Out toggle */}
+            <button
+              type="button"
+              className={`loop-toggle toggle--fade-out${state.fadeOut ? ' loop-on' : ''}`}
+              title={state.fadeOut ? 'Disable fade out' : `Enable ${fmt(state.fadeOutDuration)}s fade out on stop/pause`}
+              onClick={() => setFadeOut(state.id, !state.fadeOut)}
+            >
+              <span className="loop-label">O</span>
+            </button>
 
-          {/* Seek Fade toggle */}
-          <label
-            className={`loop-toggle toggle--seek-fade${state.seekFade ? ' loop-on' : ''}`}
-            title={state.seekFade ? 'Disable seek fade' : `Enable ${fmt(state.seekFadeDuration)}s fade out/in on seek`}
-          >
-            <input
-              type="checkbox"
-              checked={state.seekFade}
-              onChange={e => setSeekFade(state.id, e.target.checked)}
-            />
-            <span className="loop-track">
-              <span className="loop-thumb" />
-            </span>
-            <span className="loop-label">S</span>
-          </label>
+            {/* Seek Fade toggle */}
+            <button
+              type="button"
+              className={`loop-toggle toggle--seek-fade${state.seekFade ? ' loop-on' : ''}`}
+              title={state.seekFade ? 'Disable seek fade' : `Enable ${fmt(state.seekFadeDuration)}s fade out/in on seek`}
+              onClick={() => setSeekFade(state.id, !state.seekFade)}
+            >
+              <span className="loop-label">S</span>
+            </button>
 
-          {/* Fade-duration settings */}
-          <button
-            className="btn-settings"
-            onClick={openSettings}
-            title="Configure fade durations"
-          >
-            ⚙
-          </button>
+            {/* Fade-duration settings */}
+            <button
+              className="btn-settings"
+              onClick={openSettings}
+              title="Configure fade durations"
+            >
+              ⚙
+            </button>
+          </div>
         </div>
 
         {/* Volume — full width on its own row */}

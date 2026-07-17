@@ -153,6 +153,13 @@
   gap: 8px;
 }
 
+.controls-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
 .btn-playback {
   background: #0f3460;
   border: none;
@@ -176,15 +183,18 @@
 
 /* Loop toggle switch */
 .loop-toggle {
+  background: #0f3460;
+  border: none;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 16px;
+  width: 25px;
+  height: 25px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
   cursor: pointer;
-  user-select: none;
-  flex-shrink: 0;
-}
-.loop-toggle input {
-  display: none;
+  transition: background 0.15s;
 }
 .loop-track {
   position: relative;
@@ -299,20 +309,23 @@
 /* Settings gear button — pushed to the right end of the controls row,
    separated from the transport/toggle buttons on its left. */
 .btn-settings {
-  background: none;
+  background: #0f3460;
   border: none;
-  color: #555;
+  border-radius: 6px;
+  color: #e0e0e0;
   cursor: pointer;
   font-size: 13px;
-  padding: 2px 3px;
-  border-radius: 4px;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
-  transition: color 0.15s;
+  transition: background 0.15s;
   flex-shrink: 0;
-  margin-left: auto;
 }
 .btn-settings:hover {
-  color: #ccc;
+  background: #e94560;
 }
 
 /* Delay / Reverb settings buttons — white by default, orange on hover,

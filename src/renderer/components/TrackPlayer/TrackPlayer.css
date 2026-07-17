@@ -34,6 +34,12 @@
   min-height: 225px;
 }
 
+/* The filter panel has the same row count (title + dropdown + 3 fields +
+   actions) as the reverb panel, so it needs the same extra headroom. */
+.track-player--filter-open {
+  min-height: 225px;
+}
+
 .track-header {
   display: flex;
   align-items: center;
@@ -321,8 +327,9 @@
   color: #ccc;
 }
 
-/* Delay / Reverb settings buttons — white by default, orange on hover,
-   filled rounded green when the effect is active (mix > 0). */
+/* Filter / Delay / Reverb settings buttons — white by default, orange on
+   hover, filled rounded green when the effect is active (mix > 0). */
+.btn-filter,
 .btn-delay,
 .btn-reverb {
   background: none;
@@ -342,16 +349,19 @@
   transition: color 0.15s, background-color 0.15s, border-color 0.15s;
   flex-shrink: 0;
 }
+.btn-filter:hover,
 .btn-delay:hover,
 .btn-reverb:hover {
   color: #f59e0b;
 }
+.btn-filter--active,
 .btn-delay--active,
 .btn-reverb--active {
   color: #fff;
   background-color: #22c55e;
   border-color: #16a34a;
 }
+.btn-filter--active:hover,
 .btn-delay--active:hover,
 .btn-reverb--active:hover {
   color: #fff;

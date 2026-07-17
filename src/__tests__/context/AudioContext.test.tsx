@@ -23,6 +23,7 @@ const mockAudioEngine = {
   setFadeOut: vi.fn(),
   setSeekFade: vi.fn(),
   setFadeDurations: vi.fn(),
+  setFilterSettings: vi.fn(),
   setDelaySettings: vi.fn(),
   setReverbSettings: vi.fn(),
   isPlaying: vi.fn().mockReturnValue(false),
@@ -246,5 +247,8 @@ describe('AudioContext', () => {
     expect(screen.getByTestId('clone-title').textContent).toBe('Guitar copy');
     expect(screen.getByTestId('clone-playing').textContent).toBe('false');
     expect(mockAudioEngine.setPan).toHaveBeenCalledWith(CLONE_ID, 0);
+    expect(mockAudioEngine.setFilterSettings).toHaveBeenCalledWith(
+      CLONE_ID, 'lowpass', 1000, 1, 0, 100,
+    );
   });
 });

@@ -2,6 +2,8 @@ import { ReverbRoom, TrackState } from '../../domain/TrackState';
 import { formatTime } from '../../utils/formatTime';
 import { useTrackPlayer } from './useTrackPlayer';
 import { TrackContextMenu } from './TrackContextMenu';
+import { FilterSettingsDialog } from './FilterSettingsDialog';
+import { useFilterSettingsDialog } from './useFilterSettingsDialog';
 
 import './TrackPlayer.css';
 
@@ -71,10 +73,12 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
     duplicate,
   } = useTrackPlayer({ state, x, y });
 
+  const filterDialog = useFilterSettingsDialog(state);
+
   return (
     <div
       ref={cardRef}
-      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}${delaySettingsOpen ? ' track-player--delay-open' : ''}`}
+      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}${delaySettingsOpen ? ' track-player--delay-open' : ''}${filterDialog.isOpen ? ' track-player--filter-open' : ''}`}
       style={{ left: x, top: y }}
       onMouseDown={onMouseDown}
       onContextMenu={onContextMenu}
@@ -89,6 +93,15 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             the transport/toggle controls below, so this row has room to grow
             as more effects are added. */}
         <div className="track-effects">
+          {/* Filter settings */}
+          <button
+            className={`btn-filter${state.filterMix > 0 ? ' btn-filter--active' : ''}`}
+            onClick={filterDialog.open}
+            title="Filter settings"
+          >
+            F
+          </button>
+
           {/* Delay settings */}
           <button
             className={`btn-delay${state.delayMix > 0 ? ' btn-delay--active' : ''}`}
@@ -448,6 +461,24 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Filter settings overlay ──────────────────────────────────────── */}
+      {filterDialog.isOpen && (
+        <FilterSettingsDialog
+          draftType={filterDialog.draftType}
+          setDraftType={filterDialog.setDraftType}
+          draftCutoff={filterDialog.draftCutoff}
+          setDraftCutoff={filterDialog.setDraftCutoff}
+          draftResonance={filterDialog.draftResonance}
+          setDraftResonance={filterDialog.setDraftResonance}
+          draftMix={filterDialog.draftMix}
+          setDraftMix={filterDialog.setDraftMix}
+          draftOutput={filterDialog.draftOutput}
+          setDraftOutput={filterDialog.setDraftOutput}
+          onApply={filterDialog.apply}
+          onCancel={filterDialog.close}
+        />
       )}
 
       {/* ── Right-click context menu ─────────────────────────────────────── */}

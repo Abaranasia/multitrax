@@ -275,7 +275,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             onChange={e => setVolume(state.id, parseFloat(e.target.value))}
             title={`Volume: ${Math.round(state.volume * 100)}%`}
             style={{
-              background: `linear-gradient(90deg, #d4dddc 0%, #2dd4bf ${Math.round(state.volume * 100)}%, #0f3460 ${Math.round(state.volume * 100)}%, #0f3460 100%)`,
+              background: `linear-gradient(90deg, #abc5c2 0%, #239989 ${Math.round(state.volume * 100)}%, #0f3460 ${Math.round(state.volume * 100)}%, #0f3460 100%)`,
             }}
           />
           <span className="volume-value">{Math.round(state.volume * 100)}%</span>

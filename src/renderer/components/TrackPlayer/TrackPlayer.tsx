@@ -145,7 +145,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
       {/* Header */}
       <div className="track-header">
         <span className="track-title" title={state.title}>
-          {state.title}
+          {state.title.split(/[\\/]/).pop() ?? state.title}
         </span>
 
         {/* Effects section — per-track effect toggles live here, separate from
@@ -274,6 +274,9 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             value={state.volume}
             onChange={e => setVolume(state.id, parseFloat(e.target.value))}
             title={`Volume: ${Math.round(state.volume * 100)}%`}
+            style={{
+              background: `linear-gradient(90deg, #d4dddc 0%, #2dd4bf ${Math.round(state.volume * 100)}%, #0f3460 ${Math.round(state.volume * 100)}%, #0f3460 100%)`,
+            }}
           />
           <span className="volume-value">{Math.round(state.volume * 100)}%</span>
         </div>

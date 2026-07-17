@@ -49,7 +49,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #e94560;
+  color: #2dd4bf;
 }
 
 /* Effects section — houses per-track effect toggles (delay, reverb, and any
@@ -61,8 +61,8 @@
   gap: 4px;
   flex-shrink: 0;
   border: 1px solid #666;
-  border-radius: 15px;
-  padding: 0 10px;
+  border-radius: 10px;
+  padding: 2px 10px;
 }
 
 .btn-close {
@@ -77,7 +77,7 @@
   flex-shrink: 0;
 }
 .btn-close:hover {
-  color: #e94560;
+  color: #2dd4bf;
 }
 
 .track-time {
@@ -175,10 +175,12 @@
   transition: background 0.15s;
 }
 .btn-playback:hover {
-  background: #e94560;
+  background: #2dd4bf;
+  color: #000000;
 }
 .btn-playback.active {
-  background: #e94560;
+  background: #2dd4bf;
+  color: #000000;
 }
 
 /* Loop toggle switch */
@@ -194,7 +196,15 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
+}
+.loop-toggle:hover {
+  background: #1a3a70;
+  color: #e0e0e0;
+}
+.loop-toggle.loop-on {
+  background: #a855f7;
+  color: #ffffff;
 }
 .loop-track {
   position: relative;
@@ -230,10 +240,10 @@
   transition: color 0.2s;
 }
 .loop-on .loop-label {
-  color: #a855f7;
+   color: #FFFFFF;
 }
 .loop-toggle:hover .loop-track {
-  background: #1a3a70;
+  background: #a855f7;
 }
 .loop-on:hover .loop-track {
   background: #5b21b6;
@@ -250,23 +260,36 @@
    ────────────────────────────────────────────────────────────────────────── */
 
 /* Fade In — cyan */
+.toggle--fade-in.loop-on {
+  background: #06b6d4;
+  color: #FFFFFF;
+}
 .toggle--fade-in.loop-on .loop-track       { background: #134e4a; }
 .toggle--fade-in.loop-on .loop-thumb       { background: #06b6d4; }
-.toggle--fade-in.loop-on .loop-label       { color: #06b6d4; }
+.toggle--fade-in.loop-on .loop-label       { color: #FFFFFF; }
 .toggle--fade-in:hover .loop-label         { color: #67e8f9; }
 .toggle--fade-in.loop-on:hover .loop-track { background: #155e57; }
 
 /* Fade Out — orange */
+.toggle--fade-out.loop-on {
+  background: #f97316;
+  color: #FFFFFF;
+;
+}
 .toggle--fade-out.loop-on .loop-track       { background: #7c2d12; }
 .toggle--fade-out.loop-on .loop-thumb       { background: #f97316; }
-.toggle--fade-out.loop-on .loop-label       { color: #f97316; }
+.toggle--fade-out.loop-on .loop-label       { color: #FFFFFF; }
 .toggle--fade-out:hover .loop-label         { color: #fdba74; }
 .toggle--fade-out.loop-on:hover .loop-track { background: #9a3412; }
 
 /* Seek Fade — green */
+.toggle--seek-fade.loop-on {
+  background: #22c55e;
+  color: #FFFFFF;
+}
 .toggle--seek-fade.loop-on .loop-track       { background: #14532d; }
 .toggle--seek-fade.loop-on .loop-thumb       { background: #22c55e; }
-.toggle--seek-fade.loop-on .loop-label       { color: #22c55e; }
+.toggle--seek-fade.loop-on .loop-label       { color: #FFFFFF; }
 .toggle--seek-fade:hover .loop-label         { color: #86efac; }
 .toggle--seek-fade.loop-on:hover .loop-track { background: #166534; }
 
@@ -296,8 +319,9 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #e94560;
+  background: #2dd4bf;
   cursor: pointer;
+  box-shadow: 0 0 0 2px rgba(15, 52, 96, 0.9);
 }
 .volume-value {
   font-size: 11px;
@@ -325,7 +349,8 @@
   flex-shrink: 0;
 }
 .btn-settings:hover {
-  background: #e94560;
+  background: #2dd4bf;
+  color: #000000;
 }
 
 /* Delay / Reverb settings buttons — white by default, orange on hover,
@@ -356,7 +381,7 @@
 .btn-delay--active,
 .btn-reverb--active {
   color: #fff;
-  background-color: #22c55e;
+  background-color: #2dd4bf;
   border-color: #16a34a;
 }
 .btn-delay--active:hover,

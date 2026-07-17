@@ -106,6 +106,21 @@ describe('TrackPlayer', () => {
     expect(canvas.style.height).toBe('100%');
   });
 
+  it('shows only the file name in the visible title while keeping the full path in the tooltip', () => {
+    const fullPath = 'C:/Users/demo/Music/track-name.wav';
+
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, title: fullPath }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const title = document.querySelector('.track-title') as HTMLSpanElement;
+    expect(title).toBeTruthy();
+    expect(title.textContent).toBe('track-name.wav');
+    expect(title.getAttribute('title')).toBe(fullPath);
+  });
+
   it('calls play and pause through the audio engine when playback button is clicked', async () => {
     render(
       <AudioProvider>

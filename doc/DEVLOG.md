@@ -395,3 +395,25 @@ The project already existed with the following features before the logged sessio
   duplicated again, confirming the new clone's delay panel showed identical
   values while the earlier clone (made before the change) was unaffected.
 - Checked off the "Clone track" item in `doc/TODO.md`.
+
+---
+
+## [2026-07-17] — TrackPlayer UI rework
+
+**Files:** `src/renderer/components/TrackPlayer/TrackPlayer.tsx`,
+`src/renderer/components/TrackPlayer/TrackPlayer.css`,
+`src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx`
+
+- Refined the waveform preview so it fills the track-card shell cleanly and
+  renders the bars with the correct sizing and alignment inside the container.
+- Replaced the checkbox-style toggle controls with compact button-styled
+  actions, using clearer active-state accents for loop, fade-in, fade-out, and
+  seek-fade behavior.
+- Grouped the per-track controls on the right side of the card, and unified the
+  settings button styling so it matches the other compact actions.
+- Updated the visible track title to show only the file name while preserving the
+  full path in the tooltip for quick context.
+- Restyled the volume slider with a stronger accent fill and thumb treatment to
+  make the current level easier to read at a glance.
+- Updated the TrackPlayer regression tests to cover the new button controls and
+  the shortened title presentation.

@@ -63,6 +63,12 @@ class FakeMediaStreamDestination {
   stream = {} as MediaStream;
 }
 
+class FakePanner {
+  pan = new FakeAudioParam(0);
+  connect() {}
+  disconnect() {}
+}
+
 class FakeAudioContext {
   currentTime: number = 0;
   sampleRate = 44100;
@@ -74,6 +80,7 @@ class FakeAudioContext {
   createDelay(_maxDelay?: number) { return new FakeDelay(); }
   createConvolver() { return new FakeConvolver(); }
   createBiquadFilter() { return new FakeBiquadFilter(); }
+  createStereoPanner() { return new FakePanner(); }
   createBuffer(numberOfChannels: number, length: number, sampleRate: number) {
     const channels = Array.from({ length: numberOfChannels }, () => new Float32Array(length));
     return {
@@ -182,6 +189,16 @@ describe('AudioEngine (unit)', () => {
     engine.setVolume('t4', 2);
     // no throw; validate getDuration still works
     expect(engine.getDuration('t4')).toBe(2);
+  });
+
+  it('setPan clamps value and updates the panner', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 2 } as unknown as AudioBuffer;
+    engine.addTrack('t4b', buf);
+    engine.setPan('t4b', -0.5);
+    engine.setPan('t4b', 5); // clamps to 1
+    // no throw; validate getDuration still works
+    expect(engine.getDuration('t4b')).toBe(2);
   });
 
   it('seek updates offsets when not playing and when playing with seekFade', () => {

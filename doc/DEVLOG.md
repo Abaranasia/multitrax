@@ -472,3 +472,79 @@ The project already existed with the following features before the logged sessio
 - Checked off the "Filter" item in `doc/TODO.md`, and added a note pointing
   to `FilterSettingsDialog`/`useFilterSettingsDialog` as the concrete
   template for the pending fade/delay/reverb panel extraction.
+
+---
+
+## [2026-07-12] — Stereo Pan (always-on control, not an effect dialog)
+
+**Files:** `src/renderer/domain/TrackState.ts`, `src/renderer/audio/AudioEngine.ts`,
+`src/renderer/context/AudioContext.tsx`, `src/renderer/components/TrackPlayer/useTrackPlayer.ts`,
+`src/renderer/components/TrackPlayer/TrackPlayer.tsx`, `src/renderer/components/TrackPlayer/TrackPlayer.css`,
+`src/__tests__/audio/AudioEngine.test.ts`, `src/__tests__/context/AudioContext.test.tsx`,
+`src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx`, `doc/TODO.md`
+
+- Added a per-track `StereoPannerNode` — a single-parameter node (`.pan`,
+  -1 to 1), unlike the Delay/Reverb inserts this needs no dry/wet split or
+  sub-graph. Per `doc/TODO.md`'s own note ("drop-in before `masterGain`"),
+  it's the **last** stage of the per-track chain: `gainNode → delay →
+  reverb → pannerNode → masterGain`.
+- `_createReverbNodes()` used to connect its `outputGain` straight to
+  `masterGain` internally (reverb was previously the last stage). That
+  connection moved to `addTrack`, mirroring how the delay insert's
+  `outputGain` was already left deliberately unconnected for the caller to
+  wire onward — reverb's `outputGain` now does the same, feeding into the
+  new `pannerNode`.
+- Added `pan: number` to `TrackState` (0 = center, default for new tracks)
+  and `AudioEngine.setPan(id, value)`, clamping to [-1, 1] and ramping via
+  `setTargetAtTime` — same shape as `setVolume`.
+- Unlike every effect built so far (Delay, Reverb — both opt-in, behind a
+  settings button + draft/Apply/Cancel dialog), pan is a core, always-on
+  mixing control per the user's explicit request: a plain
+  `<input type="range" min={-1} max={1}>` rendered directly in the card
+  body, applied live on every `onChange` exactly like the existing Volume
+  slider — no dialog, no draft state, no `useTrackPlayer.ts` settings-open
+  boilerplate needed.
+- Positioned the pan row directly **above** Volume in `TrackPlayer.tsx`,
+  with `L`/`R` labels at the two range extremes (matching the Volume row's
+  icon-plus-label layout convention) and a tooltip mirroring Volume's
+  (`"Pan: Center"` / `"35% Left"` / `"70% Right"`). Reused Volume's red
+  accent (`#e94560`) on the slider thumb since pan is a core control, not a
+  colour-coded "effect" like Delay/Reverb.
+- Bumped `.track-controls`'s row gap (8px → 10px) to give the card a touch
+  more breathing room for the extra row — the card has no fixed height
+  (grows with content), so no hard height override was needed.
+- Updated `duplicateTrack` to also call `engine.setPan` with the source's
+  pan value — it's a persistent per-track setting like volume, so it's
+  copied on clone rather than reset like `currentTime`/`playing`.
+- Added tests: `AudioEngine.test.ts` (`createStereoPanner`/`FakePanner`
+  added to the `FakeAudioContext` fixture; a `setPan` smoke test),
+  `AudioContext.test.tsx` (extended the `duplicateTrack` test to assert
+  `setPan` is called with the source's pan), `TrackPlayer.test.tsx` (pan
+  slider renders centered by default with the right min/max, appears before
+  the volume control in document order, and calls `engine.setPan` on
+  change).
+- Verified end-to-end in-browser: dropped a synthetic WAV, confirmed the
+  pan slider renders above Volume labelled "Pan: Center"; dragged it to
+  75% left and confirmed the tooltip updated with no console errors;
+  duplicated the panned track and confirmed the clone's pan slider showed
+  the identical -0.75 (75% Left) position.
+- Checked off the "Stereo Pan" item in `doc/TODO.md`.
+
+---
+
+## [2026-07-12] — Pan slider: double-click to recenter
+
+**Files:** `src/renderer/components/TrackPlayer/TrackPlayer.tsx`,
+`src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx`, `doc/TODO.md`
+
+- Added an `onDoubleClick={() => setPan(state.id, 0)}` handler to the pan
+  slider, so double-clicking anywhere on the fader snaps it back to center
+  (0%) — a common convention for pan controls (avoids having to drag back
+  to the exact midpoint by hand).
+- Added a `TrackPlayer.test.tsx` test: renders with `pan: -0.6`, fires a
+  double-click on the pan input, asserts `engine.setPan` is called with 0.
+- Verified end-to-end in-browser: set the pan slider to 80% right, then
+  dispatched a `dblclick` on it and confirmed it reset to `Pan: Center`
+  with no console errors.
+- Noted the shortcut in the "Stereo Pan" entry in `doc/TODO.md`.
+

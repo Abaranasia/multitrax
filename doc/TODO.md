@@ -52,8 +52,14 @@ what's meant to stay a focused mixing/monitoring tool.
 - [ ] **Compressor / Limiter** — `DynamicsCompressorNode`; params: threshold,
   knee, ratio, attack, release; doubles as a master limiter at gain=1.
 
-- [ ] **Stereo Pan** — `StereoPannerNode`; range -1 (full left) to +1 (full
-  right); straightforward drop-in before `masterGain`.
+- [x] **Stereo Pan** — `StereoPannerNode`; range -1 (full left) to +1 (full
+  right). **Implemented** — see `AudioEngine.ts` (`setPan`) and
+  `TrackPlayer.tsx` (the pan slider, rendered above the volume control).
+  Unlike Delay/Reverb, this is an always-visible plain `<input type="range">`
+  applied live on every change — no settings dialog, no draft/Apply/Cancel,
+  same treatment as the Volume slider. Sits as the last stage of the
+  per-track chain, right before `masterGain`: `gainNode → delay → reverb →
+  pannerNode → masterGain`. Double-clicking the slider recenters it to 0%.
 
 - [ ] **3-D Spatial Audio** — `PannerNode` with HRTF model; full x/y/z position
   and orientation control; useful for immersive mixing.
@@ -173,6 +179,16 @@ what's meant to stay a focused mixing/monitoring tool.
   settings via the existing per-track setters. Missing/moved source files
   would need a clear "file not found" fallback per track rather than failing
   the whole load.
+
+- [ ] **Dashboard track-view reorganization** — add a dashboard-level action to
+  reorganize the visible track views in a consistent layout, such as aligning
+  cards by size, spacing, or a predictable grid/order when the user requests it.
+  This should help reduce visual clutter when many tracks are loaded.
+
+- [ ] **Mixer-style vertical track view** — add a second view mode that displays
+  track information in a vertical, console-like layout with one track per row,
+  making it easier to compare levels, mute/solo states, and per-track controls
+  at a glance.
 
 ---
 

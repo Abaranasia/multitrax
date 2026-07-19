@@ -14,6 +14,7 @@ const mockAudioEngine = {
   playAll: vi.fn(),
   seek: vi.fn(),
   setVolume: vi.fn(),
+  setPan: vi.fn(),
   setLoop: vi.fn(),
   setFadeIn: vi.fn(),
   setFadeOut: vi.fn(),
@@ -42,6 +43,7 @@ describe('TrackPlayer', () => {
     duration: 12,
     currentTime: 0,
     volume: 1,
+    pan: 0,
     loop: false,
     playing: false,
     fadeIn: false,
@@ -429,5 +431,38 @@ describe('TrackPlayer', () => {
     const volumeInput = document.querySelector('.volume-control input[type=range]') as HTMLInputElement;
     fireEvent.change(volumeInput, { target: { value: '0.5' } });
     await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenCalledWith('track-1', 0.5));
+  });
+
+  it('renders the pan slider above the volume control, centered by default, and calls engine.setPan', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const panInput = document.querySelector('.pan-control input[type=range]') as HTMLInputElement;
+    expect(panInput.value).toBe('0');
+    expect(panInput.min).toBe('-1');
+    expect(panInput.max).toBe('1');
+
+    // Pan control should come before the volume control in document order.
+    const controls = Array.from(document.querySelectorAll('.pan-control, .volume-control'));
+    expect(controls[0].className).toContain('pan-control');
+    expect(controls[1].className).toContain('volume-control');
+
+    fireEvent.change(panInput, { target: { value: '-0.6' } });
+    await waitFor(() => expect(mockAudioEngine.setPan).toHaveBeenCalledWith('track-1', -0.6));
+  });
+
+  it('recenters pan to 0 when the pan slider is double-clicked', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, pan: -0.6 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const panInput = document.querySelector('.pan-control input[type=range]') as HTMLInputElement;
+    fireEvent.doubleClick(panInput);
+    await waitFor(() => expect(mockAudioEngine.setPan).toHaveBeenCalledWith('track-1', 0));
   });
 });

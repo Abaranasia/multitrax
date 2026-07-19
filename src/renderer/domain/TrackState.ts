@@ -4,6 +4,7 @@ export interface TrackState {
   duration: number;         // seconds
   currentTime: number;      // seconds
   volume: number;           // 0–1
+  pan: number;              // -1 (left) to 1 (right), 0 = center
   loop: boolean;
   playing: boolean;
   fadeIn: boolean;

@@ -67,6 +67,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
     setSeekFade,
     removeTrack,
     setVolume,
+    setPan,
     contextMenuPosition,
     onContextMenu,
     duplicate,
@@ -225,6 +226,28 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
           >
             ⚙
           </button>
+        </div>
+
+        {/* Pan — full width on its own row, above Volume */}
+        <div className="pan-control">
+          <span className="pan-label">L</span>
+          <input
+            type="range"
+            min={-1}
+            max={1}
+            step={0.01}
+            value={state.pan}
+            onChange={e => setPan(state.id, parseFloat(e.target.value))}
+            onDoubleClick={() => setPan(state.id, 0)}
+            title={`Pan: ${
+              state.pan === 0
+                ? 'Center'
+                : state.pan < 0
+                  ? `${Math.round(-state.pan * 100)}% Left`
+                  : `${Math.round(state.pan * 100)}% Right`
+            }`}
+          />
+          <span className="pan-label">R</span>
         </div>
 
         {/* Volume — full width on its own row */}

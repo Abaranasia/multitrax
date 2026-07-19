@@ -55,7 +55,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #e94560;
+  color: #2dd4bf;
 }
 
 /* Effects section — houses per-track effect toggles (delay, reverb, and any
@@ -67,8 +67,8 @@
   gap: 4px;
   flex-shrink: 0;
   border: 1px solid #666;
-  border-radius: 15px;
-  padding: 0 10px;
+  border-radius: 10px;
+  padding: 2px 10px;
 }
 
 .btn-close {
@@ -83,7 +83,7 @@
   flex-shrink: 0;
 }
 .btn-close:hover {
-  color: #e94560;
+  color: #2dd4bf;
 }
 
 .track-time {
@@ -98,22 +98,51 @@
   color: #666;
 }
 
-/* Progress bar */
-.progress-bar {
-  height: 6px;
-  background: #0f3460;
-  border-radius: 3px;
-  cursor: pointer;
-  margin-bottom: 12px;
+/* Waveform preview */
+.waveform-shell {
   position: relative;
+  height: 65px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(15, 52, 96, 0.95), rgba(8, 24, 47, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
+  cursor: pointer;
 }
-.progress-fill {
+
+.waveform-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, #e94560, #a855f7);
-  border-radius: 3px;
-  transition: width 0.1s linear;
+}
+
+.waveform-bars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  
+  padding: 8px 10px;
+}
+
+.waveform-bar {
+  width: 1px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #64d2ff 0%, #a855f7 100%);
+  transition: height 0.15s linear, opacity 0.15s linear;
+}
+
+.waveform-progress {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: linear-gradient(90deg, rgba(233, 69, 96, 0.16), rgba(233, 69, 96, 0.45));
+  border-right: 1px solid rgba(233, 69, 96, 0.4);
   pointer-events: none;
+  transition: width 0.1s linear;
 }
 
 /* Controls */
@@ -128,6 +157,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.controls-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
 }
 
 .btn-playback {
@@ -145,23 +181,36 @@
   transition: background 0.15s;
 }
 .btn-playback:hover {
-  background: #e94560;
+  background: #2dd4bf;
+  color: #000000;
 }
 .btn-playback.active {
-  background: #e94560;
+  background: #2dd4bf;
+  color: #000000;
 }
 
 /* Loop toggle switch */
 .loop-toggle {
+  background: #0f3460;
+  border: none;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 16px;
+  width: 25px;
+  height: 25px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
   cursor: pointer;
-  user-select: none;
-  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
 }
-.loop-toggle input {
-  display: none;
+.loop-toggle:hover {
+  background: #1a3a70;
+  color: #e0e0e0;
+}
+.loop-toggle.loop-on {
+  background: #a855f7;
+  color: #ffffff;
 }
 .loop-track {
   position: relative;
@@ -197,10 +246,10 @@
   transition: color 0.2s;
 }
 .loop-on .loop-label {
-  color: #a855f7;
+   color: #FFFFFF;
 }
 .loop-toggle:hover .loop-track {
-  background: #1a3a70;
+  background: #a855f7;
 }
 .loop-on:hover .loop-track {
   background: #5b21b6;
@@ -217,23 +266,36 @@
    ────────────────────────────────────────────────────────────────────────── */
 
 /* Fade In — cyan */
+.toggle--fade-in.loop-on {
+  background: #06b6d4;
+  color: #FFFFFF;
+}
 .toggle--fade-in.loop-on .loop-track       { background: #134e4a; }
 .toggle--fade-in.loop-on .loop-thumb       { background: #06b6d4; }
-.toggle--fade-in.loop-on .loop-label       { color: #06b6d4; }
+.toggle--fade-in.loop-on .loop-label       { color: #FFFFFF; }
 .toggle--fade-in:hover .loop-label         { color: #67e8f9; }
 .toggle--fade-in.loop-on:hover .loop-track { background: #155e57; }
 
 /* Fade Out — orange */
+.toggle--fade-out.loop-on {
+  background: #f97316;
+  color: #FFFFFF;
+;
+}
 .toggle--fade-out.loop-on .loop-track       { background: #7c2d12; }
 .toggle--fade-out.loop-on .loop-thumb       { background: #f97316; }
-.toggle--fade-out.loop-on .loop-label       { color: #f97316; }
+.toggle--fade-out.loop-on .loop-label       { color: #FFFFFF; }
 .toggle--fade-out:hover .loop-label         { color: #fdba74; }
 .toggle--fade-out.loop-on:hover .loop-track { background: #9a3412; }
 
 /* Seek Fade — green */
+.toggle--seek-fade.loop-on {
+  background: #22c55e;
+  color: #FFFFFF;
+}
 .toggle--seek-fade.loop-on .loop-track       { background: #14532d; }
 .toggle--seek-fade.loop-on .loop-thumb       { background: #22c55e; }
-.toggle--seek-fade.loop-on .loop-label       { color: #22c55e; }
+.toggle--seek-fade.loop-on .loop-label       { color: #FFFFFF; }
 .toggle--seek-fade:hover .loop-label         { color: #86efac; }
 .toggle--seek-fade.loop-on:hover .loop-track { background: #166534; }
 
@@ -268,8 +330,9 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #e94560;
+  background: #2dd4bf;
   cursor: pointer;
+  box-shadow: 0 0 0 2px rgba(15, 52, 96, 0.9);
 }
 
 /* Volume */
@@ -298,8 +361,9 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #e94560;
+  background: #2dd4bf;
   cursor: pointer;
+  box-shadow: 0 0 0 2px rgba(15, 52, 96, 0.9);
 }
 .volume-value {
   font-size: 11px;
@@ -311,20 +375,24 @@
 /* Settings gear button — pushed to the right end of the controls row,
    separated from the transport/toggle buttons on its left. */
 .btn-settings {
-  background: none;
+  background: #0f3460;
   border: none;
-  color: #555;
+  border-radius: 6px;
+  color: #e0e0e0;
   cursor: pointer;
   font-size: 13px;
-  padding: 2px 3px;
-  border-radius: 4px;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
-  transition: color 0.15s;
+  transition: background 0.15s;
   flex-shrink: 0;
-  margin-left: auto;
 }
 .btn-settings:hover {
-  color: #ccc;
+  background: #2dd4bf;
+  color: #000000;
 }
 
 /* Filter / Delay / Reverb settings buttons — white by default, orange on
@@ -358,7 +426,7 @@
 .btn-delay--active,
 .btn-reverb--active {
   color: #fff;
-  background-color: #22c55e;
+  background-color: #2dd4bf;
   border-color: #16a34a;
 }
 .btn-filter--active:hover,

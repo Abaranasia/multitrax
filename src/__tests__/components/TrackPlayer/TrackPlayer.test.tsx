@@ -98,6 +98,37 @@ describe('TrackPlayer', () => {
     return <TrackPlayer state={state} x={x} y={y} />;
   };
 
+  it('renders a waveform preview for the track', () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, waveform: [0.2, 0.6, 0.4] }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    expect(document.querySelector('.waveform-canvas')).toBeTruthy();
+    const canvas = document.querySelector('.waveform-canvas') as HTMLCanvasElement;
+    expect(canvas).toBeTruthy();
+    expect(canvas.width).toBeGreaterThan(0);
+    expect(canvas.height).toBeGreaterThan(0);
+    expect(canvas.style.width).toBe('100%');
+    expect(canvas.style.height).toBe('100%');
+  });
+
+  it('shows only the file name in the visible title while keeping the full path in the tooltip', () => {
+    const fullPath = 'C:/Users/demo/Music/track-name.wav';
+
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, title: fullPath }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const title = document.querySelector('.track-title') as HTMLSpanElement;
+    expect(title).toBeTruthy();
+    expect(title.textContent).toBe('track-name.wav');
+    expect(title.getAttribute('title')).toBe(fullPath);
+  });
+
   it('calls play and pause through the audio engine when playback button is clicked', async () => {
     render(
       <AudioProvider>
@@ -145,24 +176,23 @@ describe('TrackPlayer', () => {
     );
 
     // Loop toggle
-    const loopLabel = screen.getByTitle('Enable loop');
-    const loopInput = loopLabel.querySelector('input') as HTMLInputElement;
-    fireEvent.click(loopInput);
+    const loopButton = screen.getByTitle('Enable loop');
+    fireEvent.click(loopButton);
     await waitFor(() => expect(mockAudioEngine.setLoop).toHaveBeenCalledWith('track-1', true));
 
     // Fade in toggle
-    const fadeInInput = document.querySelector('.toggle--fade-in input') as HTMLInputElement;
-    fireEvent.click(fadeInInput);
+    const fadeInButton = document.querySelector('.toggle--fade-in') as HTMLButtonElement;
+    fireEvent.click(fadeInButton);
     await waitFor(() => expect(mockAudioEngine.setFadeIn).toHaveBeenCalledWith('track-1', true));
 
     // Fade out toggle
-    const fadeOutInput = document.querySelector('.toggle--fade-out input') as HTMLInputElement;
-    fireEvent.click(fadeOutInput);
+    const fadeOutButton = document.querySelector('.toggle--fade-out') as HTMLButtonElement;
+    fireEvent.click(fadeOutButton);
     await waitFor(() => expect(mockAudioEngine.setFadeOut).toHaveBeenCalledWith('track-1', true));
 
     // Seek fade toggle
-    const seekFadeInput = document.querySelector('.toggle--seek-fade input') as HTMLInputElement;
-    fireEvent.click(seekFadeInput);
+    const seekFadeButton = document.querySelector('.toggle--seek-fade') as HTMLButtonElement;
+    fireEvent.click(seekFadeButton);
     await waitFor(() => expect(mockAudioEngine.setSeekFade).toHaveBeenCalledWith('track-1', true));
   });
 
@@ -452,6 +482,18 @@ describe('TrackPlayer', () => {
 
     fireEvent.change(panInput, { target: { value: '-0.6' } });
     await waitFor(() => expect(mockAudioEngine.setPan).toHaveBeenCalledWith('track-1', -0.6));
+  });
+
+  it('renders a directional gradient background for the pan slider when it is offset', () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, pan: -0.6 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const panInput = document.querySelector('.pan-control input[type=range]') as HTMLInputElement;
+    expect(panInput.style.background).toContain('linear-gradient');
+    expect(panInput.style.background).toContain('rgb(35, 153, 137)');
   });
 
   it('recenters pan to 0 when the pan slider is double-clicked', async () => {

@@ -178,7 +178,7 @@ export class AudioEngine {
       buffer,
       startOffset: 0,
       startedAt: 0,
-      loop: false,
+      loop: true,
       playing: false,
       volume: 1,
       pan: 0,

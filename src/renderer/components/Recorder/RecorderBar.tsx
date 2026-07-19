@@ -13,7 +13,7 @@ export const RecorderBar = () => {
    } = useRecorder();
 
   return (
-    <div className={`recorder-bar${isRecording ? ' recorder-bar--active' : ''}`}>
+    <div className={`recorder-bar recorder-bar--top-right${isRecording ? ' recorder-bar--active' : ''}`}>
       <button
         className={`recorder-btn${isRecording ? ' recorder-btn--stop' : ''}`}
         onClick={isRecording ? stop : start}

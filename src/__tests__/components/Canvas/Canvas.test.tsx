@@ -53,6 +53,15 @@ describe('Canvas', () => {
     expect(screen.queryByTestId('recorder-bar')).toBeTruthy();
   });
 
+  it('groups playback controls in a floating action bar', () => {
+    render(<Canvas />);
+
+    const actionBar = screen.getByRole('group', { name: 'Playback controls' });
+    expect(actionBar.contains(screen.getByTitle('Open audio files'))).toBe(true);
+    expect(actionBar.contains(screen.getByTitle('Stop all tracks'))).toBe(true);
+    expect(actionBar.contains(screen.getByTitle('Play all tracks'))).toBe(true);
+  });
+
   it('starts tickCurrentTimes interval on mount', () => {
     vi.useFakeTimers();
     render(<Canvas />);

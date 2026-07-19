@@ -28,6 +28,7 @@ export interface TrackState {
   reverbPreDelay: number;   // 0–500 (ms)
   reverbDamping: number;    // 0–100 (%)
   reverbOutput: number;     // 0–100 (%)
+  waveform?: number[];
 }
 
 export type FilterType = 'lowpass' | 'highpass' | 'bandpass';

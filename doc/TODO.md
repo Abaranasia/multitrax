@@ -167,6 +167,14 @@ what's meant to stay a focused mixing/monitoring tool.
   existing per-track setters; it's dropped onto the canvas offset by
   `+20/+20` from the source card.
 
+- [ ] **Reveal file in explorer** — add a new option in `TrackContextMenu`
+  to open the selected track's source file in the OS file explorer / finder,
+  using the existing file path information already available for each track.
+
+- [ ] **Mute by clicking the volume icon** — make the volume icon in each
+  track card toggle mute/unmute for that track when clicked, using the
+  existing per-track volume state and setter flow.
+
 - [ ] **Save / Load session** — persist the current set of tracks to an
   external file so the whole setup (which files are loaded, their canvas
   position, and their per-track settings) can be restored later. Would need a

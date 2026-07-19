@@ -112,6 +112,16 @@ describe('AudioEngine (unit)', () => {
     expect(engine.getDuration('t1')).toBe(8);
   });
 
+  it('enables looping by default for newly added tracks', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 10 } as unknown as AudioBuffer;
+    engine.addTrack('t2', buf);
+
+    const source = (engine as any).tracks.get('t2').sourceNode;
+    expect(source).toBeNull();
+    expect((engine as any).tracks.get('t2').loop).toBe(true);
+  });
+
   it('plays, reports playing and currentTime progression', () => {
     const engine = new AudioEngine();
     const buf = { duration: 10 } as unknown as AudioBuffer;

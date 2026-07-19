@@ -569,3 +569,18 @@ The project already existed with the following features before the logged sessio
   make the current level easier to read at a glance.
 - Updated the TrackPlayer regression tests to cover the new button controls and
   the shortened title presentation.
+
+---
+
+## [2026-07-19] — TrackPlayer pan control visual polish
+
+**Files:** `src/renderer/components/TrackPlayer/TrackPlayer.tsx`,
+`src/renderer/components/TrackPlayer/TrackPlayer.css`,
+`src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx`
+
+- Refined the pan slider so its progress bar now uses a directional gradient when
+  the control is offset from center, matching the refreshed volume control styling.
+- Kept the centered state visually neutral while making left/right offsets feel
+  more intentional and consistent with the rest of the TrackPlayer UI rework.
+- Added regression coverage to ensure the pan slider exposes the new gradient
+  background styling when it is moved away from the center position.

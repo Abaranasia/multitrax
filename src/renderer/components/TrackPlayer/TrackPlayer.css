@@ -330,8 +330,9 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #e94560;
+  background: #2dd4bf;
   cursor: pointer;
+  box-shadow: 0 0 0 2px rgba(15, 52, 96, 0.9);
 }
 
 /* Volume */

@@ -294,6 +294,13 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
                   ? `${Math.round(-state.pan * 100)}% Left`
                   : `${Math.round(state.pan * 100)}% Right`
             }`}
+            style={{
+              background: state.pan === 0
+                ? '#0f3460'
+                : state.pan < 0
+                  ? `linear-gradient(90deg, #239989 0%, #abc5c2 ${Math.round((state.pan + 1) * 50)}%, #0f3460 ${Math.round((state.pan + 1) * 50)}%, #0f3460 100%)`
+                  : `linear-gradient(90deg, #0f3460 0%, #0f3460 ${Math.round(state.pan * 50 + 50)}%, #abc5c2 ${Math.round(state.pan * 50 + 50)}%, #239989 100%)`,
+            }}
           />
           <span className="pan-label">R</span>
         </div>

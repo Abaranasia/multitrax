@@ -484,6 +484,18 @@ describe('TrackPlayer', () => {
     await waitFor(() => expect(mockAudioEngine.setPan).toHaveBeenCalledWith('track-1', -0.6));
   });
 
+  it('renders a directional gradient background for the pan slider when it is offset', () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, pan: -0.6 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const panInput = document.querySelector('.pan-control input[type=range]') as HTMLInputElement;
+    expect(panInput.style.background).toContain('linear-gradient');
+    expect(panInput.style.background).toContain('rgb(35, 153, 137)');
+  });
+
   it('recenters pan to 0 when the pan slider is double-clicked', async () => {
     render(
       <AudioProvider>

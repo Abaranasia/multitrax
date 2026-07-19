@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react';
 import { AudioEngine } from '../audio/AudioEngine';
-import { ReverbRoom, TrackState } from '../domain/TrackState';
+import { FilterType, ReverbRoom, TrackState } from '../domain/TrackState';
 
 interface TrackEntry {
   state: TrackState;
@@ -23,11 +23,20 @@ interface AudioContextValue {
   playAll: () => void;
   seek: (id: string, seconds: number) => void;
   setVolume: (id: string, value: number) => void;
+  setPan: (id: string, value: number) => void;
   setLoop: (id: string, loop: boolean) => void;
   setFadeIn: (id: string, enabled: boolean) => void;
   setFadeOut: (id: string, enabled: boolean) => void;
   setSeekFade: (id: string, enabled: boolean) => void;
   setFadeDurations: (id: string, fadeIn: number, fadeOut: number, seekFade: number) => void;
+  setFilterSettings: (
+    id: string,
+    type: FilterType,
+    cutoff: number,
+    resonance: number,
+    mix: number,
+    output: number,
+  ) => void;
   setDelaySettings: (
     id: string,
     delayTime: number,
@@ -97,6 +106,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           duration: audioBuffer.duration,
           currentTime: 0,
           volume: 1,
+          pan: 0,
           loop: true,
           playing: false,
           fadeIn: false,
@@ -105,6 +115,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           fadeInDuration: 5,
           fadeOutDuration: 5,
           seekFadeDuration: 2,
+          filterType: 'lowpass',
+          filterCutoff: 1000,
+          filterResonance: 1,
+          filterMix: 0,
+          filterOutput: 100,
           delayTime: 300,
           delayFeedback: 35,
           delayMix: 0,
@@ -144,6 +159,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       const newId = crypto.randomUUID();
       engine.addTrack(newId, buffer);
+      engine.setFilterSettings(
+        newId,
+        source.state.filterType,
+        source.state.filterCutoff,
+        source.state.filterResonance,
+        source.state.filterMix,
+        source.state.filterOutput,
+      );
       engine.setDelaySettings(
         newId,
         source.state.delayTime,
@@ -161,6 +184,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         source.state.reverbOutput,
       );
       engine.setVolume(newId, source.state.volume);
+      engine.setPan(newId, source.state.pan);
       engine.setLoop(newId, source.state.loop);
 
       const newEntry: TrackEntry = {
@@ -265,6 +289,16 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [engine],
   );
 
+  const setPan = useCallback(
+    (id: string, value: number) => {
+      engine.setPan(id, value);
+      setTracks(prev =>
+        prev.map(t => (t.state.id === id ? { ...t, state: { ...t.state, pan: value } } : t)),
+      );
+    },
+    [engine],
+  );
+
   const setLoop = useCallback(
     (id: string, loop: boolean) => {
       engine.setLoop(id, loop);
@@ -318,6 +352,30 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         prev.map(t =>
           t.state.id === id
             ? { ...t, state: { ...t.state, fadeInDuration, fadeOutDuration, seekFadeDuration } }
+            : t,
+        ),
+      );
+    },
+    [engine],
+  );
+
+  const setFilterSettings = useCallback(
+    (id: string, type: FilterType, cutoff: number, resonance: number, mix: number, output: number) => {
+      engine.setFilterSettings(id, type, cutoff, resonance, mix, output);
+      setTracks(prev =>
+        prev.map(t =>
+          t.state.id === id
+            ? {
+                ...t,
+                state: {
+                  ...t.state,
+                  filterType: type,
+                  filterCutoff: cutoff,
+                  filterResonance: resonance,
+                  filterMix: mix,
+                  filterOutput: output,
+                },
+              }
             : t,
         ),
       );
@@ -406,11 +464,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         playAll,
         seek,
         setVolume,
+        setPan,
         setLoop,
         setFadeIn,
         setFadeOut,
         setSeekFade,
         setFadeDurations,
+        setFilterSettings,
         setDelaySettings,
         setReverbSettings,
         updatePosition,

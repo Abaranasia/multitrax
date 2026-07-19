@@ -38,11 +38,28 @@ what's meant to stay a focused mixing/monitoring tool.
   `bandpass`, `lowshelf`, `highshelf`, `peaking`, `notch`, `allpass`);
   chain multiple nodes for a parametric EQ.
 
+- [x] **Filter** — single sweepable `BiquadFilterNode` per track (distinct from
+  the multi-band Equalizer above): lowpass/highpass/bandpass type switch,
+  cutoff frequency, resonance (Q), mix, output level — the classic one-knob
+  "Filter" control on DJ mixers. **Implemented** — see `AudioEngine.ts`
+  (`_createFilterNodes`, `setFilterSettings`) and the new
+  `FilterSettingsDialog.tsx` / `useFilterSettingsDialog.ts` (built as an
+  independent component + hook per `doc/ARCHITECTURE.md`'s dialogs/overlays
+  convention, unlike the older inline Delay/Reverb panels). Sits **before**
+  delay/reverb in the chain (tone-shaping happens first):
+  `gainNode → filter insert → delay insert → reverb insert → masterGain`.
+
 - [ ] **Compressor / Limiter** — `DynamicsCompressorNode`; params: threshold,
   knee, ratio, attack, release; doubles as a master limiter at gain=1.
 
-- [ ] **Stereo Pan** — `StereoPannerNode`; range -1 (full left) to +1 (full
-  right); straightforward drop-in before `masterGain`.
+- [x] **Stereo Pan** — `StereoPannerNode`; range -1 (full left) to +1 (full
+  right). **Implemented** — see `AudioEngine.ts` (`setPan`) and
+  `TrackPlayer.tsx` (the pan slider, rendered above the volume control).
+  Unlike Delay/Reverb, this is an always-visible plain `<input type="range">`
+  applied live on every change — no settings dialog, no draft/Apply/Cancel,
+  same treatment as the Volume slider. Sits as the last stage of the
+  per-track chain, right before `masterGain`: `gainNode → delay → reverb →
+  pannerNode → masterGain`. Double-clicking the slider recenters it to 0%.
 
 - [ ] **3-D Spatial Audio** — `PannerNode` with HRTF model; full x/y/z position
   and orientation control; useful for immersive mixing.
@@ -171,6 +188,16 @@ what's meant to stay a focused mixing/monitoring tool.
   would need a clear "file not found" fallback per track rather than failing
   the whole load.
 
+- [ ] **Dashboard track-view reorganization** — add a dashboard-level action to
+  reorganize the visible track views in a consistent layout, such as aligning
+  cards by size, spacing, or a predictable grid/order when the user requests it.
+  This should help reduce visual clutter when many tracks are loaded.
+
+- [ ] **Mixer-style vertical track view** — add a second view mode that displays
+  track information in a vertical, console-like layout with one track per row,
+  making it easier to compare levels, mute/solo states, and per-track controls
+  at a glance.
+
 ---
 
 ## Coding improvements
@@ -183,14 +210,17 @@ what's meant to stay a focused mixing/monitoring tool.
   be reused by other audio-related test suites without duplication.
 
 - [ ] **Extract per-track overlays/dialogs into independent components.**
-  The fade-duration settings panel and the reverb options dialog currently
-  live inline inside `TrackPlayer.tsx` (markup) and `useTrackPlayer.ts`
-  (state/logic), rather than as their own components. Split each into its own
-  component (e.g. `FadeSettingsDialog`, `ReverbSettingsDialog`) plus its own
-  hook/use-case for the linked logic, following the existing per-track setter
-  pattern (`AudioContext` → `AudioEngine`). Relocate the existing overlay
-  related tests out of `TrackPlayer.test.tsx` into dedicated test suites for
-  the new components once extracted.
+  The fade-duration settings panel and the reverb (and delay) options dialogs
+  currently live inline inside `TrackPlayer.tsx` (markup) and
+  `useTrackPlayer.ts` (state/logic), rather than as their own components.
+  Split each into its own component (e.g. `FadeSettingsDialog`,
+  `ReverbSettingsDialog`) plus its own hook/use-case for the linked logic,
+  following the existing per-track setter pattern (`AudioContext` →
+  `AudioEngine`). Relocate the existing overlay related tests out of
+  `TrackPlayer.test.tsx` into dedicated test suites for the new components
+  once extracted. `FilterSettingsDialog.tsx` / `useFilterSettingsDialog.ts`
+  (see the Filter effect above) are a concrete example of the target shape —
+  use them as the template.
 
 - [x] **Write down a standing architecture rule for dialogs/overlays** (see
   the new "Dialogs and overlays" convention added to `doc/ARCHITECTURE.md`):

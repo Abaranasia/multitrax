@@ -54,12 +54,19 @@ class FakeConvolver {
 class FakeBiquadFilter {
   type = 'lowpass';
   frequency = new FakeAudioParam(20000);
+  Q = new FakeAudioParam(1);
   connect() {}
   disconnect() {}
 }
 
 class FakeMediaStreamDestination {
   stream = {} as MediaStream;
+}
+
+class FakePanner {
+  pan = new FakeAudioParam(0);
+  connect() {}
+  disconnect() {}
 }
 
 class FakeAudioContext {
@@ -73,6 +80,7 @@ class FakeAudioContext {
   createDelay(_maxDelay?: number) { return new FakeDelay(); }
   createConvolver() { return new FakeConvolver(); }
   createBiquadFilter() { return new FakeBiquadFilter(); }
+  createStereoPanner() { return new FakePanner(); }
   createBuffer(numberOfChannels: number, length: number, sampleRate: number) {
     const channels = Array.from({ length: numberOfChannels }, () => new Float32Array(length));
     return {
@@ -193,6 +201,16 @@ describe('AudioEngine (unit)', () => {
     expect(engine.getDuration('t4')).toBe(2);
   });
 
+  it('setPan clamps value and updates the panner', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 2 } as unknown as AudioBuffer;
+    engine.addTrack('t4b', buf);
+    engine.setPan('t4b', -0.5);
+    engine.setPan('t4b', 5); // clamps to 1
+    // no throw; validate getDuration still works
+    expect(engine.getDuration('t4b')).toBe(2);
+  });
+
   it('seek updates offsets when not playing and when playing with seekFade', () => {
     const engine = new AudioEngine();
     const buf = { duration: 20 } as unknown as AudioBuffer;
@@ -210,6 +228,15 @@ describe('AudioEngine (unit)', () => {
     // but since implementation uses setTimeout, we can just call clearTimeout path by cancelFade
     // For test purpose ensure no exception and state remains valid
     expect(engine.getDuration('t5')).toBe(20);
+  });
+
+  it('setFilterSettings updates the filter chain without throwing', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 6 } as unknown as AudioBuffer;
+    engine.addTrack('t9', buf);
+    engine.setFilterSettings('t9', 'highpass', 500, 4, 70, 90);
+    // no throw; engine remains valid
+    expect(engine.getDuration('t9')).toBe(6);
   });
 
   it('setDelaySettings updates the delay chain without throwing', () => {

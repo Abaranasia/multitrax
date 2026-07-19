@@ -398,6 +398,158 @@ The project already existed with the following features before the logged sessio
 
 ---
 
+## [2026-07-12] — Filter: sweepable insert effect (audio chain + settings UI)
+
+**Files:** `src/renderer/domain/TrackState.ts`, `src/renderer/audio/AudioEngine.ts`,
+`src/renderer/context/AudioContext.tsx`,
+`src/renderer/components/TrackPlayer/FilterSettingsDialog.tsx` (new),
+`src/renderer/components/TrackPlayer/FilterSettingsDialog.css` (new),
+`src/renderer/components/TrackPlayer/useFilterSettingsDialog.ts` (new),
+`src/renderer/components/TrackPlayer/TrackPlayer.tsx`, `src/renderer/components/TrackPlayer/TrackPlayer.css`,
+`src/__tests__/audio/AudioEngine.test.ts`, `src/__tests__/context/AudioContext.test.tsx`,
+`src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx`,
+`src/__tests__/components/TrackPlayer/FilterSettingsDialog.test.tsx` (new), `doc/TODO.md`
+
+- Added a per-track sweepable filter insert — a single `BiquadFilterNode`
+  (lowpass/highpass/bandpass, cutoff, resonance/Q, mix, output), distinct
+  from the still-unbuilt multi-band Equalizer item. Same 5-field shape as
+  Reverb (type dropdown + 3 shaping params + mix + output) and the same
+  dry/wet-insert topology, minus a feedback loop (not needed for a plain
+  filter): `dryGain ─┐; biquadFilter → wetGain ┴→ outputGain`.
+- Placed **before** delay/reverb in the signal chain, per the user's
+  request and standard tone-shaping-first mixing convention:
+  `gainNode → filter insert → delay insert → reverb insert → masterGain`.
+  `addTrack` now builds `filter` first and rewires `gainNode` into the
+  filter's entry points, with the filter's `outputGain` feeding into delay's
+  entry points (previously `gainNode` fed delay directly).
+- Added `filterType`, `filterCutoff` (20–20000 Hz), `filterResonance`
+  (0.1–20 Q), `filterMix`, `filterOutput` to `TrackState`; new `FilterType`
+  union (`lowpass` | `highpass` | `bandpass`), same shape as `ReverbRoom`.
+  `filterMix: 0` default keeps new tracks dry until opted in, same
+  convention as delay/reverb — and reuses the identical `mix > 0` check for
+  the toggle button's active state.
+- `AudioEngine.setFilterSettings` assigns `biquadFilter.type` directly
+  (not an `AudioParam`, so it switches instantly — same as reverb's instant
+  `convolver.buffer` swap on room change) and ramps `frequency`/`Q`/dry-wet/
+  output via `setTargetAtTime`, same as every other insert's setter.
+- This is the first effect built as an independent component from the
+  start, per the user's explicit request to follow
+  `doc/ARCHITECTURE.md`'s dialogs/overlays convention rather than adding to
+  the inline Delay/Reverb panels (a known, already-flagged debt item in
+  `doc/TODO.md`): `FilterSettingsDialog.tsx` (presentational overlay,
+  fully controlled by props) + `useFilterSettingsDialog.ts` (a
+  self-contained hook taking the track's `TrackState`, calling `useAudio()`
+  itself for `setFilterSettings`, owning open/close + all 5 draft values).
+  `TrackPlayer.tsx` calls the hook directly alongside `useTrackPlayer(...)`
+  — `useTrackPlayer.ts` needed zero changes for this feature, unlike every
+  prior effect.
+- Added a "F" button (`btn-filter`) to the effects row, positioned
+  **before** Delay ("F", "D", "R" — matching signal-chain order); extended
+  the shared `.btn-delay, .btn-reverb` CSS selectors to include `.btn-filter`
+  rather than duplicating the button styling. Filter's own dialog panel
+  uses a blue accent, distinct from delay's amber and reverb's teal.
+- Updated `duplicateTrack` (from the clone-track feature) to also call
+  `engine.setFilterSettings` with the source's filter settings — otherwise
+  clones would have silently dropped their filter settings.
+- Hit one fixture gap while testing: `AudioEngine.test.ts`'s
+  `FakeBiquadFilter` only had a `frequency` `AudioParam` (all it needed for
+  delay/reverb's damping filters) — no `Q`. Added a `Q` fake param so
+  `setFilterSettings` doesn't throw against the fake audio context.
+- Added tests: `AudioEngine.test.ts` (`setFilterSettings` smoke test),
+  `AudioContext.test.tsx` (extended the `duplicateTrack` test to assert
+  `setFilterSettings` is called with the source's filter values),
+  `TrackPlayer.test.tsx` (Apply/Cancel tests for the filter panel mirroring
+  the delay/reverb tests, plus an active-button-state test), and a new
+  `FilterSettingsDialog.test.tsx` unit-testing the presentational component
+  in isolation (renders draft values, calls the setters/`onApply`/`onCancel`,
+  backdrop click cancels but panel click doesn't).
+- Verified end-to-end in-browser: dropped a synthetic WAV, opened the
+  Filter panel via the new "F" button (confirmed it renders before "D"/"R"),
+  switched type to highpass with cutoff 500Hz and mix 70%, applied, and
+  confirmed the button lit up with no console errors; duplicated the track
+  and confirmed the clone's Filter panel showed the identical
+  highpass/500Hz/70% values.
+- Checked off the "Filter" item in `doc/TODO.md`, and added a note pointing
+  to `FilterSettingsDialog`/`useFilterSettingsDialog` as the concrete
+  template for the pending fade/delay/reverb panel extraction.
+
+---
+
+## [2026-07-12] — Stereo Pan (always-on control, not an effect dialog)
+
+**Files:** `src/renderer/domain/TrackState.ts`, `src/renderer/audio/AudioEngine.ts`,
+`src/renderer/context/AudioContext.tsx`, `src/renderer/components/TrackPlayer/useTrackPlayer.ts`,
+`src/renderer/components/TrackPlayer/TrackPlayer.tsx`, `src/renderer/components/TrackPlayer/TrackPlayer.css`,
+`src/__tests__/audio/AudioEngine.test.ts`, `src/__tests__/context/AudioContext.test.tsx`,
+`src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx`, `doc/TODO.md`
+
+- Added a per-track `StereoPannerNode` — a single-parameter node (`.pan`,
+  -1 to 1), unlike the Delay/Reverb inserts this needs no dry/wet split or
+  sub-graph. Per `doc/TODO.md`'s own note ("drop-in before `masterGain`"),
+  it's the **last** stage of the per-track chain: `gainNode → delay →
+  reverb → pannerNode → masterGain`.
+- `_createReverbNodes()` used to connect its `outputGain` straight to
+  `masterGain` internally (reverb was previously the last stage). That
+  connection moved to `addTrack`, mirroring how the delay insert's
+  `outputGain` was already left deliberately unconnected for the caller to
+  wire onward — reverb's `outputGain` now does the same, feeding into the
+  new `pannerNode`.
+- Added `pan: number` to `TrackState` (0 = center, default for new tracks)
+  and `AudioEngine.setPan(id, value)`, clamping to [-1, 1] and ramping via
+  `setTargetAtTime` — same shape as `setVolume`.
+- Unlike every effect built so far (Delay, Reverb — both opt-in, behind a
+  settings button + draft/Apply/Cancel dialog), pan is a core, always-on
+  mixing control per the user's explicit request: a plain
+  `<input type="range" min={-1} max={1}>` rendered directly in the card
+  body, applied live on every `onChange` exactly like the existing Volume
+  slider — no dialog, no draft state, no `useTrackPlayer.ts` settings-open
+  boilerplate needed.
+- Positioned the pan row directly **above** Volume in `TrackPlayer.tsx`,
+  with `L`/`R` labels at the two range extremes (matching the Volume row's
+  icon-plus-label layout convention) and a tooltip mirroring Volume's
+  (`"Pan: Center"` / `"35% Left"` / `"70% Right"`). Reused Volume's red
+  accent (`#e94560`) on the slider thumb since pan is a core control, not a
+  colour-coded "effect" like Delay/Reverb.
+- Bumped `.track-controls`'s row gap (8px → 10px) to give the card a touch
+  more breathing room for the extra row — the card has no fixed height
+  (grows with content), so no hard height override was needed.
+- Updated `duplicateTrack` to also call `engine.setPan` with the source's
+  pan value — it's a persistent per-track setting like volume, so it's
+  copied on clone rather than reset like `currentTime`/`playing`.
+- Added tests: `AudioEngine.test.ts` (`createStereoPanner`/`FakePanner`
+  added to the `FakeAudioContext` fixture; a `setPan` smoke test),
+  `AudioContext.test.tsx` (extended the `duplicateTrack` test to assert
+  `setPan` is called with the source's pan), `TrackPlayer.test.tsx` (pan
+  slider renders centered by default with the right min/max, appears before
+  the volume control in document order, and calls `engine.setPan` on
+  change).
+- Verified end-to-end in-browser: dropped a synthetic WAV, confirmed the
+  pan slider renders above Volume labelled "Pan: Center"; dragged it to
+  75% left and confirmed the tooltip updated with no console errors;
+  duplicated the panned track and confirmed the clone's pan slider showed
+  the identical -0.75 (75% Left) position.
+- Checked off the "Stereo Pan" item in `doc/TODO.md`.
+
+---
+
+## [2026-07-12] — Pan slider: double-click to recenter
+
+**Files:** `src/renderer/components/TrackPlayer/TrackPlayer.tsx`,
+`src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx`, `doc/TODO.md`
+
+- Added an `onDoubleClick={() => setPan(state.id, 0)}` handler to the pan
+  slider, so double-clicking anywhere on the fader snaps it back to center
+  (0%) — a common convention for pan controls (avoids having to drag back
+  to the exact midpoint by hand).
+- Added a `TrackPlayer.test.tsx` test: renders with `pan: -0.6`, fires a
+  double-click on the pan input, asserts `engine.setPan` is called with 0.
+- Verified end-to-end in-browser: set the pan slider to 80% right, then
+  dispatched a `dblclick` on it and confirmed it reset to `Pan: Center`
+  with no console errors.
+- Noted the shortcut in the "Stereo Pan" entry in `doc/TODO.md`.
+
+---
+
 ## [2026-07-17] — TrackPlayer UI rework
 
 **Files:** `src/renderer/components/TrackPlayer/TrackPlayer.tsx`,

@@ -34,6 +34,12 @@
   min-height: 225px;
 }
 
+/* The filter panel has the same row count (title + dropdown + 3 fields +
+   actions) as the reverb panel, so it needs the same extra headroom. */
+.track-player--filter-open {
+  min-height: 225px;
+}
+
 .track-header {
   display: flex;
   align-items: center;
@@ -143,7 +149,7 @@
 .track-controls {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   cursor: default;
 }
 
@@ -293,6 +299,41 @@
 .toggle--seek-fade:hover .loop-label         { color: #86efac; }
 .toggle--seek-fade.loop-on:hover .loop-track { background: #166534; }
 
+/* Pan */
+.pan-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.pan-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #888;
+  width: 10px;
+  flex-shrink: 0;
+  text-align: center;
+}
+.pan-control input[type='range'] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #0f3460;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.pan-control input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e94560;
+  cursor: pointer;
+}
+
 /* Volume */
 .volume-control {
   display: flex;
@@ -353,8 +394,9 @@
   color: #000000;
 }
 
-/* Delay / Reverb settings buttons — white by default, orange on hover,
-   filled rounded green when the effect is active (mix > 0). */
+/* Filter / Delay / Reverb settings buttons — white by default, orange on
+   hover, filled rounded green when the effect is active (mix > 0). */
+.btn-filter,
 .btn-delay,
 .btn-reverb {
   background: none;
@@ -374,16 +416,19 @@
   transition: color 0.15s, background-color 0.15s, border-color 0.15s;
   flex-shrink: 0;
 }
+.btn-filter:hover,
 .btn-delay:hover,
 .btn-reverb:hover {
   color: #f59e0b;
 }
+.btn-filter--active,
 .btn-delay--active,
 .btn-reverb--active {
   color: #fff;
   background-color: #2dd4bf;
   border-color: #16a34a;
 }
+.btn-filter--active:hover,
 .btn-delay--active:hover,
 .btn-reverb--active:hover {
   color: #fff;

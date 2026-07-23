@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAudio } from '../../context/AudioContext';
+import { useAudio } from '../../context/useAudio';
 import { encodeWav } from '../../utils/encodeWav';
 import { formatTime } from '../../utils/formatTime';
 

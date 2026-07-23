@@ -38,7 +38,8 @@ vi.mock('@/renderer/audio/AudioEngine', () => ({
   AudioEngine: vi.fn(() => mockAudioEngine),
 }));
 
-import { AudioProvider, useAudio } from '@/renderer/context/AudioContext';
+import { AudioProvider } from '@/renderer/context/AudioContext';
+import { useAudio } from '@/renderer/context/useAudio';
 
 describe('AudioContext', () => {
   beforeEach(() => {

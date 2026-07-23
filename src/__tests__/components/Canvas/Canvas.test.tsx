@@ -14,10 +14,33 @@ const mockAddTracks = vi.fn();
 const mockTickCurrentTimes = vi.fn();
 const mockStopAll = vi.fn();
 const mockPlayAll = vi.fn();
-const useAudioMock = vi.fn();
 
-vi.mock('@/renderer/context/AudioContext', () => ({
-  useAudio: () => useAudioMock(),
+type MockAudioState = {
+  tracks: Array<{
+    state: {
+      id: string;
+      title: string;
+      playing?: boolean;
+    };
+    x: number;
+    y: number;
+  }>;
+  addTracks: typeof mockAddTracks;
+  tickCurrentTimes: typeof mockTickCurrentTimes;
+  stopAll: typeof mockStopAll;
+  playAll: typeof mockPlayAll;
+};
+
+const useAudioMock = vi.fn((): MockAudioState => ({
+  tracks: [],
+  addTracks: mockAddTracks,
+  tickCurrentTimes: mockTickCurrentTimes,
+  stopAll: mockStopAll,
+  playAll: mockPlayAll,
+}));
+
+vi.mock('@/renderer/context/useAudio', () => ({
+  useAudio: (): MockAudioState => useAudioMock(),
 }));
 
 vi.mock('@/renderer/components/TrackPlayer/TrackPlayer', () => ({
@@ -50,7 +73,7 @@ describe('Canvas', () => {
 
   afterEach(() => {
     cleanup();
-    delete (window as any).electronAPI;
+    Reflect.deleteProperty(window, 'electronAPI');
   });
 
   it('renders empty canvas state and recorder bar when there are no tracks', () => {
@@ -84,7 +107,10 @@ describe('Canvas', () => {
     render(<Canvas />);
 
     const canvas = screen.getByText('Drop audio files here').closest('.canvas');
-    const dataTransfer = { files: [], dropEffect: '' } as any;
+    const dataTransfer: { files: File[]; dropEffect: string } = {
+      files: [],
+      dropEffect: '',
+    };
     const event = createEvent.dragOver(canvas!, { dataTransfer });
     const preventDefault = vi.fn();
     event.preventDefault = preventDefault;
@@ -100,12 +126,15 @@ describe('Canvas', () => {
 
     const audioFile = new File(['audio'], 'song.mp3', { type: 'text/plain' });
     const textFile = new File(['text'], 'notes.txt', { type: 'text/plain' });
-    const dataTransfer = { files: [audioFile, textFile], dropEffect: '' } as any;
+    const dataTransfer: { files: File[]; dropEffect: string } = {
+      files: [audioFile, textFile],
+      dropEffect: '',
+    };
     const canvas = screen.getByText('Drop audio files here').closest('.canvas');
     if (!canvas) throw new Error('Canvas element not found');
 
     const event = createEvent.drop(canvas, { dataTransfer });
-    await act(async () => {
+    act(() => {
       fireEvent(canvas, event);
     });
 
@@ -114,20 +143,22 @@ describe('Canvas', () => {
       expect.objectContaining({
         path: 'song.mp3',
         name: 'song.mp3',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() is typed as `any` in vitest
         buffer: expect.any(ArrayBuffer),
       }),
     ]);
   });
 
   it('opens files through electronAPI and calls addTracks with decoded file data', async () => {
-    const openAudioFiles = vi.fn(async () => ['/music/beat.wav']);
-    const readAudioFile = vi.fn(async () => new ArrayBuffer(4));
-    (window as any).electronAPI = { openAudioFiles, readAudioFile };
+    const openAudioFiles = vi.fn(() => Promise.resolve(['/music/beat.wav']));
+    const readAudioFile = vi.fn(() => Promise.resolve(new ArrayBuffer(4)));
+    const saveRecording = vi.fn(() => Promise.resolve({ saved: true }));
+    window.electronAPI = { openAudioFiles, readAudioFile, saveRecording };
 
     render(<Canvas />);
 
     const openButton = screen.getByTitle('Open audio files');
-    await act(async () => {
+    act(() => {
       fireEvent.click(openButton);
     });
 
@@ -137,6 +168,7 @@ describe('Canvas', () => {
       expect.objectContaining({
         path: '/music/beat.wav',
         name: 'beat.wav',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() is typed as `any` in vitest
         buffer: expect.any(ArrayBuffer),
       }),
     ]);
@@ -167,7 +199,7 @@ describe('Canvas', () => {
 
     render(<Canvas />);
 
-    expect((screen.getByTitle('Stop all tracks') as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByTitle<HTMLButtonElement>('Stop all tracks').disabled).toBe(true);
   });
 
   it('enables the Stop All button and calls stopAll when a track is playing', () => {
@@ -181,7 +213,7 @@ describe('Canvas', () => {
 
     render(<Canvas />);
 
-    const stopAllBtn = screen.getByTitle('Stop all tracks') as HTMLButtonElement;
+    const stopAllBtn = screen.getByTitle<HTMLButtonElement>('Stop all tracks');
     expect(stopAllBtn.disabled).toBe(false);
     fireEvent.click(stopAllBtn);
     expect(mockStopAll).toHaveBeenCalledTimes(1);
@@ -198,7 +230,8 @@ describe('Canvas', () => {
 
     render(<Canvas />);
 
-    expect((screen.getByTitle('Play all tracks') as HTMLButtonElement).disabled).toBe(true);
+    const playAllBtn = screen.getByTitle<HTMLButtonElement>('Play all tracks');
+    expect(playAllBtn.disabled).toBe(true);
 
     cleanup();
     useAudioMock.mockReturnValueOnce({
@@ -211,7 +244,7 @@ describe('Canvas', () => {
 
     render(<Canvas />);
 
-    expect((screen.getByTitle('Play all tracks') as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByTitle<HTMLButtonElement>('Play all tracks').disabled).toBe(true);
   });
 
   it('enables the Play All button and calls playAll when a track is not playing', () => {
@@ -225,7 +258,7 @@ describe('Canvas', () => {
 
     render(<Canvas />);
 
-    const playAllBtn = screen.getByTitle('Play all tracks') as HTMLButtonElement;
+    const playAllBtn = screen.getByTitle<HTMLButtonElement>('Play all tracks');
     expect(playAllBtn.disabled).toBe(false);
     fireEvent.click(playAllBtn);
     expect(mockPlayAll).toHaveBeenCalledTimes(1);

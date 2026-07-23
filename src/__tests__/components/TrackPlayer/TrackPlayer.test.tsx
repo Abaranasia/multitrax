@@ -37,7 +37,8 @@ vi.mock('@/renderer/audio/AudioEngine', () => ({
 
 import { TrackPlayer } from '@/renderer/components/TrackPlayer/TrackPlayer';
 import { TrackState } from '@/renderer/domain/TrackState';
-import { AudioProvider, useAudio } from '@/renderer/context/AudioContext';
+import { AudioProvider } from '@/renderer/context/AudioContext';
+import { useAudio } from '@/renderer/context/useAudio';
 
 describe('TrackPlayer', () => {
   const baseState: TrackState = {

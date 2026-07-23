@@ -33,7 +33,7 @@ vi.mock('electron', () => {
 
 // Mock fs so we can inspect read/write without touching disk
 vi.mock('fs', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal<typeof import('fs')>();
   const writeFileSync = vi.fn();
   const readFileSync = vi.fn();
   return {

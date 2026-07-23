@@ -60,18 +60,15 @@ interface AudioContextValue {
 const Ctx = createContext<AudioContextValue | null>(null);
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Lazy null-checked init prevents double AudioContext creation in StrictMode.
-  const engineRef = useRef<AudioEngine | null>(null);
-  if (!engineRef.current) engineRef.current = new AudioEngine();
-  const engine = engineRef.current;
+  // Initialize the engine once per provider mount, without touching refs during render.
+  const [engine] = useState<AudioEngine>(() => new AudioEngine());
 
   // Close the AudioContext when the provider unmounts to release OS audio streams.
   useEffect(() => {
     return () => {
-      engineRef.current?.close();
-      engineRef.current = null;
+      engine.close();
     };
-  }, []);
+  }, [engine]);
 
   const [tracks, setTracks] = useState<TrackEntry[]>([]);
   const nextPos = useRef({ x: 20, y: 20 });

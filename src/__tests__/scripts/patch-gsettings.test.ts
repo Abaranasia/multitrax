@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-unused-vars, @typescript-eslint/triple-slash-reference */
 /// <reference types="vitest" />
 /** @vitest-environment node */
 

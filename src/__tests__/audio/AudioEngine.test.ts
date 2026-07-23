@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unused-vars */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { AudioEngine } from '@/renderer/audio/AudioEngine';
 

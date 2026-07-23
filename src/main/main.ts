@@ -21,20 +21,28 @@ function createWindow(): void {
   });
 
   if (isDev) {
-    win.loadURL('http://localhost:5173');
+    void win.loadURL('http://localhost:5173').catch((error) => {
+      console.error('Failed to load dev server URL:', error);
+    });
     win.webContents.openDevTools();
   } else {
-    win.loadFile(path.join(__dirname, '../renderer/index.html'));
+    void win.loadFile(path.join(__dirname, '../renderer/index.html')).catch((error) => {
+      console.error('Failed to load renderer:', error);
+    });
   }
 }
 
-app.whenReady().then(() => {
-  createWindow();
+void app.whenReady()
+  .then(() => {
+    createWindow();
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  })
+  .catch((error) => {
+    console.error('Failed to initialize app:', error);
   });
-});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
@@ -71,7 +79,7 @@ ipcMain.handle(
 );
 
 // IPC: read audio file as ArrayBuffer
-ipcMain.handle('fs:readAudioFile', async (_event, filePath: string) => {
+ipcMain.handle('fs:readAudioFile', (_event, filePath: string) => {
   const resolved = path.resolve(filePath);
   const data = fs.readFileSync(resolved);
   return data.buffer;

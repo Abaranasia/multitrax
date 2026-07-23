@@ -185,9 +185,9 @@ export class AudioEngine {
       fadeIn: false,
       fadeOut: false,
       seekFade: false,
-      fadeInDuration: 5,
-      fadeOutDuration: 5,
-      seekFadeDuration: 2,
+      fadeInDuration: FADE_DURATION,
+      fadeOutDuration: FADE_DURATION,
+      seekFadeDuration: SEEK_FADE_DURATION,
       fadeOutTimer: null,
     });
   }
@@ -227,7 +227,9 @@ export class AudioEngine {
     // If a fade-out was in progress (source still running), cancel it cleanly
     this._cancelFadeOut(track);
 
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    if (this.ctx.state === 'suspended') {
+      void this.ctx.resume();
+    }
 
     // When loop and any fade are both active, manage looping manually so that
     // gain automations (fade-out near end, fade-in at restart) can be
@@ -774,8 +776,8 @@ export class AudioEngine {
     if (track.sourceNode) {
       try {
         track.sourceNode.stop();
-      } catch (_) {
-        /* already stopped */
+      } catch (error) {
+        console.warn('Error: ', error)
       }
       track.sourceNode.disconnect();
       track.sourceNode = null;

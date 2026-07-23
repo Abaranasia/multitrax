@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react';
-import { useAudio } from '../../context/AudioContext';
+import { useAudio } from '../../context/useAudio';
 
 const AUDIO_EXTS = new Set(['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus', 'webm']);
 

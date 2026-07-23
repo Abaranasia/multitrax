@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises, @typescript-eslint/no-unused-vars, @typescript-eslint/require-await */
 import React from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, render, screen, waitFor, cleanup } from '@testing-library/react';
@@ -37,7 +38,8 @@ vi.mock('@/renderer/audio/AudioEngine', () => ({
   AudioEngine: vi.fn(() => mockAudioEngine),
 }));
 
-import { AudioProvider, useAudio } from '@/renderer/context/AudioContext';
+import { AudioProvider } from '@/renderer/context/AudioContext';
+import { useAudio } from '@/renderer/context/useAudio';
 
 describe('AudioContext', () => {
   beforeEach(() => {

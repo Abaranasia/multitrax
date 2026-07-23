@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unused-vars, @typescript-eslint/require-await */
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
@@ -36,7 +37,8 @@ vi.mock('@/renderer/audio/AudioEngine', () => ({
 
 import { TrackPlayer } from '@/renderer/components/TrackPlayer/TrackPlayer';
 import { TrackState } from '@/renderer/domain/TrackState';
-import { AudioProvider, useAudio } from '@/renderer/context/AudioContext';
+import { AudioProvider } from '@/renderer/context/AudioContext';
+import { useAudio } from '@/renderer/context/useAudio';
 
 describe('TrackPlayer', () => {
   const baseState: TrackState = {

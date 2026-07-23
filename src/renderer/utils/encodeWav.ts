@@ -28,8 +28,8 @@ export function encodeWav(audioBuffer: AudioBuffer): ArrayBuffer {
 
   // fmt chunk
   writeString(12, 'fmt ');
-  view.setUint32(16, 16, true);          // chunk size
-  view.setUint16(20, 1, true);           // PCM format
+  view.setUint32(16, 16, true); // chunk size
+  view.setUint16(20, 1, true); // PCM format
   view.setUint16(22, numChannels, true);
   view.setUint32(24, sampleRate, true);
   view.setUint32(28, byteRate, true);

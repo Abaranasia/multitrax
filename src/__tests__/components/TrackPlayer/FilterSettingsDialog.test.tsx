@@ -25,7 +25,9 @@ describe('FilterSettingsDialog', () => {
   it('renders the draft values', () => {
     render(<FilterSettingsDialog {...baseProps} />);
 
-    expect((document.querySelector('.filter-settings-select') as HTMLSelectElement).value).toBe('lowpass');
+    expect((document.querySelector('.filter-settings-select') as HTMLSelectElement).value).toBe(
+      'lowpass',
+    );
     const ranges = document.querySelectorAll('.filter-settings-panel input[type=range]');
     expect(ranges.length).toBe(4);
     expect((ranges[0] as HTMLInputElement).value).toBe('1000');

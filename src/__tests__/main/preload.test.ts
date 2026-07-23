@@ -27,10 +27,17 @@ describe('preload bridge', () => {
     expect((electron as any).ipcRenderer.invoke).toHaveBeenCalledWith('dialog:openAudioFiles');
 
     await exposed.readAudioFile('path/to/file');
-    expect((electron as any).ipcRenderer.invoke).toHaveBeenCalledWith('fs:readAudioFile', 'path/to/file');
+    expect((electron as any).ipcRenderer.invoke).toHaveBeenCalledWith(
+      'fs:readAudioFile',
+      'path/to/file',
+    );
 
     const buffer = new ArrayBuffer(4);
     await exposed.saveRecording(buffer, 'name.wav');
-    expect((electron as any).ipcRenderer.invoke).toHaveBeenCalledWith('dialog:saveRecording', buffer, 'name.wav');
+    expect((electron as any).ipcRenderer.invoke).toHaveBeenCalledWith(
+      'dialog:saveRecording',
+      buffer,
+      'name.wav',
+    );
   });
 });

@@ -3,10 +3,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 
 const mockAudioEngine = {
-  audioContext: { decodeAudioData: vi.fn(async (b: ArrayBuffer) => ({ duration: 3 } as unknown as AudioBuffer)) },
+  audioContext: {
+    decodeAudioData: vi.fn(async (b: ArrayBuffer) => ({ duration: 3 }) as unknown as AudioBuffer),
+  },
   addTrack: vi.fn(),
   removeTrack: vi.fn(),
-  getBuffer: vi.fn((_id: string) => ({ duration: 12 } as unknown as AudioBuffer)),
+  getBuffer: vi.fn((_id: string) => ({ duration: 12 }) as unknown as AudioBuffer),
   play: vi.fn(),
   pause: vi.fn(),
   stop: vi.fn(),
@@ -72,7 +74,9 @@ describe('TrackPlayer', () => {
   beforeEach(() => {
     cleanup();
     vi.restoreAllMocks();
-    Object.keys(mockAudioEngine).forEach(k => (mockAudioEngine as any)[k] = (mockAudioEngine as any)[k] || vi.fn());
+    Object.keys(mockAudioEngine).forEach(
+      (k) => ((mockAudioEngine as any)[k] = (mockAudioEngine as any)[k] || vi.fn()),
+    );
 
     if (!globalThis.crypto || typeof globalThis.crypto.randomUUID !== 'function') {
       Object.defineProperty(globalThis, 'crypto', {
@@ -80,7 +84,9 @@ describe('TrackPlayer', () => {
         configurable: true,
       });
     } else {
-      vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => baseState.id as `${string}-${string}-${string}-${string}-${string}`);
+      vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(
+        () => baseState.id as `${string}-${string}-${string}-${string}-${string}`,
+      );
     }
   });
 
@@ -92,7 +98,9 @@ describe('TrackPlayer', () => {
   const SeededTrackPlayer = ({ state, x, y }: { state: TrackState; x: number; y: number }) => {
     const audio = useAudio();
     React.useEffect(() => {
-      void audio.addTracks([{ path: '/sample.wav', name: state.title, buffer: new ArrayBuffer(4) }]);
+      void audio.addTracks([
+        { path: '/sample.wav', name: state.title, buffer: new ArrayBuffer(4) },
+      ]);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
     return <TrackPlayer state={state} x={x} y={y} />;
@@ -220,7 +228,9 @@ describe('TrackPlayer', () => {
 
     fireEvent.click(applyBtn);
 
-    await waitFor(() => expect(mockAudioEngine.setFadeDurations).toHaveBeenCalledWith('track-1', 2.5, 3.5, 1));
+    await waitFor(() =>
+      expect(mockAudioEngine.setFadeDurations).toHaveBeenCalledWith('track-1', 2.5, 3.5, 1),
+    );
   });
 
   it('opens filter settings, updates draft values and applies them to engine', async () => {
@@ -239,16 +249,21 @@ describe('TrackPlayer', () => {
     expect(ranges.length).toBe(4);
 
     fireEvent.change(select, { target: { value: 'highpass' } });
-    fireEvent.change(ranges[0], { target: { value: '500' } });  // cutoff
-    fireEvent.change(ranges[1], { target: { value: '4' } });    // resonance
-    fireEvent.change(ranges[2], { target: { value: '90' } });   // output
-    fireEvent.change(ranges[3], { target: { value: '70' } });   // mix (bottom field)
+    fireEvent.change(ranges[0], { target: { value: '500' } }); // cutoff
+    fireEvent.change(ranges[1], { target: { value: '4' } }); // resonance
+    fireEvent.change(ranges[2], { target: { value: '90' } }); // output
+    fireEvent.change(ranges[3], { target: { value: '70' } }); // mix (bottom field)
 
     fireEvent.click(applyBtn);
 
     await waitFor(() =>
       expect(mockAudioEngine.setFilterSettings).toHaveBeenCalledWith(
-        'track-1', 'highpass', 500, 4, 70, 90,
+        'track-1',
+        'highpass',
+        500,
+        4,
+        70,
+        90,
       ),
     );
 
@@ -308,17 +323,15 @@ describe('TrackPlayer', () => {
     expect(ranges.length).toBe(5);
 
     fireEvent.change(ranges[0], { target: { value: '450' } }); // time
-    fireEvent.change(ranges[1], { target: { value: '60' } });  // feedback
-    fireEvent.change(ranges[2], { target: { value: '30' } });  // tone
-    fireEvent.change(ranges[3], { target: { value: '90' } });  // output
-    fireEvent.change(ranges[4], { target: { value: '40' } });  // mix (bottom field)
+    fireEvent.change(ranges[1], { target: { value: '60' } }); // feedback
+    fireEvent.change(ranges[2], { target: { value: '30' } }); // tone
+    fireEvent.change(ranges[3], { target: { value: '90' } }); // output
+    fireEvent.change(ranges[4], { target: { value: '40' } }); // mix (bottom field)
 
     fireEvent.click(applyBtn);
 
     await waitFor(() =>
-      expect(mockAudioEngine.setDelaySettings).toHaveBeenCalledWith(
-        'track-1', 450, 60, 40, 30, 90,
-      ),
+      expect(mockAudioEngine.setDelaySettings).toHaveBeenCalledWith('track-1', 450, 60, 40, 30, 90),
     );
 
     // Overlay closes after apply
@@ -361,15 +374,20 @@ describe('TrackPlayer', () => {
 
     fireEvent.change(select, { target: { value: 'cathedral' } });
     fireEvent.change(ranges[0], { target: { value: '100' } }); // pre-delay
-    fireEvent.change(ranges[1], { target: { value: '20' } });  // damping
-    fireEvent.change(ranges[2], { target: { value: '80' } });  // output
-    fireEvent.change(ranges[3], { target: { value: '60' } });  // mix (bottom field)
+    fireEvent.change(ranges[1], { target: { value: '20' } }); // damping
+    fireEvent.change(ranges[2], { target: { value: '80' } }); // output
+    fireEvent.change(ranges[3], { target: { value: '60' } }); // mix (bottom field)
 
     fireEvent.click(applyBtn);
 
     await waitFor(() =>
       expect(mockAudioEngine.setReverbSettings).toHaveBeenCalledWith(
-        'track-1', 'cathedral', 60, 100, 20, 80,
+        'track-1',
+        'cathedral',
+        60,
+        100,
+        20,
+        80,
       ),
     );
 
@@ -421,7 +439,9 @@ describe('TrackPlayer', () => {
       </AudioProvider>,
     );
 
-    await waitFor(() => expect(mockAudioEngine.addTrack).toHaveBeenCalledWith('track-1', expect.anything()));
+    await waitFor(() =>
+      expect(mockAudioEngine.addTrack).toHaveBeenCalledWith('track-1', expect.anything()),
+    );
     mockAudioEngine.addTrack.mockClear();
 
     expect(screen.queryByText('Duplicate')).toBeNull();
@@ -458,7 +478,9 @@ describe('TrackPlayer', () => {
       </AudioProvider>,
     );
 
-    const volumeInput = document.querySelector('.volume-control input[type=range]') as HTMLInputElement;
+    const volumeInput = document.querySelector(
+      '.volume-control input[type=range]',
+    ) as HTMLInputElement;
     fireEvent.change(volumeInput, { target: { value: '0.5' } });
     await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenCalledWith('track-1', 0.5));
   });

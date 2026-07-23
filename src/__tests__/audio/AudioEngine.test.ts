@@ -9,13 +9,23 @@ class FakeGain {
     this.gain = {
       value: 1,
       cancelScheduledValues: vi.fn(() => {}),
-      setValueAtTime: vi.fn((v: number) => { this.gain.value = v; }),
-      linearRampToValueAtTime: vi.fn((v: number) => { this.gain.value = v; }),
-      setTargetAtTime: vi.fn((v: number) => { this.gain.value = v; }),
+      setValueAtTime: vi.fn((v: number) => {
+        this.gain.value = v;
+      }),
+      linearRampToValueAtTime: vi.fn((v: number) => {
+        this.gain.value = v;
+      }),
+      setTargetAtTime: vi.fn((v: number) => {
+        this.gain.value = v;
+      }),
     };
   }
-  connect() { this.connected = true; }
-  disconnect() { this.connected = false; }
+  connect() {
+    this.connected = true;
+  }
+  disconnect() {
+    this.connected = false;
+  }
 }
 
 class FakeSource {
@@ -25,16 +35,29 @@ class FakeSource {
   started = false;
   connect() {}
   disconnect() {}
-  start(_when: number, _offset?: number) { this.started = true; }
-  stop() { this.started = false; if (this.onended) setTimeout(() => this.onended && this.onended(), 0); }
+  start(_when: number, _offset?: number) {
+    this.started = true;
+  }
+  stop() {
+    this.started = false;
+    if (this.onended) setTimeout(() => this.onended && this.onended(), 0);
+  }
 }
 
 class FakeAudioParam {
   value: number;
-  constructor(initial: number) { this.value = initial; }
-  setTargetAtTime(v: number) { this.value = v; }
-  setValueAtTime(v: number) { this.value = v; }
-  linearRampToValueAtTime(v: number) { this.value = v; }
+  constructor(initial: number) {
+    this.value = initial;
+  }
+  setTargetAtTime(v: number) {
+    this.value = v;
+  }
+  setValueAtTime(v: number) {
+    this.value = v;
+  }
+  linearRampToValueAtTime(v: number) {
+    this.value = v;
+  }
   cancelScheduledValues() {}
 }
 
@@ -74,13 +97,27 @@ class FakeAudioContext {
   sampleRate = 44100;
   destination = {};
   state: 'running' | 'suspended' = 'running';
-  createGain() { return new FakeGain(); }
-  createMediaStreamDestination() { return new FakeMediaStreamDestination(); }
-  createBufferSource() { return new FakeSource(); }
-  createDelay(_maxDelay?: number) { return new FakeDelay(); }
-  createConvolver() { return new FakeConvolver(); }
-  createBiquadFilter() { return new FakeBiquadFilter(); }
-  createStereoPanner() { return new FakePanner(); }
+  createGain() {
+    return new FakeGain();
+  }
+  createMediaStreamDestination() {
+    return new FakeMediaStreamDestination();
+  }
+  createBufferSource() {
+    return new FakeSource();
+  }
+  createDelay(_maxDelay?: number) {
+    return new FakeDelay();
+  }
+  createConvolver() {
+    return new FakeConvolver();
+  }
+  createBiquadFilter() {
+    return new FakeBiquadFilter();
+  }
+  createStereoPanner() {
+    return new FakePanner();
+  }
   createBuffer(numberOfChannels: number, length: number, sampleRate: number) {
     const channels = Array.from({ length: numberOfChannels }, () => new Float32Array(length));
     return {
@@ -90,8 +127,14 @@ class FakeAudioContext {
       getChannelData: (channel: number) => channels[channel],
     };
   }
-  resume() { this.state = 'running'; return Promise.resolve(); }
-  close() { this.state = 'suspended'; return Promise.resolve(); }
+  resume() {
+    this.state = 'running';
+    return Promise.resolve();
+  }
+  close() {
+    this.state = 'suspended';
+    return Promise.resolve();
+  }
 }
 
 describe('AudioEngine (unit)', () => {

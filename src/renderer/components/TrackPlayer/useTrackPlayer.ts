@@ -32,8 +32,11 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
 
-  const { position: contextMenuPosition, open: openContextMenu, close: closeContextMenu } =
-    useTrackContextMenu();
+  const {
+    position: contextMenuPosition,
+    open: openContextMenu,
+    close: closeContextMenu,
+  } = useTrackContextMenu();
 
   const onContextMenu = useCallback(
     (e: ReactMouseEvent<HTMLDivElement>) => {
@@ -117,7 +120,13 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     setDraftReverbDamping(state.reverbDamping);
     setDraftReverbOutput(state.reverbOutput);
     setReverbSettingsOpen(true);
-  }, [state.reverbRoom, state.reverbMix, state.reverbPreDelay, state.reverbDamping, state.reverbOutput]);
+  }, [
+    state.reverbRoom,
+    state.reverbMix,
+    state.reverbPreDelay,
+    state.reverbDamping,
+    state.reverbOutput,
+  ]);
 
   const applyReverbSettings = useCallback(() => {
     setReverbSettings(
@@ -149,7 +158,11 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
       dragOffset.current = { x: e.clientX - x, y: e.clientY - y };
 
       const onMove = (ev: globalThis.MouseEvent) => {
-        updatePosition(state.id, ev.clientX - dragOffset.current.x, ev.clientY - dragOffset.current.y);
+        updatePosition(
+          state.id,
+          ev.clientX - dragOffset.current.x,
+          ev.clientY - dragOffset.current.y,
+        );
       };
       const onUp = () => {
         window.removeEventListener('mousemove', onMove);
@@ -164,7 +177,7 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
 
   const onProgressClick = useCallback(
     (e: ReactMouseEvent<HTMLDivElement>) => {
-      const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+      const rect = e.currentTarget.getBoundingClientRect();
       const ratio = (e.clientX - rect.left) / rect.width;
       seek(state.id, ratio * state.duration);
     },

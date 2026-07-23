@@ -18,7 +18,7 @@ export const Canvas = () => {
         </div>
       )}
 
-      {tracks.map(t => (
+      {tracks.map((t) => (
         <TrackPlayer key={t.state.id} state={t.state} x={t.x} y={t.y} />
       ))}
 
@@ -27,7 +27,7 @@ export const Canvas = () => {
           className="btn-play-all"
           onClick={playAll}
           title="Play all tracks"
-          disabled={tracks.length === 0 || tracks.every(t => t.state.playing)}
+          disabled={tracks.length === 0 || tracks.every((t) => t.state.playing)}
         >
           ▶ Play All
         </button>
@@ -36,7 +36,7 @@ export const Canvas = () => {
           className="btn-stop-all"
           onClick={stopAll}
           title="Stop all tracks"
-          disabled={!tracks.some(t => t.state.playing)}
+          disabled={!tracks.some((t) => t.state.playing)}
         >
           ⏹ Stop All
         </button>

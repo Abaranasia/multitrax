@@ -20,7 +20,13 @@ export const useFilterSettingsDialog = (state: TrackState) => {
     setDraftMix(state.filterMix);
     setDraftOutput(state.filterOutput);
     setIsOpen(true);
-  }, [state.filterType, state.filterCutoff, state.filterResonance, state.filterMix, state.filterOutput]);
+  }, [
+    state.filterType,
+    state.filterCutoff,
+    state.filterResonance,
+    state.filterMix,
+    state.filterOutput,
+  ]);
 
   const close = useCallback(() => setIsOpen(false), []);
 

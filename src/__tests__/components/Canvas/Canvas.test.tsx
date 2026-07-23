@@ -1,6 +1,14 @@
 import React from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { act, fireEvent, render, screen, cleanup, waitFor, createEvent } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  cleanup,
+  waitFor,
+  createEvent,
+} from '@testing-library/react';
 
 const mockAddTracks = vi.fn();
 const mockTickCurrentTimes = vi.fn();
@@ -136,9 +144,7 @@ describe('Canvas', () => {
 
   it('renders a TrackPlayer for each track returned by useAudio', () => {
     useAudioMock.mockReturnValueOnce({
-      tracks: [
-        { state: { id: '1', title: 'Test track' }, x: 10, y: 20 },
-      ],
+      tracks: [{ state: { id: '1', title: 'Test track' }, x: 10, y: 20 }],
       addTracks: mockAddTracks,
       tickCurrentTimes: mockTickCurrentTimes,
       stopAll: mockStopAll,
@@ -152,9 +158,7 @@ describe('Canvas', () => {
 
   it('disables the Stop All button when no tracks are playing', () => {
     useAudioMock.mockReturnValueOnce({
-      tracks: [
-        { state: { id: '1', title: 'Test track', playing: false }, x: 10, y: 20 },
-      ],
+      tracks: [{ state: { id: '1', title: 'Test track', playing: false }, x: 10, y: 20 }],
       addTracks: mockAddTracks,
       tickCurrentTimes: mockTickCurrentTimes,
       stopAll: mockStopAll,
@@ -168,9 +172,7 @@ describe('Canvas', () => {
 
   it('enables the Stop All button and calls stopAll when a track is playing', () => {
     useAudioMock.mockReturnValueOnce({
-      tracks: [
-        { state: { id: '1', title: 'Test track', playing: true }, x: 10, y: 20 },
-      ],
+      tracks: [{ state: { id: '1', title: 'Test track', playing: true }, x: 10, y: 20 }],
       addTracks: mockAddTracks,
       tickCurrentTimes: mockTickCurrentTimes,
       stopAll: mockStopAll,
@@ -200,9 +202,7 @@ describe('Canvas', () => {
 
     cleanup();
     useAudioMock.mockReturnValueOnce({
-      tracks: [
-        { state: { id: '1', title: 'Test track', playing: true }, x: 10, y: 20 },
-      ],
+      tracks: [{ state: { id: '1', title: 'Test track', playing: true }, x: 10, y: 20 }],
       addTracks: mockAddTracks,
       tickCurrentTimes: mockTickCurrentTimes,
       stopAll: mockStopAll,
@@ -216,9 +216,7 @@ describe('Canvas', () => {
 
   it('enables the Play All button and calls playAll when a track is not playing', () => {
     useAudioMock.mockReturnValueOnce({
-      tracks: [
-        { state: { id: '1', title: 'Test track', playing: false }, x: 10, y: 20 },
-      ],
+      tracks: [{ state: { id: '1', title: 'Test track', playing: false }, x: 10, y: 20 }],
       addTracks: mockAddTracks,
       tickCurrentTimes: mockTickCurrentTimes,
       stopAll: mockStopAll,

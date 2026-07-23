@@ -5,7 +5,9 @@ document.body.innerHTML = '<div id="root"></div>';
 vi.mock('react-dom/client', () => {
   return {
     createRoot: (_el: HTMLElement) => ({
-      render: () => { (global as any).__TEST_RENDER_CALLED = true; },
+      render: () => {
+        (global as any).__TEST_RENDER_CALLED = true;
+      },
     }),
   };
 });

@@ -3,17 +3,12 @@ import { useRecorder } from './useRecorder';
 import './RecorderBar.css';
 
 export const RecorderBar = () => {
-  const { 
-    elapsed, 
-    isRecording, 
-    isSaving, 
-    start, 
-    stop, 
-    formatTime,
-   } = useRecorder();
+  const { elapsed, isRecording, isSaving, start, stop, formatTime } = useRecorder();
 
   return (
-    <div className={`recorder-bar recorder-bar--top-right${isRecording ? ' recorder-bar--active' : ''}`}>
+    <div
+      className={`recorder-bar recorder-bar--top-right${isRecording ? ' recorder-bar--active' : ''}`}
+    >
       <button
         className={`recorder-btn${isRecording ? ' recorder-btn--stop' : ''}`}
         onClick={isRecording ? stop : start}
@@ -35,9 +30,7 @@ export const RecorderBar = () => {
         )}
       </button>
 
-      <span className="recorder-time">
-        {isRecording ? formatTime(elapsed) : '--:--'}
-      </span>
+      <span className="recorder-time">{isRecording ? formatTime(elapsed) : '--:--'}</span>
     </div>
   );
 };

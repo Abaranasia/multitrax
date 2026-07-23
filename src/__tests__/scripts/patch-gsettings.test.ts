@@ -20,7 +20,7 @@ describe('patch-gsettings.mjs', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.restoreAllMocks();
-    
+
     // @ts-ignore
     cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue('/tmp/workspace');
     // @ts-ignore
@@ -28,7 +28,7 @@ describe('patch-gsettings.mjs', () => {
     // @ts-ignore
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     // @ts-ignore
-    exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: string | number | null | undefined) => {
+    exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: string | number | null) => {
       throw new Error(`EXIT:${code ?? 0}`);
     });
   });
@@ -59,7 +59,8 @@ describe('patch-gsettings.mjs', () => {
   it('injects the font-antialiasing key and compiles schemas when missing', async () => {
     const sysDir = '/usr/share/glib-2.0/schemas';
     const ifaceFile = 'org.gnome.desktop.interface.gschema.xml';
-    const schemaContent = '<schema id="org.gnome.desktop.interface"><key type="s" name="some-other-key"></key></schema>';
+    const schemaContent =
+      '<schema id="org.gnome.desktop.interface"><key type="s" name="some-other-key"></key></schema>';
     const otherContent = '<schema id="some.other.schema"></schema>';
 
     const fsMock = {
@@ -91,7 +92,9 @@ describe('patch-gsettings.mjs', () => {
       join(CUSTOM_DIR, ifaceFile),
       expect.stringContaining('name="font-antialiasing"'),
     );
-    expect(spawnSyncMock).toHaveBeenCalledWith('glib-compile-schemas', [CUSTOM_DIR], { stdio: 'inherit' });
+    expect(spawnSyncMock).toHaveBeenCalledWith('glib-compile-schemas', [CUSTOM_DIR], {
+      stdio: 'inherit',
+    });
     expect(logSpy).toHaveBeenCalledWith(`patch-gsettings: compiled schemas -> ${CUSTOM_DIR}`);
   });
 });

@@ -1,8 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  openAudioFiles: (): Promise<string[]> =>
-    ipcRenderer.invoke('dialog:openAudioFiles'),
+  openAudioFiles: (): Promise<string[]> => ipcRenderer.invoke('dialog:openAudioFiles'),
 
   readAudioFile: (filePath: string): Promise<ArrayBuffer> =>
     ipcRenderer.invoke('fs:readAudioFile', filePath),

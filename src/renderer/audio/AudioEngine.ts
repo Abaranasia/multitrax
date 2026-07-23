@@ -9,7 +9,7 @@ import { FilterType, ReverbRoom } from '../domain/TrackState';
  *   - Reverb subgraph        (persists, insert effect — see ReverbNodes below)
  */
 
-const FADE_DURATION = 5;      // seconds (play/stop fades)
+const FADE_DURATION = 5; // seconds (play/stop fades)
 const SEEK_FADE_DURATION = 2; // seconds (seek cross-fade)
 
 // Lowpass cutoff range shared by the delay "tone" and reverb "damping"
@@ -54,9 +54,9 @@ interface FilterNodes {
   wetGain: GainNode;
   outputGain: GainNode;
   type: FilterType;
-  cutoff: number;      // 20–20000 (Hz)
-  resonance: number;   // 0.1–20 (Q)
-  mix: number;         // 0–100 (%)
+  cutoff: number; // 20–20000 (Hz)
+  resonance: number; // 0.1–20 (Q)
+  mix: number; // 0–100 (%)
   outputLevel: number; // 0–100 (%)
 }
 
@@ -73,11 +73,11 @@ interface DelayNodes {
   damping: BiquadFilterNode;
   wetGain: GainNode;
   outputGain: GainNode;
-  delayTimeMs: number;    // 1–2000 (ms)
-  feedback: number;       // 0–90 (%)
-  mix: number;            // 0–100 (%)
-  dampingAmount: number;  // 0–100 (%)
-  outputLevel: number;    // 0–100 (%)
+  delayTimeMs: number; // 1–2000 (ms)
+  feedback: number; // 0–90 (%)
+  mix: number; // 0–100 (%)
+  dampingAmount: number; // 0–100 (%)
+  outputLevel: number; // 0–100 (%)
 }
 
 /** Per-track reverb insert: GainNode → [dry/wet split] → outputGain → pannerNode. */
@@ -89,8 +89,8 @@ interface ReverbNodes {
   wetGain: GainNode;
   outputGain: GainNode;
   room: ReverbRoom;
-  mix: number;        // 0–100 (%)
-  preDelayMs: number;  // 0–500 (ms)
+  mix: number; // 0–100 (%)
+  preDelayMs: number; // 0–500 (ms)
   dampingAmount: number; // 0–100 (%)
   outputLevel: number; // 0–100 (%)
 }
@@ -103,17 +103,17 @@ interface TrackNodes {
   pannerNode: StereoPannerNode;
   sourceNode: AudioBufferSourceNode | null;
   buffer: AudioBuffer;
-  startOffset: number;   // seconds — where playback was paused
-  startedAt: number;     // audioContext.currentTime when last play() called
+  startOffset: number; // seconds — where playback was paused
+  startedAt: number; // audioContext.currentTime when last play() called
   loop: boolean;
   playing: boolean;
-  volume: number;        // target volume (0–1), independent of gain ramp
-  pan: number;           // target pan (-1 to 1), independent of ramp
+  volume: number; // target volume (0–1), independent of gain ramp
+  pan: number; // target pan (-1 to 1), independent of ramp
   fadeIn: boolean;
   fadeOut: boolean;
   seekFade: boolean;
-  fadeInDuration: number;   // seconds (0–10)
-  fadeOutDuration: number;  // seconds (0–10)
+  fadeInDuration: number; // seconds (0–10)
+  fadeOutDuration: number; // seconds (0–10)
   seekFadeDuration: number; // seconds (0–10)
   fadeOutTimer: ReturnType<typeof setTimeout> | null;
 }
@@ -160,7 +160,7 @@ export class AudioEngine {
     // Chain order: gainNode → filter insert → delay insert → reverb insert → masterGain.
     gainNode.connect(filter.dryGain);
     gainNode.connect(filter.biquadFilter);
-    
+
     filter.outputGain.connect(delay.dryGain);
     filter.outputGain.connect(delay.delayNode);
     delay.outputGain.connect(reverb.dryGain);
@@ -447,8 +447,8 @@ export class AudioEngine {
   ): void {
     const track = this.tracks.get(id);
     if (!track) return;
-    track.fadeInDuration   = Math.max(0, Math.min(10, fadeInDuration));
-    track.fadeOutDuration  = Math.max(0, Math.min(10, fadeOutDuration));
+    track.fadeInDuration = Math.max(0, Math.min(10, fadeInDuration));
+    track.fadeOutDuration = Math.max(0, Math.min(10, fadeOutDuration));
     track.seekFadeDuration = Math.max(0, Math.min(10, seekFadeDuration));
   }
 
@@ -607,10 +607,10 @@ export class AudioEngine {
    * sits before delay in the chain).
    */
   private _createFilterNodes(): FilterNodes {
-    const dryGain      = this.ctx.createGain();
+    const dryGain = this.ctx.createGain();
     const biquadFilter = this.ctx.createBiquadFilter();
-    const wetGain      = this.ctx.createGain();
-    const outputGain   = this.ctx.createGain();
+    const wetGain = this.ctx.createGain();
+    const outputGain = this.ctx.createGain();
 
     biquadFilter.connect(wetGain);
     dryGain.connect(outputGain);
@@ -650,12 +650,12 @@ export class AudioEngine {
    * before reverb in the chain).
    */
   private _createDelayNodes(): DelayNodes {
-    const dryGain      = this.ctx.createGain();
-    const delayNode    = this.ctx.createDelay(DELAY_TIME_MAX_S);
+    const dryGain = this.ctx.createGain();
+    const delayNode = this.ctx.createDelay(DELAY_TIME_MAX_S);
     const feedbackGain = this.ctx.createGain();
-    const damping      = this.ctx.createBiquadFilter();
-    const wetGain      = this.ctx.createGain();
-    const outputGain   = this.ctx.createGain();
+    const damping = this.ctx.createBiquadFilter();
+    const wetGain = this.ctx.createGain();
+    const outputGain = this.ctx.createGain();
 
     damping.type = 'lowpass';
 
@@ -689,7 +689,8 @@ export class AudioEngine {
     wetGain.gain.value = 0;
     delayNode.delayTime.value = delay.delayTimeMs / 1000;
     feedbackGain.gain.value = delay.feedback / 100;
-    damping.frequency.value = DAMPING_MAX_HZ - (delay.dampingAmount / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
+    damping.frequency.value =
+      DAMPING_MAX_HZ - (delay.dampingAmount / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
     outputGain.gain.value = delay.outputLevel / 100;
 
     return delay;
@@ -704,11 +705,11 @@ export class AudioEngine {
    * last in the chain).
    */
   private _createReverbNodes(): ReverbNodes {
-    const dryGain    = this.ctx.createGain();
-    const preDelay   = this.ctx.createDelay(0.5);
-    const convolver  = this.ctx.createConvolver();
-    const damping    = this.ctx.createBiquadFilter();
-    const wetGain    = this.ctx.createGain();
+    const dryGain = this.ctx.createGain();
+    const preDelay = this.ctx.createDelay(0.5);
+    const convolver = this.ctx.createConvolver();
+    const damping = this.ctx.createBiquadFilter();
+    const wetGain = this.ctx.createGain();
     const outputGain = this.ctx.createGain();
 
     damping.type = 'lowpass';
@@ -740,7 +741,8 @@ export class AudioEngine {
     dryGain.gain.value = 1;
     wetGain.gain.value = 0;
     preDelay.delayTime.value = reverb.preDelayMs / 1000;
-    damping.frequency.value = DAMPING_MAX_HZ - (reverb.dampingAmount / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
+    damping.frequency.value =
+      DAMPING_MAX_HZ - (reverb.dampingAmount / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
     outputGain.gain.value = reverb.outputLevel / 100;
     convolver.buffer = this._getImpulseResponse(reverb.room);
 
@@ -770,7 +772,11 @@ export class AudioEngine {
 
   private _stopSource(track: TrackNodes): void {
     if (track.sourceNode) {
-      try { track.sourceNode.stop(); } catch (_) { /* already stopped */ }
+      try {
+        track.sourceNode.stop();
+      } catch (_) {
+        /* already stopped */
+      }
       track.sourceNode.disconnect();
       track.sourceNode = null;
     }
@@ -789,13 +795,13 @@ export class AudioEngine {
    * midpoint so there is always a smooth V-shape.
    */
   private _playLoopWithFade(track: TrackNodes): void {
-    const now          = this.ctx.currentTime;
-    const iterOffset   = track.startOffset;
+    const now = this.ctx.currentTime;
+    const iterOffset = track.startOffset;
     const iterDuration = track.buffer.duration - iterOffset;
 
     const source = this.ctx.createBufferSource();
     source.buffer = track.buffer;
-    source.loop   = false; // looping is managed manually here
+    source.loop = false; // looping is managed manually here
     source.connect(track.gainNode);
 
     source.onended = () => {
@@ -807,9 +813,9 @@ export class AudioEngine {
         track.startOffset = 0;
         this._playLoopWithFade(track);
       } else {
-        track.playing     = false;
+        track.playing = false;
         track.startOffset = 0;
-        track.sourceNode  = null;
+        track.sourceNode = null;
       }
     };
 
@@ -818,7 +824,7 @@ export class AudioEngine {
 
     if (track.fadeIn && track.fadeOut) {
       // Fade in from silence, hold at target volume, fade out to silence.
-      const fadeInEnd    = Math.min(track.fadeInDuration,  iterDuration / 2);
+      const fadeInEnd = Math.min(track.fadeInDuration, iterDuration / 2);
       const fadeOutStart = Math.max(iterDuration - track.fadeOutDuration, iterDuration / 2);
       track.gainNode.gain.setValueAtTime(0, now);
       track.gainNode.gain.linearRampToValueAtTime(track.volume, now + fadeInEnd);
@@ -839,9 +845,9 @@ export class AudioEngine {
     }
 
     source.start(now, iterOffset);
-    track.sourceNode  = source;
-    track.startedAt   = now;
-    track.playing     = true;
+    track.sourceNode = source;
+    track.startedAt = now;
+    track.playing = true;
   }
 
   /** Ramps gain to 0 over track.fadeOutDuration, then calls _stopSource + afterStop cb. */

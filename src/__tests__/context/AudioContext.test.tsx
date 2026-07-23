@@ -7,7 +7,9 @@ const FAKE_BUFFER = { duration: 12 } as unknown as AudioBuffer;
 
 const mockAudioEngine = {
   audioContext: {
-    decodeAudioData: vi.fn(async (buffer: ArrayBuffer) => ({ duration: 12 } as unknown as AudioBuffer)),
+    decodeAudioData: vi.fn(
+      async (buffer: ArrayBuffer) => ({ duration: 12 }) as unknown as AudioBuffer,
+    ),
   },
   addTrack: vi.fn(),
   removeTrack: vi.fn(),
@@ -73,7 +75,13 @@ describe('AudioContext', () => {
       const audio = useAudio();
       return (
         <>
-          <button onClick={() => audio.addTracks([{ path: '/test.mp3', name: 'Test file', buffer: new ArrayBuffer(4) }])}>
+          <button
+            onClick={() =>
+              audio.addTracks([
+                { path: '/test.mp3', name: 'Test file', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
             Add Track
           </button>
           <div data-testid="track-count">{audio.tracks.length}</div>
@@ -98,7 +106,13 @@ describe('AudioContext', () => {
       const audio = useAudio();
       return (
         <>
-          <button onClick={() => audio.addTracks([{ path: '/test.mp3', name: 'Test file', buffer: new ArrayBuffer(4) }])}>
+          <button
+            onClick={() =>
+              audio.addTracks([
+                { path: '/test.mp3', name: 'Test file', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
             Add Track
           </button>
           <button onClick={() => audio.play(TRACK_ID)}>Play</button>
@@ -126,7 +140,13 @@ describe('AudioContext', () => {
       const audio = useAudio();
       return (
         <>
-          <button onClick={() => audio.addTracks([{ path: '/test.mp3', name: 'Test file', buffer: new ArrayBuffer(4) }])}>
+          <button
+            onClick={() =>
+              audio.addTracks([
+                { path: '/test.mp3', name: 'Test file', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
             Add Track
           </button>
           <button onClick={() => audio.pause(TRACK_ID)}>Pause</button>
@@ -154,7 +174,13 @@ describe('AudioContext', () => {
       const audio = useAudio();
       return (
         <>
-          <button onClick={() => audio.addTracks([{ path: '/test.mp3', name: 'Test file', buffer: new ArrayBuffer(4) }])}>
+          <button
+            onClick={() =>
+              audio.addTracks([
+                { path: '/test.mp3', name: 'Test file', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
             Add Track
           </button>
           <button onClick={() => audio.stop(TRACK_ID)}>Stop</button>
@@ -184,7 +210,13 @@ describe('AudioContext', () => {
       const audio = useAudio();
       return (
         <>
-          <button onClick={() => audio.addTracks([{ path: '/test.mp3', name: 'Test file', buffer: new ArrayBuffer(4) }])}>
+          <button
+            onClick={() =>
+              audio.addTracks([
+                { path: '/test.mp3', name: 'Test file', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
             Add Track
           </button>
           <button onClick={() => audio.seek(TRACK_ID, 5)}>Seek</button>
@@ -211,15 +243,19 @@ describe('AudioContext', () => {
     const SOURCE_ID = '11111111-1111-1111-1111-111111111111';
     const CLONE_ID = '22222222-2222-2222-2222-222222222222';
     let call = 0;
-    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(
-      () => (call++ === 0 ? SOURCE_ID : CLONE_ID),
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() =>
+      call++ === 0 ? SOURCE_ID : CLONE_ID,
     );
 
     const Consumer = () => {
       const audio = useAudio();
       return (
         <>
-          <button onClick={() => audio.addTracks([{ path: '/guitar.wav', name: 'Guitar', buffer: new ArrayBuffer(4) }])}>
+          <button
+            onClick={() =>
+              audio.addTracks([{ path: '/guitar.wav', name: 'Guitar', buffer: new ArrayBuffer(4) }])
+            }
+          >
             Add Track
           </button>
           <button onClick={() => audio.duplicateTrack(SOURCE_ID)}>Duplicate</button>
@@ -248,7 +284,12 @@ describe('AudioContext', () => {
     expect(screen.getByTestId('clone-playing').textContent).toBe('false');
     expect(mockAudioEngine.setPan).toHaveBeenCalledWith(CLONE_ID, 0);
     expect(mockAudioEngine.setFilterSettings).toHaveBeenCalledWith(
-      CLONE_ID, 'lowpass', 1000, 1, 0, 100,
+      CLONE_ID,
+      'lowpass',
+      1000,
+      1,
+      0,
+      100,
     );
   });
 });

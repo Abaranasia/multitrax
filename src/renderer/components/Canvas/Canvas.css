@@ -54,7 +54,10 @@
   font-weight: 600;
   color: #fff;
   cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .controls-bar button:hover:not(:disabled) {

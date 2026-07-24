@@ -286,55 +286,6 @@ describe('TrackPlayer', () => {
     expect(screen.getByTitle('Filter settings').className).toContain('btn-filter--active');
   });
 
-  it('opens delay settings, updates draft values and applies them to engine', async () => {
-    render(
-      <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
-      </AudioProvider>,
-    );
-
-    const delayBtn = screen.getByTitle('Delay settings');
-    fireEvent.click(delayBtn);
-
-    const applyBtn = await screen.findByText('Apply');
-    const ranges = document.querySelectorAll('.delay-settings-panel input[type=range]');
-    expect(ranges.length).toBe(5);
-
-    fireEvent.change(ranges[0], { target: { value: '450' } }); // time
-    fireEvent.change(ranges[1], { target: { value: '60' } }); // feedback
-    fireEvent.change(ranges[2], { target: { value: '30' } }); // tone
-    fireEvent.change(ranges[3], { target: { value: '90' } }); // output
-    fireEvent.change(ranges[4], { target: { value: '40' } }); // mix (bottom field)
-
-    fireEvent.click(applyBtn);
-
-    await waitFor(() =>
-      expect(mockAudioEngine.setDelaySettings).toHaveBeenCalledWith('track-1', 450, 60, 40, 30, 90),
-    );
-
-    // Overlay closes after apply
-    expect(screen.queryByText('Apply')).toBeNull();
-  });
-
-  it('discards delay draft changes and does not call the engine when cancelled', async () => {
-    render(
-      <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
-      </AudioProvider>,
-    );
-
-    const delayBtn = screen.getByTitle('Delay settings');
-    fireEvent.click(delayBtn);
-
-    const ranges = document.querySelectorAll('.delay-settings-panel input[type=range]');
-    fireEvent.change(ranges[0], { target: { value: '900' } });
-
-    fireEvent.click(screen.getByText('Cancel'));
-
-    expect(screen.queryByText('Apply')).toBeNull();
-    expect(mockAudioEngine.setDelaySettings).not.toHaveBeenCalled();
-  });
-
   it('opens reverb settings, updates draft values and applies them to engine', async () => {
     render(
       <AudioProvider>

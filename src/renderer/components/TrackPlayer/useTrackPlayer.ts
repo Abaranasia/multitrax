@@ -21,7 +21,6 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     setFadeIn,
     setFadeOut,
     setSeekFade,
-    setDelaySettings,
     setReverbSettings,
     removeTrack,
     duplicateTrack,
@@ -49,43 +48,6 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     duplicateTrack(state.id);
     closeContextMenu();
   }, [duplicateTrack, state.id, closeContextMenu]);
-
-  // ── Delay settings ─────────────────────────────────────────────────────────
-  const [delaySettingsOpen, setDelaySettingsOpen] = useState(false);
-  const [draftDelayTime, setDraftDelayTime] = useState(state.delayTime);
-  const [draftDelayFeedback, setDraftDelayFeedback] = useState(state.delayFeedback);
-  const [draftDelayMix, setDraftDelayMix] = useState(state.delayMix);
-  const [draftDelayDamping, setDraftDelayDamping] = useState(state.delayDamping);
-  const [draftDelayOutput, setDraftDelayOutput] = useState(state.delayOutput);
-
-  const openDelaySettings = useCallback(() => {
-    setDraftDelayTime(state.delayTime);
-    setDraftDelayFeedback(state.delayFeedback);
-    setDraftDelayMix(state.delayMix);
-    setDraftDelayDamping(state.delayDamping);
-    setDraftDelayOutput(state.delayOutput);
-    setDelaySettingsOpen(true);
-  }, [state.delayTime, state.delayFeedback, state.delayMix, state.delayDamping, state.delayOutput]);
-
-  const applyDelaySettings = useCallback(() => {
-    setDelaySettings(
-      state.id,
-      draftDelayTime,
-      draftDelayFeedback,
-      draftDelayMix,
-      draftDelayDamping,
-      draftDelayOutput,
-    );
-    setDelaySettingsOpen(false);
-  }, [
-    state.id,
-    draftDelayTime,
-    draftDelayFeedback,
-    draftDelayMix,
-    draftDelayDamping,
-    draftDelayOutput,
-    setDelaySettings,
-  ]);
 
   // ── Reverb settings ────────────────────────────────────────────────────────
   const [reverbSettingsOpen, setReverbSettingsOpen] = useState(false);
@@ -170,20 +132,6 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
 
   return {
     cardRef,
-    delaySettingsOpen,
-    setDelaySettingsOpen,
-    draftDelayTime,
-    setDraftDelayTime,
-    draftDelayFeedback,
-    setDraftDelayFeedback,
-    draftDelayMix,
-    setDraftDelayMix,
-    draftDelayDamping,
-    setDraftDelayDamping,
-    draftDelayOutput,
-    setDraftDelayOutput,
-    openDelaySettings,
-    applyDelaySettings,
     reverbSettingsOpen,
     setReverbSettingsOpen,
     draftReverbRoom,

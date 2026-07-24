@@ -9,6 +9,8 @@ import { DistortionSettingsDialog } from './DistortionSettingsDialog';
 import { useDistortionSettingsDialog } from './useDistortionSettingsDialog';
 import { FadeSettingsDialog } from './FadeSettingsDialog';
 import { useFadeSettingsDialog } from './useFadeSettingsDialog';
+import { DelaySettingsDialog } from './DelaySettingsDialog';
+import { useDelaySettingsDialog } from './useDelaySettingsDialog';
 
 import './TrackPlayer.css';
 
@@ -23,20 +25,6 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
 
   const {
     cardRef,
-    delaySettingsOpen,
-    setDelaySettingsOpen,
-    draftDelayTime,
-    setDraftDelayTime,
-    draftDelayFeedback,
-    setDraftDelayFeedback,
-    draftDelayMix,
-    setDraftDelayMix,
-    draftDelayDamping,
-    setDraftDelayDamping,
-    draftDelayOutput,
-    setDraftDelayOutput,
-    openDelaySettings,
-    applyDelaySettings,
     reverbSettingsOpen,
     setReverbSettingsOpen,
     draftReverbRoom,
@@ -133,11 +121,12 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
   const filterDialog = useFilterSettingsDialog(state);
   const distortionDialog = useDistortionSettingsDialog(state);
   const fadeDialog = useFadeSettingsDialog(state);
+  const delayDialog = useDelaySettingsDialog(state);
 
   return (
     <div
       ref={cardRef}
-      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}${delaySettingsOpen ? ' track-player--delay-open' : ''}${filterDialog.isOpen ? ' track-player--filter-open' : ''}${distortionDialog.isOpen ? ' track-player--distortion-open' : ''}${fadeDialog.isOpen ? ' track-player--fade-open' : ''}`}
+      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}${delayDialog.isOpen ? ' track-player--delay-open' : ''}${filterDialog.isOpen ? ' track-player--filter-open' : ''}${distortionDialog.isOpen ? ' track-player--distortion-open' : ''}${fadeDialog.isOpen ? ' track-player--fade-open' : ''}`}
       style={{ left: x, top: y }}
       onMouseDown={onMouseDown}
       onContextMenu={onContextMenu}
@@ -173,7 +162,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
           {/* Delay settings */}
           <button
             className={`btn-delay${state.delayMix > 0 ? ' btn-delay--active' : ''}`}
-            onClick={openDelaySettings}
+            onClick={delayDialog.open}
             title="Delay settings"
           >
             D
@@ -342,95 +331,6 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
         </div>
       </div>
 
-      {/* ── Delay settings overlay ───────────────────────────────────────── */}
-      {delaySettingsOpen && (
-        <div
-          className="delay-settings-overlay"
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={() => setDelaySettingsOpen(false)}
-        >
-          <div className="delay-settings-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="delay-settings-title">·•● Delay</div>
-
-            <div className="delay-settings-field">
-              <span className="delay-settings-label">Time</span>
-              <input
-                type="range"
-                min={1}
-                max={2000}
-                step={10}
-                value={draftDelayTime}
-                onChange={(e) => setDraftDelayTime(Number(e.target.value))}
-              />
-              <span className="delay-settings-value">{draftDelayTime}ms</span>
-            </div>
-
-            <div className="delay-settings-field">
-              <span className="delay-settings-label">Feedback</span>
-              <input
-                type="range"
-                min={0}
-                max={90}
-                step={1}
-                value={draftDelayFeedback}
-                onChange={(e) => setDraftDelayFeedback(Number(e.target.value))}
-              />
-              <span className="delay-settings-value">{draftDelayFeedback}%</span>
-            </div>
-
-            <div className="delay-settings-field">
-              <span className="delay-settings-label">Tone</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={draftDelayDamping}
-                onChange={(e) => setDraftDelayDamping(Number(e.target.value))}
-              />
-              <span className="delay-settings-value">{draftDelayDamping}%</span>
-            </div>
-
-            <div className="delay-settings-field">
-              <span className="delay-settings-label">Output</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={draftDelayOutput}
-                onChange={(e) => setDraftDelayOutput(Number(e.target.value))}
-              />
-              <span className="delay-settings-value">{draftDelayOutput}%</span>
-            </div>
-
-            <div className="delay-settings-field">
-              <span className="delay-settings-label delay-settings-label--mix">Mix</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={draftDelayMix}
-                onChange={(e) => setDraftDelayMix(Number(e.target.value))}
-              />
-              <span className="delay-settings-value delay-settings-value--mix">
-                {draftDelayMix}%
-              </span>
-            </div>
-
-            <div className="delay-settings-actions">
-              <button className="delay-settings-apply" onClick={applyDelaySettings}>
-                Apply
-              </button>
-              <button className="delay-settings-cancel" onClick={() => setDelaySettingsOpen(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Reverb settings overlay ──────────────────────────────────────── */}
       {reverbSettingsOpen && (
         <div
@@ -569,6 +469,24 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
           setDraftSeekFade={fadeDialog.setDraftSeekFade}
           onApply={fadeDialog.apply}
           onCancel={fadeDialog.close}
+        />
+      )}
+
+      {/* ── Delay settings overlay ───────────────────────────────────────── */}
+      {delayDialog.isOpen && (
+        <DelaySettingsDialog
+          draftDelayTime={delayDialog.draftDelayTime}
+          setDraftDelayTime={delayDialog.setDraftDelayTime}
+          draftDelayFeedback={delayDialog.draftDelayFeedback}
+          setDraftDelayFeedback={delayDialog.setDraftDelayFeedback}
+          draftDelayDamping={delayDialog.draftDelayDamping}
+          setDraftDelayDamping={delayDialog.setDraftDelayDamping}
+          draftDelayOutput={delayDialog.draftDelayOutput}
+          setDraftDelayOutput={delayDialog.setDraftDelayOutput}
+          draftDelayMix={delayDialog.draftDelayMix}
+          setDraftDelayMix={delayDialog.setDraftDelayMix}
+          onApply={delayDialog.apply}
+          onCancel={delayDialog.close}
         />
       )}
 

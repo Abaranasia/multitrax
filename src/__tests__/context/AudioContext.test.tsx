@@ -29,6 +29,7 @@ const mockAudioEngine = {
   setFilterSettings: vi.fn(),
   setDelaySettings: vi.fn(),
   setReverbSettings: vi.fn(),
+  setDistortionSettings: vi.fn(),
   isPlaying: vi.fn().mockReturnValue(false),
   getCurrentTime: vi.fn().mockReturnValue(0),
   close: vi.fn(),
@@ -101,6 +102,41 @@ describe('AudioContext', () => {
     fireEvent.click(screen.getByText('Add Track'));
     await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('1'));
     expect(screen.getByTestId('track-title').textContent).toBe('Test file');
+  });
+
+  it('gives a new track default distortion settings', async () => {
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              audio.addTracks([
+                { path: '/test.mp3', name: 'Test file', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
+            Add Track
+          </button>
+          <div data-testid="distortion-drive">{audio.tracks[0]?.state.distortionDrive ?? ''}</div>
+          <div data-testid="distortion-tone">{audio.tracks[0]?.state.distortionTone ?? ''}</div>
+          <div data-testid="distortion-mix">{audio.tracks[0]?.state.distortionMix ?? ''}</div>
+          <div data-testid="distortion-output">{audio.tracks[0]?.state.distortionOutput ?? ''}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add Track'));
+    await waitFor(() => expect(screen.getByTestId('distortion-drive').textContent).toBe('0'));
+    expect(screen.getByTestId('distortion-tone').textContent).toBe('100');
+    expect(screen.getByTestId('distortion-mix').textContent).toBe('0');
+    expect(screen.getByTestId('distortion-output').textContent).toBe('100');
   });
 
   it('calls engine.play and updates track playing state', async () => {
@@ -260,10 +296,16 @@ describe('AudioContext', () => {
           >
             Add Track
           </button>
+          <button onClick={() => audio.setDistortionSettings(SOURCE_ID, 40, 60, 50, 80)}>
+            Set Distortion
+          </button>
           <button onClick={() => audio.duplicateTrack(SOURCE_ID)}>Duplicate</button>
           <div data-testid="track-count">{audio.tracks.length}</div>
           <div data-testid="clone-title">{audio.tracks[1]?.state.title ?? ''}</div>
           <div data-testid="clone-playing">{String(audio.tracks[1]?.state.playing ?? '')}</div>
+          <div data-testid="clone-distortion-drive">
+            {audio.tracks[1]?.state.distortionDrive ?? ''}
+          </div>
         </>
       );
     };
@@ -276,6 +318,11 @@ describe('AudioContext', () => {
 
     fireEvent.click(screen.getByText('Add Track'));
     await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('1'));
+
+    fireEvent.click(screen.getByText('Set Distortion'));
+    await waitFor(() =>
+      expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith(SOURCE_ID, 40, 60, 50, 80),
+    );
 
     fireEvent.click(screen.getByText('Duplicate'));
     await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('2'));
@@ -293,5 +340,7 @@ describe('AudioContext', () => {
       0,
       100,
     );
+    expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith(CLONE_ID, 40, 60, 50, 80);
+    expect(screen.getByTestId('clone-distortion-drive').textContent).toBe('40');
   });
 });

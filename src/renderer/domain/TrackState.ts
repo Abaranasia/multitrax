@@ -28,6 +28,10 @@ export interface TrackState {
   reverbPreDelay: number; // 0–500 (ms)
   reverbDamping: number; // 0–100 (%)
   reverbOutput: number; // 0–100 (%)
+  distortionDrive: number; // 0–100 (%)
+  distortionTone: number; // 0–100 (%)
+  distortionMix: number; // 0–100 (%)
+  distortionOutput: number; // 0–100 (%)
   waveform?: number[];
 }
 

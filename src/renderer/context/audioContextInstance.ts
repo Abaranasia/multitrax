@@ -53,6 +53,13 @@ export interface AudioContextValue {
     damping: number,
     output: number,
   ) => void;
+  setDistortionSettings: (
+    id: string,
+    drive: number,
+    tone: number,
+    mix: number,
+    output: number,
+  ) => void;
   updatePosition: (id: string, x: number, y: number) => void;
   tickCurrentTimes: () => void;
 }

@@ -44,10 +44,10 @@ Note: chain strategy not yet selected — ask the user (stacked-to-main vs featu
 
 ## Phase 2: State & Context Wiring (PR 2)
 
-- [ ] 2.1 Add `distortionDrive/Tone/Mix/Output` fields (default `0/100/0/100`) to `src/renderer/domain/TrackState.ts`.
-- [ ] 2.2 Add `setDistortionSettings` to `AudioContextValue` in `src/renderer/context/audioContextInstance.ts`.
-- [ ] 2.3 Add provider callback, new-track defaults, and duplicate passthrough (`engine.setDistortionSettings`) in `src/renderer/context/AudioContext.tsx`.
-- [ ] 2.4 Verify/extend existing context tests for defaults + duplicate-copies-distortion behavior.
+- [x] 2.1 Add `distortionDrive/Tone/Mix/Output` fields (default `0/100/0/100`) to `src/renderer/domain/TrackState.ts`.
+- [x] 2.2 Add `setDistortionSettings` to `AudioContextValue` in `src/renderer/context/audioContextInstance.ts`.
+- [x] 2.3 Add provider callback, new-track defaults, and duplicate passthrough (`engine.setDistortionSettings`) in `src/renderer/context/AudioContext.tsx`.
+- [x] 2.4 Verify/extend existing context tests for defaults + duplicate-copies-distortion behavior.
 
 ## Phase 3: UI — Dialog & TrackPlayer (PR 3)
 

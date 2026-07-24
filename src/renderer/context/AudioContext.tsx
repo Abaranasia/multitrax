@@ -70,6 +70,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           reverbPreDelay: 20,
           reverbDamping: 50,
           reverbOutput: 100,
+          distortionDrive: 0,
+          distortionTone: 100,
+          distortionMix: 0,
+          distortionOutput: 100,
           waveform,
         };
 
@@ -122,6 +126,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         source.state.reverbPreDelay,
         source.state.reverbDamping,
         source.state.reverbOutput,
+      );
+      engine.setDistortionSettings(
+        newId,
+        source.state.distortionDrive,
+        source.state.distortionTone,
+        source.state.distortionMix,
+        source.state.distortionOutput,
       );
       engine.setVolume(newId, source.state.volume);
       engine.setPan(newId, source.state.pan);
@@ -389,6 +400,29 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [engine],
   );
 
+  const setDistortionSettings = useCallback(
+    (id: string, drive: number, tone: number, mix: number, output: number) => {
+      engine.setDistortionSettings(id, drive, tone, mix, output);
+      setTracks((prev) =>
+        prev.map((t) =>
+          t.state.id === id
+            ? {
+                ...t,
+                state: {
+                  ...t.state,
+                  distortionDrive: drive,
+                  distortionTone: tone,
+                  distortionMix: mix,
+                  distortionOutput: output,
+                },
+              }
+            : t,
+        ),
+      );
+    },
+    [engine],
+  );
+
   const updatePosition = useCallback((id: string, x: number, y: number) => {
     setTracks((prev) => prev.map((t) => (t.state.id === id ? { ...t, x, y } : t)));
   }, []);
@@ -431,6 +465,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setFilterSettings,
         setDelaySettings,
         setReverbSettings,
+        setDistortionSettings,
         updatePosition,
         tickCurrentTimes,
       }}

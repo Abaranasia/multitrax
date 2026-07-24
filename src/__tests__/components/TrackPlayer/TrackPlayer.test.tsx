@@ -26,6 +26,7 @@ const mockAudioEngine = {
   setFilterSettings: vi.fn(),
   setDelaySettings: vi.fn(),
   setReverbSettings: vi.fn(),
+  setDistortionSettings: vi.fn(),
   isPlaying: vi.fn().mockReturnValue(false),
   getCurrentTime: vi.fn().mockReturnValue(0),
   close: vi.fn(),
@@ -71,6 +72,10 @@ describe('TrackPlayer', () => {
     reverbPreDelay: 20,
     reverbDamping: 50,
     reverbOutput: 100,
+    distortionDrive: 0,
+    distortionTone: 100,
+    distortionMix: 0,
+    distortionOutput: 100,
   };
 
   beforeEach(() => {

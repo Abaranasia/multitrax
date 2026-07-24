@@ -36,23 +36,23 @@ Shared touch-points each slice edits: `useTrackPlayer.ts` return object and `Tra
 
 ## Phase 2: Delay Extraction + Filter Dedup
 
-- [ ] 2.1 Move delay apply/cancel tests (~318-365) into `DelaySettingsDialog.test.tsx`. RED.
-- [ ] 2.2 Create `useDelaySettingsDialog.ts`: drafts Time/Feedback/Mix/Damping/Output; `apply()` → `setDelaySettings(...)`.
-- [ ] 2.3 Create `DelaySettingsDialog.tsx` + `.css`.
-- [ ] 2.4 Wire `TrackPlayer.tsx`: className `delayDialog.isOpen` (was `delaySettingsOpen`); render dialog.
-- [ ] 2.5 Remove delay block from `useTrackPlayer.ts` (~71-106) + keys; remove inline markup (~413-500), old test block, and leftover Filter dup tests (~243-316). GREEN.
+- [x] 2.1 Move delay apply/cancel tests (~318-365) into `DelaySettingsDialog.test.tsx`. RED.
+- [x] 2.2 Create `useDelaySettingsDialog.ts`: drafts Time/Feedback/Mix/Damping/Output; `apply()` → `setDelaySettings(...)`.
+- [x] 2.3 Create `DelaySettingsDialog.tsx` + `.css`.
+- [x] 2.4 Wire `TrackPlayer.tsx`: className `delayDialog.isOpen` (was `delaySettingsOpen`); render dialog.
+- [x] 2.5 Remove delay block from `useTrackPlayer.ts` (~71-106) + keys; remove inline markup (~413-500), old test block, and leftover Filter dup tests (~243-316). GREEN.
 
 ## Phase 3: Reverb Extraction + Distortion Dedup
 
-- [ ] 3.1 Move reverb apply/cancel/active tests (~367-440) into `ReverbSettingsDialog.test.tsx`. RED.
-- [ ] 3.2 Create `useReverbSettingsDialog.ts`: drafts Room/Mix/PreDelay/Damping/Output; `apply()` → `setReverbSettings(...)`.
-- [ ] 3.3 Create `ReverbSettingsDialog.tsx` + `.css`.
-- [ ] 3.4 Wire `TrackPlayer.tsx`: className `reverbDialog.isOpen` (was `reverbSettingsOpen`); active-button class when `reverbMix > 0`.
-- [ ] 3.5 Remove reverb block from `useTrackPlayer.ts` (~108-149) + keys; remove inline markup (~502-593), old test block, and leftover Distortion dup tests (~442-514). GREEN.
+- [x] 3.1 Move reverb apply/cancel/active tests (~367-440) into `ReverbSettingsDialog.test.tsx`. RED.
+- [x] 3.2 Create `useReverbSettingsDialog.ts`: drafts Room/Mix/PreDelay/Damping/Output; `apply()` → `setReverbSettings(...)`.
+- [x] 3.3 Create `ReverbSettingsDialog.tsx` + `.css`.
+- [x] 3.4 Wire `TrackPlayer.tsx`: className `reverbDialog.isOpen` (was `reverbSettingsOpen`); active-button class when `reverbMix > 0`.
+- [x] 3.5 Remove reverb block from `useTrackPlayer.ts` (~108-149) + keys; remove inline markup (~502-593), old test block, and leftover Distortion dup tests (~442-514). GREEN.
 
 ## Phase 4: Final Verification
 
-- [ ] 4.1 Run `pnpm test:no-watch` — all suites green; no duplicate dialog tests remain in `TrackPlayer.test.tsx`.
-- [ ] 4.2 Run `pnpm typecheck`.
-- [ ] 4.3 Run `pnpm lint`.
-- [ ] 4.4 Check off `doc/TODO.md` lines 212-223.
+- [x] 4.1 Run `pnpm test:no-watch` — all suites green; no duplicate dialog tests remain in `TrackPlayer.test.tsx`.
+- [x] 4.2 Run `pnpm typecheck`.
+- [x] 4.3 Run `pnpm lint`.
+- [x] 4.4 Check off `doc/TODO.md` lines 212-223.

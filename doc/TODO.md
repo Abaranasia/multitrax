@@ -209,7 +209,7 @@ what's meant to stay a focused mixing/monitoring tool.
   module (e.g. `src/__tests__/audio/fixtures/fakeAudioContext.ts`) so they can
   be reused by other audio-related test suites without duplication.
 
-- [ ] **Extract per-track overlays/dialogs into independent components.**
+- [x] **Extract per-track overlays/dialogs into independent components.**
   The fade-duration settings panel and the reverb (and delay) options dialogs
   currently live inline inside `TrackPlayer.tsx` (markup) and
   `useTrackPlayer.ts` (state/logic), rather than as their own components.

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { ReverbRoom, TrackState } from '../../domain/TrackState';
+import { TrackState } from '../../domain/TrackState';
 import { formatTime } from '../../utils/formatTime';
 import { useTrackPlayer } from './useTrackPlayer';
 import { TrackContextMenu } from './TrackContextMenu';
@@ -11,6 +11,8 @@ import { FadeSettingsDialog } from './FadeSettingsDialog';
 import { useFadeSettingsDialog } from './useFadeSettingsDialog';
 import { DelaySettingsDialog } from './DelaySettingsDialog';
 import { useDelaySettingsDialog } from './useDelaySettingsDialog';
+import { ReverbSettingsDialog } from './ReverbSettingsDialog';
+import { useReverbSettingsDialog } from './useReverbSettingsDialog';
 
 import './TrackPlayer.css';
 
@@ -25,20 +27,6 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
 
   const {
     cardRef,
-    reverbSettingsOpen,
-    setReverbSettingsOpen,
-    draftReverbRoom,
-    setDraftReverbRoom,
-    draftReverbMix,
-    setDraftReverbMix,
-    draftReverbPreDelay,
-    setDraftReverbPreDelay,
-    draftReverbDamping,
-    setDraftReverbDamping,
-    draftReverbOutput,
-    setDraftReverbOutput,
-    openReverbSettings,
-    applyReverbSettings,
     fmt,
     onMouseDown,
     onProgressClick,
@@ -122,11 +110,12 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
   const distortionDialog = useDistortionSettingsDialog(state);
   const fadeDialog = useFadeSettingsDialog(state);
   const delayDialog = useDelaySettingsDialog(state);
+  const reverbDialog = useReverbSettingsDialog(state);
 
   return (
     <div
       ref={cardRef}
-      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}${delayDialog.isOpen ? ' track-player--delay-open' : ''}${filterDialog.isOpen ? ' track-player--filter-open' : ''}${distortionDialog.isOpen ? ' track-player--distortion-open' : ''}${fadeDialog.isOpen ? ' track-player--fade-open' : ''}`}
+      className={`track-player${reverbDialog.isOpen ? ' track-player--reverb-open' : ''}${delayDialog.isOpen ? ' track-player--delay-open' : ''}${filterDialog.isOpen ? ' track-player--filter-open' : ''}${distortionDialog.isOpen ? ' track-player--distortion-open' : ''}${fadeDialog.isOpen ? ' track-player--fade-open' : ''}`}
       style={{ left: x, top: y }}
       onMouseDown={onMouseDown}
       onContextMenu={onContextMenu}
@@ -171,7 +160,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
           {/* Reverb settings */}
           <button
             className={`btn-reverb${state.reverbMix > 0 ? ' btn-reverb--active' : ''}`}
-            onClick={openReverbSettings}
+            onClick={reverbDialog.open}
             title="Reverb settings"
           >
             R
@@ -331,99 +320,6 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
         </div>
       </div>
 
-      {/* ── Reverb settings overlay ──────────────────────────────────────── */}
-      {reverbSettingsOpen && (
-        <div
-          className="reverb-settings-overlay"
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={() => setReverbSettingsOpen(false)}
-        >
-          <div className="reverb-settings-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="reverb-settings-title">🎛️ Reverb</div>
-
-            <div className="reverb-settings-field">
-              <span className="reverb-settings-label">Room</span>
-              <select
-                className="reverb-settings-select"
-                value={draftReverbRoom}
-                onChange={(e) => setDraftReverbRoom(e.target.value as ReverbRoom)}
-              >
-                <option value="small-room">Small Room</option>
-                <option value="hall">Hall</option>
-                <option value="plate">Plate</option>
-                <option value="cathedral">Cathedral</option>
-              </select>
-            </div>
-
-            <div className="reverb-settings-field">
-              <span className="reverb-settings-label">Pre-delay</span>
-              <input
-                type="range"
-                min={0}
-                max={500}
-                step={10}
-                value={draftReverbPreDelay}
-                onChange={(e) => setDraftReverbPreDelay(Number(e.target.value))}
-              />
-              <span className="reverb-settings-value">{draftReverbPreDelay}ms</span>
-            </div>
-
-            <div className="reverb-settings-field">
-              <span className="reverb-settings-label">Damping</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={draftReverbDamping}
-                onChange={(e) => setDraftReverbDamping(Number(e.target.value))}
-              />
-              <span className="reverb-settings-value">{draftReverbDamping}%</span>
-            </div>
-
-            <div className="reverb-settings-field">
-              <span className="reverb-settings-label">Output</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={draftReverbOutput}
-                onChange={(e) => setDraftReverbOutput(Number(e.target.value))}
-              />
-              <span className="reverb-settings-value">{draftReverbOutput}%</span>
-            </div>
-
-            <div className="reverb-settings-field">
-              <span className="reverb-settings-label reverb-settings-label--mix">Mix</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={draftReverbMix}
-                onChange={(e) => setDraftReverbMix(Number(e.target.value))}
-              />
-              <span className="reverb-settings-value reverb-settings-value--mix">
-                {draftReverbMix}%
-              </span>
-            </div>
-
-            <div className="reverb-settings-actions">
-              <button className="reverb-settings-apply" onClick={applyReverbSettings}>
-                Apply
-              </button>
-              <button
-                className="reverb-settings-cancel"
-                onClick={() => setReverbSettingsOpen(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Filter settings overlay ──────────────────────────────────────── */}
       {filterDialog.isOpen && (
         <FilterSettingsDialog
@@ -487,6 +383,24 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
           setDraftDelayMix={delayDialog.setDraftDelayMix}
           onApply={delayDialog.apply}
           onCancel={delayDialog.close}
+        />
+      )}
+
+      {/* ── Reverb settings overlay ──────────────────────────────────────── */}
+      {reverbDialog.isOpen && (
+        <ReverbSettingsDialog
+          draftReverbRoom={reverbDialog.draftReverbRoom}
+          setDraftReverbRoom={reverbDialog.setDraftReverbRoom}
+          draftReverbMix={reverbDialog.draftReverbMix}
+          setDraftReverbMix={reverbDialog.setDraftReverbMix}
+          draftReverbPreDelay={reverbDialog.draftReverbPreDelay}
+          setDraftReverbPreDelay={reverbDialog.setDraftReverbPreDelay}
+          draftReverbDamping={reverbDialog.draftReverbDamping}
+          setDraftReverbDamping={reverbDialog.setDraftReverbDamping}
+          draftReverbOutput={reverbDialog.draftReverbOutput}
+          setDraftReverbOutput={reverbDialog.setDraftReverbOutput}
+          onApply={reverbDialog.apply}
+          onCancel={reverbDialog.close}
         />
       )}
 

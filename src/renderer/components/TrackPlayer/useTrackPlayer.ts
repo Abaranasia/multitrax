@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { useCallback, useRef, type MouseEvent as ReactMouseEvent } from 'react';
 import { TrackState } from '../../domain/TrackState';
 import { useAudio } from '../../context/useAudio';
 import { useTrackContextMenu } from './useTrackContextMenu';
@@ -21,7 +21,6 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     setFadeIn,
     setFadeOut,
     setSeekFade,
-    setReverbSettings,
     removeTrack,
     duplicateTrack,
     updatePosition,
@@ -48,49 +47,6 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     duplicateTrack(state.id);
     closeContextMenu();
   }, [duplicateTrack, state.id, closeContextMenu]);
-
-  // ── Reverb settings ────────────────────────────────────────────────────────
-  const [reverbSettingsOpen, setReverbSettingsOpen] = useState(false);
-  const [draftReverbRoom, setDraftReverbRoom] = useState(state.reverbRoom);
-  const [draftReverbMix, setDraftReverbMix] = useState(state.reverbMix);
-  const [draftReverbPreDelay, setDraftReverbPreDelay] = useState(state.reverbPreDelay);
-  const [draftReverbDamping, setDraftReverbDamping] = useState(state.reverbDamping);
-  const [draftReverbOutput, setDraftReverbOutput] = useState(state.reverbOutput);
-
-  const openReverbSettings = useCallback(() => {
-    setDraftReverbRoom(state.reverbRoom);
-    setDraftReverbMix(state.reverbMix);
-    setDraftReverbPreDelay(state.reverbPreDelay);
-    setDraftReverbDamping(state.reverbDamping);
-    setDraftReverbOutput(state.reverbOutput);
-    setReverbSettingsOpen(true);
-  }, [
-    state.reverbRoom,
-    state.reverbMix,
-    state.reverbPreDelay,
-    state.reverbDamping,
-    state.reverbOutput,
-  ]);
-
-  const applyReverbSettings = useCallback(() => {
-    setReverbSettings(
-      state.id,
-      draftReverbRoom,
-      draftReverbMix,
-      draftReverbPreDelay,
-      draftReverbDamping,
-      draftReverbOutput,
-    );
-    setReverbSettingsOpen(false);
-  }, [
-    state.id,
-    draftReverbRoom,
-    draftReverbMix,
-    draftReverbPreDelay,
-    draftReverbDamping,
-    draftReverbOutput,
-    setReverbSettings,
-  ]);
 
   const fmt = useCallback((v: number) => (v % 1 === 0 ? `${v}` : v.toFixed(1)), []);
 
@@ -132,20 +88,6 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
 
   return {
     cardRef,
-    reverbSettingsOpen,
-    setReverbSettingsOpen,
-    draftReverbRoom,
-    setDraftReverbRoom,
-    draftReverbMix,
-    setDraftReverbMix,
-    draftReverbPreDelay,
-    setDraftReverbPreDelay,
-    draftReverbDamping,
-    setDraftReverbDamping,
-    draftReverbOutput,
-    setDraftReverbOutput,
-    openReverbSettings,
-    applyReverbSettings,
     fmt,
     onMouseDown,
     onProgressClick,

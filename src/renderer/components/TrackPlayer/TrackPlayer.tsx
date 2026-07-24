@@ -7,6 +7,8 @@ import { FilterSettingsDialog } from './FilterSettingsDialog';
 import { useFilterSettingsDialog } from './useFilterSettingsDialog';
 import { DistortionSettingsDialog } from './DistortionSettingsDialog';
 import { useDistortionSettingsDialog } from './useDistortionSettingsDialog';
+import { FadeSettingsDialog } from './FadeSettingsDialog';
+import { useFadeSettingsDialog } from './useFadeSettingsDialog';
 
 import './TrackPlayer.css';
 
@@ -21,16 +23,6 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
 
   const {
     cardRef,
-    settingsOpen,
-    setSettingsOpen,
-    draftFadeIn,
-    setDraftFadeIn,
-    draftFadeOut,
-    setDraftFadeOut,
-    draftSeekFade,
-    setDraftSeekFade,
-    openSettings,
-    applySettings,
     delaySettingsOpen,
     setDelaySettingsOpen,
     draftDelayTime,
@@ -140,11 +132,12 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
   }, [state.waveform, progress]);
   const filterDialog = useFilterSettingsDialog(state);
   const distortionDialog = useDistortionSettingsDialog(state);
+  const fadeDialog = useFadeSettingsDialog(state);
 
   return (
     <div
       ref={cardRef}
-      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}${delaySettingsOpen ? ' track-player--delay-open' : ''}${filterDialog.isOpen ? ' track-player--filter-open' : ''}${distortionDialog.isOpen ? ' track-player--distortion-open' : ''}`}
+      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}${delaySettingsOpen ? ' track-player--delay-open' : ''}${filterDialog.isOpen ? ' track-player--filter-open' : ''}${distortionDialog.isOpen ? ' track-player--distortion-open' : ''}${fadeDialog.isOpen ? ' track-player--fade-open' : ''}`}
       style={{ left: x, top: y }}
       onMouseDown={onMouseDown}
       onContextMenu={onContextMenu}
@@ -292,7 +285,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             {/* Fade-duration settings */}
             <button
               className="btn-settings"
-              onClick={openSettings}
+              onClick={fadeDialog.open}
               title="Configure fade durations"
             >
               ⚙
@@ -348,67 +341,6 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
           <span className="volume-value">{Math.round(state.volume * 100)}%</span>
         </div>
       </div>
-
-      {/* ── Fade-duration settings overlay ──────────────────────────────── */}
-      {settingsOpen && (
-        <div
-          className="fade-settings-overlay"
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={() => setSettingsOpen(false)}
-        >
-          <div className="fade-settings-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="fade-settings-title">⚙ Fade Durations</div>
-
-            <div className="fade-settings-field">
-              <span className="fade-settings-label">Fade In</span>
-              <input
-                type="range"
-                min={0}
-                max={10}
-                step={0.5}
-                value={draftFadeIn}
-                onChange={(e) => setDraftFadeIn(Number(e.target.value))}
-              />
-              <span className="fade-settings-value">{fmt(draftFadeIn)}s</span>
-            </div>
-
-            <div className="fade-settings-field">
-              <span className="fade-settings-label">Fade Out</span>
-              <input
-                type="range"
-                min={0}
-                max={10}
-                step={0.5}
-                value={draftFadeOut}
-                onChange={(e) => setDraftFadeOut(Number(e.target.value))}
-              />
-              <span className="fade-settings-value">{fmt(draftFadeOut)}s</span>
-            </div>
-
-            <div className="fade-settings-field">
-              <span className="fade-settings-label">Seek Fade</span>
-              <input
-                type="range"
-                min={0}
-                max={10}
-                step={0.5}
-                value={draftSeekFade}
-                onChange={(e) => setDraftSeekFade(Number(e.target.value))}
-              />
-              <span className="fade-settings-value">{fmt(draftSeekFade)}s</span>
-            </div>
-
-            <div className="fade-settings-actions">
-              <button className="fade-settings-apply" onClick={applySettings}>
-                Apply
-              </button>
-              <button className="fade-settings-cancel" onClick={() => setSettingsOpen(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Delay settings overlay ───────────────────────────────────────── */}
       {delaySettingsOpen && (
@@ -623,6 +555,20 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
           setDraftOutput={distortionDialog.setDraftOutput}
           onApply={distortionDialog.apply}
           onCancel={distortionDialog.close}
+        />
+      )}
+
+      {/* ── Fade settings overlay ──────────────────────────────────────────── */}
+      {fadeDialog.isOpen && (
+        <FadeSettingsDialog
+          draftFadeIn={fadeDialog.draftFadeIn}
+          setDraftFadeIn={fadeDialog.setDraftFadeIn}
+          draftFadeOut={fadeDialog.draftFadeOut}
+          setDraftFadeOut={fadeDialog.setDraftFadeOut}
+          draftSeekFade={fadeDialog.draftSeekFade}
+          setDraftSeekFade={fadeDialog.setDraftSeekFade}
+          onApply={fadeDialog.apply}
+          onCancel={fadeDialog.close}
         />
       )}
 

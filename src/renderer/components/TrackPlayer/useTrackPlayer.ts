@@ -21,7 +21,6 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     setFadeIn,
     setFadeOut,
     setSeekFade,
-    setFadeDurations,
     setDelaySettings,
     setReverbSettings,
     removeTrack,
@@ -50,23 +49,6 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     duplicateTrack(state.id);
     closeContextMenu();
   }, [duplicateTrack, state.id, closeContextMenu]);
-
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [draftFadeIn, setDraftFadeIn] = useState(state.fadeInDuration);
-  const [draftFadeOut, setDraftFadeOut] = useState(state.fadeOutDuration);
-  const [draftSeekFade, setDraftSeekFade] = useState(state.seekFadeDuration);
-
-  const openSettings = useCallback(() => {
-    setDraftFadeIn(state.fadeInDuration);
-    setDraftFadeOut(state.fadeOutDuration);
-    setDraftSeekFade(state.seekFadeDuration);
-    setSettingsOpen(true);
-  }, [state.fadeInDuration, state.fadeOutDuration, state.seekFadeDuration]);
-
-  const applySettings = useCallback(() => {
-    setFadeDurations(state.id, draftFadeIn, draftFadeOut, draftSeekFade);
-    setSettingsOpen(false);
-  }, [state.id, draftFadeIn, draftFadeOut, draftSeekFade, setFadeDurations]);
 
   // ── Delay settings ─────────────────────────────────────────────────────────
   const [delaySettingsOpen, setDelaySettingsOpen] = useState(false);
@@ -188,16 +170,6 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
 
   return {
     cardRef,
-    settingsOpen,
-    setSettingsOpen,
-    draftFadeIn,
-    setDraftFadeIn,
-    draftFadeOut,
-    setDraftFadeOut,
-    draftSeekFade,
-    setDraftSeekFade,
-    openSettings,
-    applySettings,
     delaySettingsOpen,
     setDelaySettingsOpen,
     draftDelayTime,

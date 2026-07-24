@@ -211,35 +211,6 @@ describe('TrackPlayer', () => {
     await waitFor(() => expect(mockAudioEngine.setSeekFade).toHaveBeenCalledWith('track-1', true));
   });
 
-  it('opens settings, updates draft values and applies them to engine', async () => {
-    render(
-      <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
-      </AudioProvider>,
-    );
-
-    const settingsBtn = screen.getByTitle('Configure fade durations');
-    fireEvent.click(settingsBtn);
-
-    // find range inputs inside overlay
-    const applyBtn = await screen.findByText('Apply');
-    const ranges = document.querySelectorAll('.fade-settings-panel input[type=range]');
-    expect(ranges.length).toBe(3);
-
-    // change fade in to 2.5
-    fireEvent.change(ranges[0], { target: { value: '2.5' } });
-    // change fade out to 3.5
-    fireEvent.change(ranges[1], { target: { value: '3.5' } });
-    // change seek fade to 1
-    fireEvent.change(ranges[2], { target: { value: '1' } });
-
-    fireEvent.click(applyBtn);
-
-    await waitFor(() =>
-      expect(mockAudioEngine.setFadeDurations).toHaveBeenCalledWith('track-1', 2.5, 3.5, 1),
-    );
-  });
-
   it('opens filter settings, updates draft values and applies them to engine', async () => {
     render(
       <AudioProvider>

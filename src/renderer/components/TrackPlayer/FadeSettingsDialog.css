@@ -1,0 +1,99 @@
+/* Fade-duration settings overlay */
+.fade-settings-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 12, 30, 0.93);
+  backdrop-filter: blur(2px);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  cursor: default;
+}
+
+.fade-settings-panel {
+  width: calc(100% - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fade-settings-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #c0c0d0;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.fade-settings-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fade-settings-label {
+  font-size: 11px;
+  color: #888;
+  width: 64px;
+  flex-shrink: 0;
+}
+.fade-settings-field input[type='range'] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #1a3a70;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.fade-settings-field input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #a855f7;
+  cursor: pointer;
+}
+.fade-settings-value {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: #a0a0b8;
+  width: 30px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.fade-settings-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.fade-settings-apply,
+.fade-settings-cancel {
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.fade-settings-apply {
+  background: #4c1d95;
+  color: #e0e0e0;
+}
+.fade-settings-apply:hover {
+  background: #6d28d9;
+}
+.fade-settings-cancel {
+  background: #1a2a4a;
+  color: #888;
+}
+.fade-settings-cancel:hover {
+  background: #243555;
+  color: #bbb;
+}

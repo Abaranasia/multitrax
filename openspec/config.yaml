@@ -1,0 +1,59 @@
+schema: spec-driven
+
+context: |
+  Electron 42 desktop multi-track audio mixer/recorder.
+  Renderer: React 19 + Vite 8 + TypeScript 6 (strict), Web Audio API (no audio libs).
+  Main: contextIsolation/no nodeIntegration, ipcMain.handle + contextBridge preload.
+  Package manager: pnpm. Packaging: electron-builder.
+  Testing: Vitest 1.5 + @testing-library/react, jsdom, v8 coverage. No E2E tooling.
+  Quality: ESLint (flat config) + Prettier + tsc --noEmit (typecheck script).
+
+strict_tdd: true
+
+testing:
+  runner:
+    command: "pnpm test:no-watch"
+    framework: "Vitest 1.5"
+  layers:
+    unit: true
+    integration: true # @testing-library/react
+    e2e: false
+  coverage:
+    available: true
+    command: "pnpm test:coverage"
+  quality:
+    linter:
+      available: true
+      command: "pnpm lint"
+    type_checker:
+      available: true
+      command: "pnpm typecheck"
+    formatter:
+      available: true
+      command: "pnpm format:check"
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+    - Respect the existing per-track effects chain order (gainNode → filter insert → delay insert → reverb insert → pan → masterGain) unless the change explicitly re-architects it
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns (strict TypeScript, no `any`, BEM CSS co-located per component)
+      - Component-scoped hooks are not unit-tested in isolation; test the owning component instead
+    tdd: true
+    test_command: "pnpm test:no-watch"
+  verify:
+    test_command: "pnpm test:no-watch"
+    build_command: "pnpm build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas

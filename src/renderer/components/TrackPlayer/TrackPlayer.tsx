@@ -5,6 +5,8 @@ import { useTrackPlayer } from './useTrackPlayer';
 import { TrackContextMenu } from './TrackContextMenu';
 import { FilterSettingsDialog } from './FilterSettingsDialog';
 import { useFilterSettingsDialog } from './useFilterSettingsDialog';
+import { DistortionSettingsDialog } from './DistortionSettingsDialog';
+import { useDistortionSettingsDialog } from './useDistortionSettingsDialog';
 
 import './TrackPlayer.css';
 
@@ -137,11 +139,12 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
     }
   }, [state.waveform, progress]);
   const filterDialog = useFilterSettingsDialog(state);
+  const distortionDialog = useDistortionSettingsDialog(state);
 
   return (
     <div
       ref={cardRef}
-      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}${delaySettingsOpen ? ' track-player--delay-open' : ''}${filterDialog.isOpen ? ' track-player--filter-open' : ''}`}
+      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}${delaySettingsOpen ? ' track-player--delay-open' : ''}${filterDialog.isOpen ? ' track-player--filter-open' : ''}${distortionDialog.isOpen ? ' track-player--distortion-open' : ''}`}
       style={{ left: x, top: y }}
       onMouseDown={onMouseDown}
       onContextMenu={onContextMenu}
@@ -163,6 +166,15 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             title="Filter settings"
           >
             F
+          </button>
+
+          {/* Distortion settings */}
+          <button
+            className={`btn-distortion${state.distortionMix > 0 ? ' btn-distortion--active' : ''}`}
+            onClick={distortionDialog.open}
+            title="Distortion settings"
+          >
+            W
           </button>
 
           {/* Delay settings */}
@@ -595,6 +607,22 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
           setDraftOutput={filterDialog.setDraftOutput}
           onApply={filterDialog.apply}
           onCancel={filterDialog.close}
+        />
+      )}
+
+      {/* ── Distortion settings overlay ──────────────────────────────────── */}
+      {distortionDialog.isOpen && (
+        <DistortionSettingsDialog
+          draftDrive={distortionDialog.draftDrive}
+          setDraftDrive={distortionDialog.setDraftDrive}
+          draftTone={distortionDialog.draftTone}
+          setDraftTone={distortionDialog.setDraftTone}
+          draftMix={distortionDialog.draftMix}
+          setDraftMix={distortionDialog.setDraftMix}
+          draftOutput={distortionDialog.draftOutput}
+          setDraftOutput={distortionDialog.setDraftOutput}
+          onApply={distortionDialog.apply}
+          onCancel={distortionDialog.close}
         />
       )}
 

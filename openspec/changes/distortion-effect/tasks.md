@@ -51,9 +51,9 @@ Note: chain strategy not yet selected — ask the user (stacked-to-main vs featu
 
 ## Phase 3: UI — Dialog & TrackPlayer (PR 3)
 
-- [ ] 3.1 RED: create `src/__tests__/components/TrackPlayer/DistortionSettingsDialog.test.tsx` (mirror Filter test) — 4 ranges render drafts, setters fire on change, Apply/Cancel/backdrop close.
-- [ ] 3.2 GREEN: create `DistortionSettingsDialog.tsx` + `.css` in `src/renderer/components/TrackPlayer/` (drive/tone/mix/output ranges, mirror Filter dialog).
-- [ ] 3.3 GREEN: create `useDistortionSettingsDialog.ts` (open/close/apply + 4 drafts, mirror `useFilterSettingsDialog`); no standalone hook test per doc/TESTING.md.
-- [ ] 3.4 RED: extend `src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx` — "W" button renders, opens dialog, `--active` class when `distortionMix > 0`.
-- [ ] 3.5 GREEN: wire "W" button + dialog render block + `track-player--distortion-open` class into `TrackPlayer.tsx`.
-- [ ] 3.6 REFACTOR: run full `pnpm test:no-watch`; confirm Filter/Delay/Reverb tests unaffected.
+- [x] 3.1 RED: create `src/__tests__/components/TrackPlayer/DistortionSettingsDialog.test.tsx` (mirror Filter test) — 4 ranges render drafts, setters fire on change, Apply/Cancel/backdrop close.
+- [x] 3.2 GREEN: create `DistortionSettingsDialog.tsx` + `.css` in `src/renderer/components/TrackPlayer/` (drive/tone/mix/output ranges, mirror Filter dialog).
+- [x] 3.3 GREEN: create `useDistortionSettingsDialog.ts` (open/close/apply + 4 drafts, mirror `useFilterSettingsDialog`); no standalone hook test per doc/TESTING.md.
+- [x] 3.4 RED: extend `src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx` — "W" button renders, opens dialog, `--active` class when `distortionMix > 0`.
+- [x] 3.5 GREEN: wire "W" button + dialog render block + `track-player--distortion-open` class into `TrackPlayer.tsx`.
+- [x] 3.6 REFACTOR: run full `pnpm test:no-watch`; confirm Filter/Delay/Reverb tests unaffected.

@@ -40,6 +40,12 @@
   min-height: 225px;
 }
 
+/* The distortion panel has the same row count (title + 4 fields + actions)
+   as the filter panel, so it needs the same extra headroom. */
+.track-player--distortion-open {
+  min-height: 225px;
+}
+
 .track-header {
   display: flex;
   align-items: center;
@@ -430,9 +436,10 @@
   color: #000000;
 }
 
-/* Filter / Delay / Reverb settings buttons — white by default, orange on
-   hover, filled rounded green when the effect is active (mix > 0). */
+/* Filter / Distortion / Delay / Reverb settings buttons — white by default,
+   orange on hover, filled rounded green when the effect is active (mix > 0). */
 .btn-filter,
+.btn-distortion,
 .btn-delay,
 .btn-reverb {
   background: none;
@@ -456,11 +463,13 @@
   flex-shrink: 0;
 }
 .btn-filter:hover,
+.btn-distortion:hover,
 .btn-delay:hover,
 .btn-reverb:hover {
   color: #f59e0b;
 }
 .btn-filter--active,
+.btn-distortion--active,
 .btn-delay--active,
 .btn-reverb--active {
   color: #fff;
@@ -468,6 +477,7 @@
   border-color: #16a34a;
 }
 .btn-filter--active:hover,
+.btn-distortion--active:hover,
 .btn-delay--active:hover,
 .btn-reverb--active:hover {
   color: #fff;

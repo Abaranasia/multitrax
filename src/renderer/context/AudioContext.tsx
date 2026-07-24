@@ -1,18 +1,14 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { AudioEngine } from '../audio/AudioEngine';
 import { FilterType, ReverbRoom, TrackState } from '../domain/TrackState';
 import { Ctx, TrackEntry } from './audioContextInstance';
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Initialize the engine once per provider mount, without touching refs during render.
+  // AudioProvider wraps the whole app and lives for the process lifetime, so there is
+  // no real remount case to clean up after — closing on unmount only fired spuriously
+  // under StrictMode's dev-only double-invoke, permanently killing the AudioContext.
   const [engine] = useState<AudioEngine>(() => new AudioEngine());
-
-  // Close the AudioContext when the provider unmounts to release OS audio streams.
-  useEffect(() => {
-    return () => {
-      engine.close();
-    };
-  }, [engine]);
 
   const [tracks, setTracks] = useState<TrackEntry[]>([]);
   const nextPos = useRef({ x: 20, y: 20 });

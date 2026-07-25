@@ -257,17 +257,17 @@ what's meant to stay a focused mixing/monitoring tool.
     Fake Web Audio classes in `AudioEngine.test.ts` were confirmed out of
     scope for this item during exploration and remain tracked separately.
 
-- [ ] **Fix known error-handling gaps and close test-coverage holes in the
-  audio engine.** Full detail in `doc/FUTURE-IMPROVEMENTS.md` § 2.
-  - `_stopSource` swallows all `sourceNode.stop()` errors, not just "already
-    stopped".
-  - The batch `decodeAudioData` import loop aborts entirely on the first
-    corrupt file, with no per-file error isolation.
-  - The `fs:readAudioFile` IPC handler has no path validation against the
-    open-dialog result, and no try/catch around the sync `fs` calls.
-  - `_playLoopWithFade`/`_startFadeOut`/`_cancelFadeOut` and several per-track
-    setters (`setLoop`, `setFadeIn`, `setFadeOut`, `setSeekFade`,
-    `setFadeDurations`, `getRecordingStream`) have zero test coverage.
+- [x] **Fix known error-handling gaps and close test-coverage holes in the
+  audio engine.** Full detail in `doc/FUTURE-IMPROVEMENTS.md` § 2. Implemented
+  via `ref/error-handling-gaps` (3 stacked slices: `_stopSource` narrowing,
+  per-file import isolation, IPC path allowlist + fs hardening, fake-timer
+  test coverage). All 27 tasks complete, 146/146 tests passing. One CRITICAL
+  race condition (overlapping Open-Files batch-import) was discovered during
+  review-resilience lens, fixed and validated (148/148 tests), but reverted
+  due to review-scope constraints (fix required Canvas-layer files outside
+  the originally-reviewed diff). Accepted as a known interim risk; tracked as
+  a separate follow-up change — see new "Guard against overlapping Open-Files
+  imports" item below.
 
 - [x] **Standardize naming and extract magic numbers in the effects code.**
   Full detail in `doc/FUTURE-IMPROVEMENTS.md` § 3.
@@ -278,6 +278,24 @@ what's meant to stay a focused mixing/monitoring tool.
     and the `500`/`10` clamp bounds as `REVERB_PREDELAY_MAX_MS` and
     `FADE_DURATION_MAX_S`, matching the existing `DELAY_TIME_MAX_MS` /
     `DAMPING_MIN_HZ` pattern.
+
+- [ ] **Guard against overlapping Open-Files imports.** A race condition was
+  discovered during the error-handling-gaps change review (review-resilience
+  lens, corroborated by refuter): a second "Open Files" click while a first
+  batch's IPC reads are still in flight wipes the session-scoped `grantedPaths`
+  allowlist mid-flight, causing the first batch's still-pending `readAudioFile`
+  IPC calls to reject with "Access denied", silently discarding every
+  already-read file in that batch with zero UI feedback (unhandled promise
+  rejection). The fix is a busy-guard on `onOpenFiles` (useRef checked
+  synchronously, prevents re-invocation while in-flight) + disabled state on
+  the "+ Open Files" button in Canvas.tsx while a batch is in flight
+  (mirroring RecorderBar.tsx's `disabled={isSaving}` pattern). A working
+  prototype was implemented and independently validated (148/148 tests) during
+  error-handling-gaps; see apply-progress narrative and B.12 task for the
+  exact approach. Reverted from error-handling-gaps to keep review scope clean
+  (Canvas files were not in the originally-reviewed diff); pick up as a new
+  SDD change with its own stacked-PR scope (Canvas.tsx / useCanvas.ts /
+  Canvas.test.tsx only).
 
 - [ ] **Split up oversized files and remove inline styles.** Full detail in
   `doc/FUTURE-IMPROVEMENTS.md` § 4.

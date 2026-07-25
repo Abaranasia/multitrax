@@ -72,26 +72,36 @@ out of scope for this item and stay tracked separately.
 
 ## 2. Correctness / robustness
 
-- **`_stopSource` swallows all errors** — `AudioEngine.ts:912-922` — catches
-  *any* error from `sourceNode.stop()` via `console.warn`, not just the expected
-  "already stopped" case, so a genuine failure is silently hidden.
+**Status: `[x]` DONE** — implemented on `ref/error-handling-gaps`
+(`openspec/changes/error-handling-gaps/`), then archived to
+`openspec/changes/archive/2026-07-26-error-handling-gaps/`. All 27 tasks
+complete (Slices A/B/C fully implemented, B.10 and B.11 post-review fixes
+included). 146/146 tests passing, typecheck/lint clean. One CRITICAL race
+condition (overlapping-batch-import in Canvas layer) was discovered and
+prototyped (148/148 tests validated) but reverted and deferred to a separate
+follow-up change due to review-scope constraints. See `doc/TODO.md` "Guard
+against overlapping Open-Files imports" item for the deferred fix.
 
-- **No per-file error isolation on import** — `AudioContext.tsx:22` — the batch
-  `decodeAudioData` loop over multiple dropped/selected files has no try/catch
-  per file; one corrupt file throws and aborts processing of every subsequent
-  file in the batch with no user feedback.
+- ~~**`_stopSource` swallows all errors**~~ — narrowed to only swallow the
+  expected `InvalidStateError` (already-stopped); unexpected errors now logged
+  distinctly via `console.error` instead of being hidden.
 
-- **Unvalidated file-read IPC handler** — `src/main/main.ts:82-86` —
-  `fs:readAudioFile` resolves and reads whatever path the renderer sends, with
-  no check that it originated from the `dialog:openAudioFiles` result; since
-  `contextBridge` exposes `readAudioFile(filePath)` directly, a compromised
-  renderer gets an arbitrary-file-read primitive. Also, `main.ts:76,84` has no
-  try/catch around the synchronous `fs.readFileSync`/`writeFileSync` calls.
+- ~~**No per-file error isolation on import**~~ — `addTracks` now wraps each
+  file's decode/add cycle in a per-iteration try/catch; a corrupt file is
+  logged and skipped, allowing other files in the batch to proceed; all
+  successful files are retained.
 
-- **Untested fade/loop scheduling** — `_playLoopWithFade` (`AudioEngine.ts:936-990`)
-  and `_startFadeOut`/`_cancelFadeOut` (`:993-1016`) — ~80 lines of nontrivial
-  gain-ramp scheduling — have zero test coverage, as do `setLoop`, `setFadeIn`,
-  `setFadeOut`, `setSeekFade`, `setFadeDurations`, and `getRecordingStream`.
+- ~~**Unvalidated file-read IPC handler**~~ — `fs:readAudioFile` now enforces
+  a session-scoped path allowlist populated by `dialog:openAudioFiles` (REPLACE
+  semantics, not accumulate); both `readFileSync` and `writeFileSync` are
+  wrapped in try/catch, rejecting cleanly on filesystem errors instead of
+  crashing the main process or leaving IPC calls unresolved.
+
+- ~~**Untested fade/loop scheduling**~~ — introduced `vi.useFakeTimers()` test
+  infrastructure; added direct coverage for `_playLoopWithFade`,
+  `_startFadeOut`, `_cancelFadeOut`, `setLoop`, `setFadeIn`, `setFadeOut`,
+  `setSeekFade`, and `getRecordingStream` — 9 new tests (189 lines, test-only,
+  zero production behavior change).
 
 ## 3. Naming / consistency
 

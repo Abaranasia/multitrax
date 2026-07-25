@@ -198,6 +198,13 @@ what's meant to stay a focused mixing/monitoring tool.
   making it easier to compare levels, mute/solo states, and per-track controls
   at a glance.
 
+- [ ] **Real-time effect preview + floating settings panel** — convert the
+  Filter/Distortion/Delay/Reverb settings dialogs from "draft state,
+  Apply/Cancel" full-bleed overlays into a live-preview floating panel
+  positioned beside the `TrackPlayer` card instead of covering it, so tweaking
+  a knob is heard immediately and the waveform/transport controls stay visible
+  while adjusting. Full technical plan in `doc/REALTIME-EFFECTS-PLAN.md`.
+
 ---
 
 ## Coding improvements
@@ -209,7 +216,7 @@ what's meant to stay a focused mixing/monitoring tool.
   module (e.g. `src/__tests__/audio/fixtures/fakeAudioContext.ts`) so they can
   be reused by other audio-related test suites without duplication.
 
-- [ ] **Extract per-track overlays/dialogs into independent components.**
+- [x] **Extract per-track overlays/dialogs into independent components.**
   The fade-duration settings panel and the reverb (and delay) options dialogs
   currently live inline inside `TrackPlayer.tsx` (markup) and
   `useTrackPlayer.ts` (state/logic), rather than as their own components.
@@ -228,3 +235,60 @@ what's meant to stay a focused mixing/monitoring tool.
   with its own tests, rather than inline markup/logic inside the track card.
   Apply this rule to the two extraction items above and to all overlays added
   from now on.
+
+- [ ] **Reduce duplication across effect dialogs, engine setters, and test
+  fixtures.** Full detail in `doc/FUTURE-IMPROVEMENTS.md` § 1.
+  - Extract a generic `useEffectDialog<T>` hook to replace the identical
+    draft-state/open/close/apply shape duplicated across all 5 settings-dialog
+    hooks (Filter/Distortion/Delay/Reverb/Fade).
+  - Consolidate the 4 near-identical effect-dialog CSS files into one shared
+    stylesheet with a per-effect accent-color variable.
+  - Extract a shared `<EffectDialog>`/`<SettingsField>` component to replace
+    the repeated dialog JSX.
+  - Resolve the triple-declared effect setter signatures across
+    `AudioEngine.ts` / `audioContextInstance.ts` / `AudioContext.tsx`.
+  - Add a shared `clamp()` helper and a `_createDryWetOutput()` factory in
+    `AudioEngine.ts` to remove repeated clamp/node-wiring code.
+  - Extract the inline Fake Web Audio classes and the copy-pasted
+    `mockAudioEngine` stub (duplicated across 8+ test files) into a shared
+    `src/__tests__/test-utils/` module.
+
+- [ ] **Fix known error-handling gaps and close test-coverage holes in the
+  audio engine.** Full detail in `doc/FUTURE-IMPROVEMENTS.md` § 2.
+  - `_stopSource` swallows all `sourceNode.stop()` errors, not just "already
+    stopped".
+  - The batch `decodeAudioData` import loop aborts entirely on the first
+    corrupt file, with no per-file error isolation.
+  - The `fs:readAudioFile` IPC handler has no path validation against the
+    open-dialog result, and no try/catch around the sync `fs` calls.
+  - `_playLoopWithFade`/`_startFadeOut`/`_cancelFadeOut` and several per-track
+    setters (`setLoop`, `setFadeIn`, `setFadeOut`, `setSeekFade`,
+    `setFadeDurations`, `getRecordingStream`) have zero test coverage.
+
+- [ ] **Standardize naming and extract magic numbers in the effects code.**
+  Full detail in `doc/FUTURE-IMPROVEMENTS.md` § 3.
+  - Unify `outputLevel` (engine layer) vs. `output` (context layer) — same
+    field, two names.
+  - Make the `mix` parameter position consistent across all four effect
+    setter signatures.
+  - Name the repeated `0.01` ramp time-constant and the inline `500`/`10`
+    clamp bounds as constants, matching the existing `DELAY_TIME_MAX_MS` /
+    `DAMPING_MIN_HZ` pattern.
+
+- [ ] **Split up oversized files and remove inline styles.** Full detail in
+  `doc/FUTURE-IMPROVEMENTS.md` § 4.
+  - Extract the ~400 lines of effect-insert logic in `AudioEngine.ts` into
+    per-effect modules.
+  - Extract `TrackPlayer.tsx`'s waveform-canvas `useEffect` into a
+    `useWaveformCanvas` hook, and wrap its 5 conditional dialog overlays into
+    an `<EffectDialogs>` component.
+  - Replace `TrackPlayer.tsx`'s inline pan/volume slider gradients with CSS
+    custom properties, per `doc/CSS-CONVENTIONS.md`'s no-inline-styles rule.
+
+- [ ] **Repo housekeeping.** Full detail in `doc/FUTURE-IMPROVEMENTS.md` § 5.
+  - Delete or archive the stale `doc/as commented in the resilient forest.md`.
+  - Relocate `doc/templates/Audio UI modernization project/` (an unreferenced
+    design-mockup bundle) out of `doc/`'s spec-document space, or add a
+    clarifying README.
+  - Remove the unused `tsx` devDependency, or confirm it's needed.
+  - Reconsider `pnpm test` defaulting to watch mode.

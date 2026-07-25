@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 
-import { TrackContextMenu } from '@/renderer/components/TrackPlayer/TrackContextMenu';
+import { TrackContextMenu } from '@/renderer/components/TrackPlayer/components/contextMenu/TrackContextMenu';
 
 describe('TrackContextMenu', () => {
   afterEach(() => cleanup());

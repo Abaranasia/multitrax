@@ -3,7 +3,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 
-import { DistortionSettingsDialog } from '@/renderer/components/TrackPlayer/components/effects/distortion/DistortionSettingsDialog';
+import { DelaySettingsDialog } from '@/renderer/components/TrackPlayer/components/effects/delay/DelaySettingsDialog';
 
 const mockAudioEngine = {
   audioContext: {
@@ -44,49 +44,52 @@ import { TrackPlayer } from '@/renderer/components/TrackPlayer/TrackPlayer';
 import { TrackState } from '@/renderer/domain/TrackState';
 import { AudioProvider } from '@/renderer/context/AudioContext';
 
-describe('DistortionSettingsDialog', () => {
+describe('DelaySettingsDialog', () => {
   afterEach(() => cleanup());
 
   const baseProps = {
-    draftDrive: 40,
-    setDraftDrive: vi.fn(),
-    draftTone: 60,
-    setDraftTone: vi.fn(),
-    draftMix: 0,
-    setDraftMix: vi.fn(),
-    draftOutput: 100,
-    setDraftOutput: vi.fn(),
+    draftDelayTime: 300,
+    setDraftDelayTime: vi.fn(),
+    draftDelayFeedback: 35,
+    setDraftDelayFeedback: vi.fn(),
+    draftDelayDamping: 50,
+    setDraftDelayDamping: vi.fn(),
+    draftDelayOutput: 100,
+    setDraftDelayOutput: vi.fn(),
+    draftDelayMix: 0,
+    setDraftDelayMix: vi.fn(),
     onApply: vi.fn(),
     onCancel: vi.fn(),
   };
 
   it('renders the draft values', () => {
-    render(<DistortionSettingsDialog {...baseProps} />);
+    render(<DelaySettingsDialog {...baseProps} />);
 
-    const ranges = document.querySelectorAll('.distortion-settings-panel input[type=range]');
-    expect(ranges.length).toBe(4);
-    expect((ranges[0] as HTMLInputElement).value).toBe('40');
-    expect((ranges[1] as HTMLInputElement).value).toBe('60');
-    expect((ranges[2] as HTMLInputElement).value).toBe('100');
-    expect((ranges[3] as HTMLInputElement).value).toBe('0');
+    const ranges = document.querySelectorAll('.delay-settings-panel input[type=range]');
+    expect(ranges.length).toBe(5);
+    expect((ranges[0] as HTMLInputElement).value).toBe('300');
+    expect((ranges[1] as HTMLInputElement).value).toBe('35');
+    expect((ranges[2] as HTMLInputElement).value).toBe('50');
+    expect((ranges[3] as HTMLInputElement).value).toBe('100');
+    expect((ranges[4] as HTMLInputElement).value).toBe('0');
   });
 
   it('calls the setters when fields change', () => {
-    const props = { ...baseProps, setDraftDrive: vi.fn(), setDraftTone: vi.fn() };
-    render(<DistortionSettingsDialog {...props} />);
+    const props = { ...baseProps, setDraftDelayTime: vi.fn(), setDraftDelayFeedback: vi.fn() };
+    render(<DelaySettingsDialog {...props} />);
 
-    const ranges = document.querySelectorAll('.distortion-settings-panel input[type=range]');
-    fireEvent.change(ranges[0], { target: { value: '75' } });
-    expect(props.setDraftDrive).toHaveBeenCalledWith(75);
+    const ranges = document.querySelectorAll('.delay-settings-panel input[type=range]');
+    fireEvent.change(ranges[0], { target: { value: '450' } });
+    expect(props.setDraftDelayTime).toHaveBeenCalledWith(450);
 
-    fireEvent.change(ranges[1], { target: { value: '30' } });
-    expect(props.setDraftTone).toHaveBeenCalledWith(30);
+    fireEvent.change(ranges[1], { target: { value: '60' } });
+    expect(props.setDraftDelayFeedback).toHaveBeenCalledWith(60);
   });
 
   it('calls onApply when Apply is clicked and onCancel when Cancel is clicked', () => {
     const onApply = vi.fn();
     const onCancel = vi.fn();
-    render(<DistortionSettingsDialog {...baseProps} onApply={onApply} onCancel={onCancel} />);
+    render(<DelaySettingsDialog {...baseProps} onApply={onApply} onCancel={onCancel} />);
 
     fireEvent.click(screen.getByText('Apply'));
     expect(onApply).toHaveBeenCalledTimes(1);
@@ -97,18 +100,18 @@ describe('DistortionSettingsDialog', () => {
 
   it('calls onCancel when clicking the backdrop but not when clicking inside the panel', () => {
     const onCancel = vi.fn();
-    render(<DistortionSettingsDialog {...baseProps} onCancel={onCancel} />);
+    render(<DelaySettingsDialog {...baseProps} onCancel={onCancel} />);
 
-    fireEvent.click(document.querySelector('.distortion-settings-panel') as HTMLElement);
+    fireEvent.click(document.querySelector('.delay-settings-panel') as HTMLElement);
     expect(onCancel).not.toHaveBeenCalled();
 
-    fireEvent.click(document.querySelector('.distortion-settings-overlay') as HTMLElement);
+    fireEvent.click(document.querySelector('.delay-settings-overlay') as HTMLElement);
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
   // Integration coverage moved here from TrackPlayer.test.tsx so this suite is
-  // the sole owner of Distortion's open/apply/cancel/active-button assertions
-  // (dedicated-suite requirement from the extract-track-overlays spec).
+  // the sole owner of Delay's open/apply/cancel assertions (dedicated-suite
+  // requirement from the extract-track-overlays spec).
   describe('integration via TrackPlayer', () => {
     const baseState: TrackState = {
       id: 'track-1',
@@ -152,33 +155,35 @@ describe('DistortionSettingsDialog', () => {
     });
     afterEach(() => cleanup());
 
-    it('opens Waveshape settings, updates draft values and applies them to engine', async () => {
+    it('opens delay settings, updates draft values and applies them to engine', async () => {
       render(
         <AudioProvider>
           <TrackPlayer state={{ ...baseState }} x={10} y={20} />
         </AudioProvider>,
       );
 
-      const distortionBtn = screen.getByTitle('Waveshape settings');
-      fireEvent.click(distortionBtn);
+      const delayBtn = screen.getByTitle('Delay settings');
+      fireEvent.click(delayBtn);
 
       const applyBtn = await screen.findByText('Apply');
-      const ranges = document.querySelectorAll('.distortion-settings-panel input[type=range]');
-      expect(ranges.length).toBe(4);
+      const ranges = document.querySelectorAll('.delay-settings-panel input[type=range]');
+      expect(ranges.length).toBe(5);
 
-      fireEvent.change(ranges[0], { target: { value: '75' } }); // drive
-      fireEvent.change(ranges[1], { target: { value: '30' } }); // tone
-      fireEvent.change(ranges[2], { target: { value: '90' } }); // output
-      fireEvent.change(ranges[3], { target: { value: '60' } }); // mix (bottom field)
+      fireEvent.change(ranges[0], { target: { value: '450' } }); // time
+      fireEvent.change(ranges[1], { target: { value: '60' } }); // feedback
+      fireEvent.change(ranges[2], { target: { value: '30' } }); // tone
+      fireEvent.change(ranges[3], { target: { value: '90' } }); // output
+      fireEvent.change(ranges[4], { target: { value: '40' } }); // mix (bottom field)
 
       fireEvent.click(applyBtn);
 
       await waitFor(() =>
-        expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith(
+        expect(mockAudioEngine.setDelaySettings).toHaveBeenCalledWith(
           'track-1',
-          75,
-          30,
+          450,
           60,
+          40,
+          30,
           90,
         ),
       );
@@ -187,45 +192,23 @@ describe('DistortionSettingsDialog', () => {
       expect(screen.queryByText('Apply')).toBeNull();
     });
 
-    it('discards distortion draft changes and does not call the engine when cancelled', async () => {
+    it('discards delay draft changes and does not call the engine when cancelled', async () => {
       render(
         <AudioProvider>
           <TrackPlayer state={{ ...baseState }} x={10} y={20} />
         </AudioProvider>,
       );
 
-      const distortionBtn = screen.getByTitle('Waveshape settings');
-      fireEvent.click(distortionBtn);
+      const delayBtn = screen.getByTitle('Delay settings');
+      fireEvent.click(delayBtn);
 
-      const ranges = document.querySelectorAll('.distortion-settings-panel input[type=range]');
-      fireEvent.change(ranges[0], { target: { value: '95' } });
+      const ranges = document.querySelectorAll('.delay-settings-panel input[type=range]');
+      fireEvent.change(ranges[0], { target: { value: '900' } });
 
       fireEvent.click(screen.getByText('Cancel'));
 
       expect(screen.queryByText('Apply')).toBeNull();
-      expect(mockAudioEngine.setDistortionSettings).not.toHaveBeenCalled();
-    });
-
-    it('shows the distortion button as active only when distortionMix is above 0', () => {
-      const { rerender } = render(
-        <AudioProvider>
-          <TrackPlayer state={{ ...baseState, distortionMix: 0 }} x={10} y={20} />
-        </AudioProvider>,
-      );
-
-      expect(screen.getByTitle('Waveshape settings').className).not.toContain(
-        'btn-distortion--active',
-      );
-
-      rerender(
-        <AudioProvider>
-          <TrackPlayer state={{ ...baseState, distortionMix: 40 }} x={10} y={20} />
-        </AudioProvider>,
-      );
-
-      expect(screen.getByTitle('Waveshape settings').className).toContain(
-        'btn-distortion--active',
-      );
+      expect(mockAudioEngine.setDelaySettings).not.toHaveBeenCalled();
     });
   });
 });

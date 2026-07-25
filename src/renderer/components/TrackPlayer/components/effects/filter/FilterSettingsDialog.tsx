@@ -1,4 +1,4 @@
-import { FilterType } from '../../domain/TrackState';
+import { FilterType } from '../../../../../domain/TrackState';
 
 import './FilterSettingsDialog.css';
 

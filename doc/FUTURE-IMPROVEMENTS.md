@@ -10,6 +10,13 @@ independently.
 
 ## 1. Duplication (highest payoff)
 
+**Status: `[x]` DONE** — implemented as 6 stacked slices on
+`ref/duplication-code` (`openspec/changes/reduce-effect-duplication/`); see
+`apply-progress.md` for full TDD evidence per slice. Tracked in `doc/TODO.md`.
+The "Shared test fixtures" bullet below was narrowed during exploration to
+the `mockAudioEngine` stub only — the inline Fake Web Audio classes remain
+out of scope for this item and stay tracked separately.
+
 - **Shared `useEffectDialog<T>` hook** — `useFilterSettingsDialog.ts:6-54`,
   `useDistortionSettingsDialog.ts:6-49`, `useDelaySettingsDialog.ts:6-69`,
   `useReverbSettingsDialog.ts:6-69`, and `fadeSettings/useFadeSettingsDialog.ts:6-40`

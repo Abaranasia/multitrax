@@ -70,11 +70,11 @@ Rationale: chain strategy already resolved (force-chained/stacked-to-main from p
 - [x] 5.4 Parity gate: full suite green — same clamped values/wiring
 
 ## Slice 6: setter consolidation (PR 6)
-- [ ] 6.1 RED: `AudioEngine.test.ts` calls use object-arg shape (fails)
-- [ ] 6.2 GREEN: create `effectSettings.ts` (Filter/Delay/Reverb/DistortionSettings; canonical `output`)
-- [ ] 6.3 GREEN: `AudioEngine.ts` 4 setters → `(id, s: XSettings)`, destructure at top (no per-line rewrite)
-- [ ] 6.4 GREEN: `audioContextInstance.ts` + `AudioContext.tsx` (4 callbacks + `duplicateTrack`) → object shape
-- [ ] 6.5 GREEN: 4 wrapper hooks' `apply()` pass settings object
-- [ ] 6.6 Verify ADDED "setter consolidation preserves values/clamping": duplicate-track parity + no positional swap
-- [ ] 6.7 Parity gate: full suite green
-- [ ] 6.8 If diff >400: split 6a/6b per forecast
+- [x] 6.1 RED: `AudioEngine.test.ts` calls use object-arg shape (fails)
+- [x] 6.2 GREEN: create `effectSettings.ts` (Filter/Delay/Reverb/DistortionSettings; canonical `output`)
+- [x] 6.3 GREEN: `AudioEngine.ts` 4 setters → `(id, s: XSettings)`, destructure at top (no per-line rewrite)
+- [x] 6.4 GREEN: `audioContextInstance.ts` + `AudioContext.tsx` (4 callbacks + `duplicateTrack`) → object shape
+- [x] 6.5 GREEN: 4 wrapper hooks' `apply()` pass settings object
+- [x] 6.6 Verify ADDED "setter consolidation preserves values/clamping": duplicate-track parity + no positional swap
+- [x] 6.7 Parity gate: full suite green
+- [x] 6.8 If diff >400: split 6a/6b per forecast — done; measured 208/317 lines per half (both under 400), but the split is review-chunking only, not two independently type-checking checkpoints, see apply-progress.md

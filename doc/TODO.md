@@ -236,22 +236,26 @@ what's meant to stay a focused mixing/monitoring tool.
   Apply this rule to the two extraction items above and to all overlays added
   from now on.
 
-- [ ] **Reduce duplication across effect dialogs, engine setters, and test
-  fixtures.** Full detail in `doc/FUTURE-IMPROVEMENTS.md` § 1.
-  - Extract a generic `useEffectDialog<T>` hook to replace the identical
+- [x] **Reduce duplication across effect dialogs, engine setters, and test
+  fixtures.** Full detail in `doc/FUTURE-IMPROVEMENTS.md` § 1. Delivered as 6
+  stacked slices on `ref/duplication-code`; see
+  `openspec/changes/reduce-effect-duplication/apply-progress.md`.
+  - [x] Extract a generic `useEffectDialog<T>` hook to replace the identical
     draft-state/open/close/apply shape duplicated across all 5 settings-dialog
     hooks (Filter/Distortion/Delay/Reverb/Fade).
-  - Consolidate the 4 near-identical effect-dialog CSS files into one shared
+  - [x] Consolidate the 4 near-identical effect-dialog CSS files into one shared
     stylesheet with a per-effect accent-color variable.
-  - Extract a shared `<EffectDialog>`/`<SettingsField>` component to replace
+  - [x] Extract a shared `<EffectDialog>`/`<SettingsField>` component to replace
     the repeated dialog JSX.
-  - Resolve the triple-declared effect setter signatures across
-    `AudioEngine.ts` / `audioContextInstance.ts` / `AudioContext.tsx`.
-  - Add a shared `clamp()` helper and a `_createDryWetOutput()` factory in
+  - [x] Resolve the triple-declared effect setter signatures across
+    `AudioEngine.ts` / `audioContextInstance.ts` / `AudioContext.tsx` (now
+    `(id, s: XSettings)` via `src/renderer/audio/effectSettings.ts`).
+  - [x] Add a shared `clamp()` helper and a `_createDryWetOutput()` factory in
     `AudioEngine.ts` to remove repeated clamp/node-wiring code.
-  - Extract the inline Fake Web Audio classes and the copy-pasted
-    `mockAudioEngine` stub (duplicated across 8+ test files) into a shared
-    `src/__tests__/test-utils/` module.
+  - [x] Extract the copy-pasted `mockAudioEngine` stub (duplicated across 8+
+    test files) into a shared `src/__tests__/test-utils/` module. The inline
+    Fake Web Audio classes in `AudioEngine.test.ts` were confirmed out of
+    scope for this item during exploration and remain tracked separately.
 
 - [ ] **Fix known error-handling gaps and close test-coverage holes in the
   audio engine.** Full detail in `doc/FUTURE-IMPROVEMENTS.md` § 2.

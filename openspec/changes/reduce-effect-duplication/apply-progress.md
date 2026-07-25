@@ -449,18 +449,140 @@ Exact `git diff --stat`: `2 files changed, 236 insertions(+), 66 deletions(-)` �
 
 ---
 
+---
+
+---
+
+# Slice 6: Setter Consolidation (PR 6) — LAST SLICE
+
+## Completed Tasks (Slice 6)
+- [x] 6.1 RED: `AudioEngine.test.ts` calls use object-arg shape (fails)
+- [x] 6.2 GREEN: create `effectSettings.ts` (Filter/Delay/Reverb/DistortionSettings; canonical `output`)
+- [x] 6.3 GREEN: `AudioEngine.ts` 4 setters → `(id, s: XSettings)`, destructure at top (no per-line rewrite)
+- [x] 6.4 GREEN: `audioContextInstance.ts` + `AudioContext.tsx` (4 callbacks + `duplicateTrack`) → object shape
+- [x] 6.5 GREEN: 4 wrapper hooks' `apply()` pass settings object
+- [x] 6.6 Verify ADDED "setter consolidation preserves values/clamping": duplicate-track parity + no positional swap
+- [x] 6.7 Parity gate: full suite green
+- [x] 6.8 If diff >400: split 6a/6b per forecast — done, see Diff Size below (both halves individually under 400, but see the atomicity finding)
+
+## Files Changed (Slice 6)
+
+| File | Action | What Was Done |
+|------|--------|----------------|
+| `src/renderer/audio/effectSettings.ts` | Created | 4 named interfaces: `FilterSettings {type,cutoff,resonance,mix,output}`, `DelaySettings {delayTime,feedback,mix,damping,output}`, `ReverbSettings {room,mix,preDelay,damping,output}`, `DistortionSettings {drive,tone,mix,output}` — exact shape from `design.md`'s Interfaces/Contracts section, verbatim. |
+| `src/renderer/audio/AudioEngine.ts` | Modified | 4 setters (`setFilterSettings`/`setDistortionSettings`/`setDelaySettings`/`setReverbSettings`) converted from positional params to `(id: string, s: XSettings)`, destructuring at the top of each method (e.g. `const { type, cutoff, resonance, mix, output } = s;`). Every subsequent line in each method body is otherwise byte-for-byte unchanged — same `clamp(...)` calls, same bounds, same internal `track.filter`/`track.distortion`/`track.delay`/`track.reverb` field names (`outputLevel`, `delayTimeMs`, `dampingAmount` etc. on the internal `TrackNodes` sub-interfaces are **not** renamed — only the external setter parameter naming is unified to `output`/`delayTime`/`damping`, per the scope note that this is "purely a rename" of the public call shape, not the internal engine state). |
+| `src/renderer/context/audioContextInstance.ts` | Modified | `AudioContextValue`'s 4 setter fields (`setFilterSettings`, `setDelaySettings`, `setReverbSettings`, `setDistortionSettings`) changed from 5-6 positional-param function types to `(id: string, s: XSettings) => void`, importing the 4 interfaces from `../audio/effectSettings`. Removed the now-unused `FilterType`/`ReverbRoom` imports from `../domain/TrackState` (no longer referenced directly in this file). |
+| `src/renderer/context/AudioContext.tsx` | Modified | 4 `useCallback` implementations rewritten to `(id: string, s: XSettings) => {...}`, each calling `engine.setXSettings(id, s)` then updating `setTracks` from the same `s.*` fields (previously from separate positional params — same field mapping, e.g. `filterType: s.type`, `delayFeedback: s.feedback`, `reverbPreDelay: s.preDelay`, `distortionDrive: s.drive`). `duplicateTrack` rewritten to construct 4 explicit settings objects from `source.state.*` fields and pass them as single object arguments — see the field-by-field verification table below. Removed the now-unused `FilterType`/`ReverbRoom` imports; added the 4 `effectSettings` type imports. |
+| `.../effects/filter/useFilterSettingsDialog.ts` | Modified | `onApply` now calls `setFilterSettings(state.id, draft)` directly — `FilterDraft {type,cutoff,resonance,mix,output}` is structurally identical to `FilterSettings`, so no field mapping is needed, only the 5-line-to-1-line positional→object simplification. |
+| `.../effects/distortion/useDistortionSettingsDialog.ts` | Modified | Same pattern — `DistortionDraft {drive,tone,mix,output}` matches `DistortionSettings` exactly; `onApply` passes `draft` directly. |
+| `.../effects/delay/useDelaySettingsDialog.ts` | Modified | `DelayDraft` uses `time` internally (not `delayTime`), so `onApply` explicitly maps `{ delayTime: draft.time, feedback: draft.feedback, mix: draft.mix, damping: draft.damping, output: draft.output }` — the one wrapper that needs a real field-name mapping rather than a direct pass-through. |
+| `.../effects/reverb/useReverbSettingsDialog.ts` | Modified | `ReverbDraft {room,mix,preDelay,damping,output}` matches `ReverbSettings` exactly; `onApply` passes `draft` directly. |
+| `src/__tests__/audio/AudioEngine.test.ts` | Modified | All 12 direct `engine.setXSettings(...)` call sites converted from positional args to object-arg literals (both the "updates ... without throwing" tests and the "clamps each parameter" boundary tests, low and high bound each). |
+| `src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx` | Modified | 4 `mockAudioEngine.setXSettings` assertions (Filter/Delay/Reverb/Distortion "opens...applies" tests) converted from positional to object-arg `toHaveBeenCalledWith` shape. These assert against the mocked **`AudioEngine` class instance** reached through the real, unmocked `AudioContext.tsx` → wrapper-hook call chain, so they had to change alongside the production code, not just `AudioEngine.test.ts`. |
+| `src/__tests__/components/TrackPlayer/FilterSettingsDialog.test.tsx`, `DistortionSettingsDialog.test.tsx`, `DelaySettingsDialog.test.tsx`, `ReverbSettingsDialog.test.tsx` | Modified | Same pattern — each file's own "opens...applies" integration test's `mockAudioEngine.setXSettings` assertion converted to object-arg shape. |
+| `src/__tests__/context/AudioContext.test.tsx` | Modified | The `duplicateTrack` test's own `Consumer` component now calls `audio.setDistortionSettings(SOURCE_ID, { drive: 40, tone: 60, mix: 50, output: 80 })` (object arg) instead of 4 positional args. Its 3 assertions (`setDistortionSettings` on the source call, `setFilterSettings` and `setDistortionSettings` on the cloned track after `duplicateTrack`) converted to object-arg `toHaveBeenCalledWith`. |
+
+## Deviations from Design (Slice 6)
+
+1. **Internal `TrackNodes` sub-interface field names (`FilterNodes.outputLevel`, `DelayNodes.delayTimeMs`, `DelayNodes.dampingAmount`, `ReverbNodes.preDelayMs`, `ReverbNodes.dampingAmount`, etc.) were deliberately NOT renamed.** Design's "fold `outputLevel`/`output` drift into one canonical field `output`" and the batch prompt's "purely a rename, not a behavior change" both describe the *setter call shape* (the 3 previously triple-declared parameter lists: `AudioEngine.ts`'s method params, `audioContextInstance.ts`'s interface, `AudioContext.tsx`'s `useCallback` params) — not the engine's own internal per-track state fields, which were never part of the "triple-declared" duplication this slice targets (design's own File Changes table lists only `AudioEngine.ts`, `audioContextInstance.ts`, `AudioContext.tsx`, 5 wrappers, `AudioEngine.test.ts` — it does not list the `FilterNodes`/`DistortionNodes`/`DelayNodes`/`ReverbNodes` interfaces as a Slice 6 file target). Renaming those internal fields too would (a) touch `AudioEngine.test.ts`'s 24-row clamp-boundary assertions from Slice 5 unnecessarily (`expect(filter.outputLevel).toBe(...)` etc.), (b) add ~15-20 more changed lines with zero behavioral or API-surface benefit, and (c) blur the line between "public call-shape consolidation" (this slice's actual goal) and an unrelated internal-naming pass. Kept internal field names exactly as Slice 5 left them; only the setter's own parameter/settings-object field names changed.
+2. **The suggested 6a/6b file split (`AudioEngine.ts`+`effectSettings.ts`+`audioContextInstance.ts`+`AudioEngine.test.ts` | `AudioContext.tsx`+4 wrapper hooks) does NOT produce two independently-buildable commits, even though each half's line count is individually under 400.** This was verified empirically, not assumed: I staged and committed 6a's file set, then (before committing 6b) ran `pnpm typecheck` against that intermediate state alone — it produced **17 TS2554/TS2322 errors** (arity mismatches at every remaining positional call site: `AudioContext.tsx`'s 4 useCallback bodies + `duplicateTrack`'s 4 calls + the 4 wrapper hooks' `onApply` + `AudioContext.test.tsx`'s direct `audio.setDistortionSettings` call — all still positional at that checkpoint, against the now-object-arg `AudioEngine`/`AudioContextValue` types). This is the direct, measured consequence of design's own stated constraint: "the setter call shape is frozen until slice 6, which changes it everywhere at once" — by design, this specific change is not incrementally decomposable into independently-green checkpoints the way Slices 2-5 were (CSS variables, JSX extraction, hook restructuring, and clamp/wiring extraction could each be swapped one file at a time without breaking the type system; a function-signature arity change cannot, once ANY caller and ANY callee are on different sides of the change). Both commits are still made along the suggested file boundary for review-chunking purposes (each commit's diff is a coherent, reviewable unit — "engine + its own types + its own test" vs. "consumer layer + its tests"), but I am flagging explicitly, per the batch's instruction not to assume `size:exception` applies the way it did for Slices 2/3: **this is not a size-exception case at all — it's a structural one.** The two commits are correctly sequenced (6a then 6b) so that `HEAD` (after both) is fully green, but a reviewer checking out the 6a commit alone would see a broken build. This is different from every prior slice's `size:exception` finding (which was about being over budget) — here, both halves ARE under budget (208 and 317 lines respectively), but they cannot each independently pass CI. Recommend the orchestrator/maintainer review both commits together as one logical unit (e.g. squash-merge, or review the combined diff) rather than treating 6a as a mergeable/revertable-alone checkpoint the way 2a, 3a, 4a, etc. were.
+3. **`FilterType`/`ReverbRoom` imports removed from `audioContextInstance.ts` and `AudioContext.tsx`.** Both types were previously imported solely to type the old positional setter parameters (`type: FilterType`, `room: ReverbRoom`). With those parameters now folded into the `XSettings` object types (which themselves import `FilterType`/`ReverbRoom` from `../domain/TrackState` inside `effectSettings.ts`), the two call sites no longer reference either type directly. Removed rather than left as unused imports — confirmed via `pnpm lint` (which would flag `no-unused-vars`) staying clean.
+
+## Field-by-Field Verification: `duplicateTrack` Routes Every Value to the Correct Destination Field
+
+This is the explicit verification the batch requested for the highest behavioral-risk part of this slice — confirming the object-arg conversion did not silently reorder/swap any field, for all 4 effects:
+
+| Effect | Object field | Source (`source.state.*`) | Matches original positional-call argument at this position? |
+|---|---|---|---|
+| Filter | `type` | `filterType` | ✅ (was positional arg 1: `source.state.filterType`) |
+| Filter | `cutoff` | `filterCutoff` | ✅ (arg 2) |
+| Filter | `resonance` | `filterResonance` | ✅ (arg 3) |
+| Filter | `mix` | `filterMix` | ✅ (arg 4) |
+| Filter | `output` | `filterOutput` | ✅ (arg 5) |
+| Delay | `delayTime` | `delayTime` | ✅ (arg 1) |
+| Delay | `feedback` | `delayFeedback` | ✅ (arg 2) |
+| Delay | `mix` | `delayMix` | ✅ (arg 3) |
+| Delay | `damping` | `delayDamping` | ✅ (arg 4) |
+| Delay | `output` | `delayOutput` | ✅ (arg 5) |
+| Reverb | `room` | `reverbRoom` | ✅ (arg 1) |
+| Reverb | `mix` | `reverbMix` | ✅ (arg 2) |
+| Reverb | `preDelay` | `reverbPreDelay` | ✅ (arg 3) |
+| Reverb | `damping` | `reverbDamping` | ✅ (arg 4) |
+| Reverb | `output` | `reverbOutput` | ✅ (arg 5) |
+| Distortion | `drive` | `distortionDrive` | ✅ (arg 1) |
+| Distortion | `tone` | `distortionTone` | ✅ (arg 2) |
+| Distortion | `mix` | `distortionMix` | ✅ (arg 3) |
+| Distortion | `output` | `distortionOutput` | ✅ (arg 4) |
+
+All 19 fields across the 4 effects verified against the pre-Slice-6 positional call's argument order (read directly from `git show c4d1d2c:src/renderer/context/AudioContext.tsx` before editing) — zero reordering, zero cross-effect field mixing. This mapping is additionally locked in by `AudioContext.test.tsx`'s `duplicateTrack` test, which asserts the actual `mockAudioEngine.setFilterSettings`/`setDistortionSettings` calls received on the cloned track (see Files Changed table above) — a real runtime assertion, not just a manual table.
+
+## Issues Found (Slice 6)
+None. `pnpm typecheck`, `pnpm lint`, and `pnpm build:renderer` were clean on the first attempt for the final (both-commits-applied) state. `pnpm format:check` flags all 14 touched files (`AudioEngine.ts`, `audioContextInstance.ts`, `AudioContext.tsx`, `AudioEngine.test.ts`, `TrackPlayer.test.tsx`, `AudioContext.test.tsx`, 4 dialog test files, 4 wrapper hooks) — verified via `git stash`/`pnpm format:check`/`git stash pop` that **all 14 were already flagged before any Slice 6 edit** (same pre-existing repo-wide drift baseline noted in every prior slice, 79-84 files depending on doc-file churn between runs); the new `effectSettings.ts` file is NOT flagged (correctly formatted on creation). No fix applied, consistent with the established "don't touch pre-existing drift" convention.
+
+## Safety Net (Slice 6)
+Baseline before any Slice 6 change (re-verified, matches Slice 5's final state): `pnpm exec vitest run` → **19 test files / 129 tests passing.**
+
+## TDD Cycle Evidence (Slice 6)
+
+| Task | Test File(s) | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|-------------|-----|-------|-------------|----------|
+| 6.1 (`AudioEngine.test.ts` object-arg RED) | `src/__tests__/audio/AudioEngine.test.ts` (12 call sites converted) | Unit | ✅ 19/19, 129/129 (pre-change) | ✅ Written first — converted all 12 `engine.setXSettings(...)` calls to object-arg literals while `AudioEngine.ts` still expected positional args; ran the file alone: **6/8 setter-related tests failed** (`setFilterSettings clamps...`, `setDistortionSettings updates...`/`clamps...`, `setDelaySettings clamps...`, `setReverbSettings updates...`/`clamps...` — `TypeError`/`NaN`/wrong-value assertion failures), confirming genuine RED. The other 2 ("updates...without throwing") didn't fail because they only assert `getDuration()` unaffected by the malformed call, not the actual (now-`NaN`) clamped values | ✅ Passed — implemented `effectSettings.ts` + converted all 4 `AudioEngine.ts` setters; re-ran, all 8/8 setter tests + full 30/30 file green | ✅ 8 cases — every one of the 4 setters' low-bound AND high-bound clamp test still exercises the full field set through the new object shape (unchanged from Slice 5's 24-row-equivalent coverage, now via object args instead of positional) | ✅ Clean — 4 destructure-at-top one-liners replace 4 multi-line positional parameter lists |
+| 6.2–6.3 (`effectSettings.ts` + `AudioEngine.ts` 4 setters, "6a") | `AudioEngine.test.ts` (all 30 tests) | Unit | ✅ (after 6.1's RED confirmation) | N/A — see 6.1 | ✅ 30/30 passing after full `AudioEngine.ts` conversion | ➖ N/A — structural signature change, no new runtime branching | ✅ Clean — one shared named-interface module (`effectSettings.ts`) replaces what would otherwise be positional-arg duplication across 3 downstream layers |
+| 6.4 (`audioContextInstance.ts` + `AudioContext.tsx`, "6b" part 1) | `AudioContext.test.tsx` (duplicateTrack test + its 3 setter assertions), `TrackPlayer.test.tsx` (4 apply tests) | Integration | ✅ (after 6a landed, full suite still red at the 4 remaining consumer-layer test files until 6b's wrapper-hook edits also landed — see note below) | ➖ N/A — structural conversion of an already-correct call chain (the values/bounds don't change, only the argument-passing mechanism); the genuine RED for this behavioral surface was already captured in 6.1's `AudioEngine.test.ts` failures plus the `AudioContext.test.tsx`/`TrackPlayer.test.tsx`/4-dialog-test RED state confirmed in the "Confirm RED" step before any production code changed (7 test files / 15 tests failed against unmodified production code) | ✅ Passed — after converting `AudioContext.tsx`'s 4 callbacks + `duplicateTrack` + the 4 wrapper hooks' `onApply` together (necessarily atomic, see Deviation #2), full suite 19/19, 129/129 | ✅ 4 cases — Filter/Delay/Reverb/Distortion each exercised through a different field-mapping shape (3 direct pass-throughs matching `XDraft`↔`XSettings` structurally, 1 explicit remap for Delay's `time`→`delayTime`), each verified by its own dialog's pre-existing apply-assertion now expecting the object shape | ✅ Clean — `duplicateTrack`'s 4 call sites shrink from `(id, v1, v2, v3, v4, v5)` positional lists to self-documenting `{ field: source.state.x, ... }` object literals |
+| 6.5 (4 wrapper hooks' `onApply`, "6b" part 2) | 4 per-effect dialog test files + `TrackPlayer.test.tsx` | Integration | ✅ (bundled with 6.4, see above — these were edited together as one atomic changeset per Deviation #2) | ➖ N/A — same reasoning as 6.4 | ✅ Passed — full suite 19/19, 129/129 after all wrapper hooks converted | ➖ N/A | ✅ Clean — 3 of 4 wrappers (Filter/Distortion/Reverb) collapsed their `onApply` to a 1-line direct pass-through (draft shape already matches settings shape); only Delay needs an explicit remap object |
+| 6.6 (verify "setter consolidation preserves values/clamping") | `AudioContext.test.tsx`'s `duplicateTrack` test (3 assertions: source `setDistortionSettings` call, cloned-track `setFilterSettings` + `setDistortionSettings` calls) + the Field-by-Field Verification table above | Integration + manual table cross-check | ✅ (after 6.4/6.5) | N/A — verification task | ✅ All 3 relevant assertions pass with object-arg shapes; manual field-by-field table (19 fields across 4 effects) cross-checked against the pre-refactor positional argument order read from git history — 0 mismatches | N/A | N/A |
+| 6.7 (parity gate) | Full suite | Integration | ✅ (all of the above) | N/A — parity gate | ✅ **19 test files, 129 tests passing** (0 change from Slice 5's baseline — this slice added 0 new test cases, only converted existing assertions' argument shape) | N/A | N/A |
+
+### Test Summary (Slice 6)
+- **Total tests written**: 0 new test cases — this slice is a pure call-shape conversion; every existing test's assertions were converted in place to expect the new object-arg shape, not supplemented with new coverage (matching design's Testing Strategy: "`AudioEngine.test.ts` updated to object-arg calls; `AudioContext.test.tsx` + `TrackPlayer.test.tsx` confirm state + engine parity")
+- **Total tests passing**: 129/129 (full suite), 0 regressions vs. Slice 5's 129/129 baseline
+- **Layers used**: Unit (30, `AudioEngine.test.ts`) + Integration (99, `TrackPlayer.test.tsx` + `AudioContext.test.tsx` + 4 per-effect dialog test files + others unaffected)
+- **Approval tests** (refactoring): 7 test files' pre-existing assertions (all converted argument shapes, 0 new/removed test cases) act as approval tests confirming unchanged values/bounds/field-routing after the object-arg conversion
+- **Pure functions created**: 0 new (the 4 `effectSettings.ts` interfaces are types, not functions)
+
+## Work Unit Evidence (Slice 6 / PR 6, split 6a/6b)
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `pnpm exec vitest run` (full suite, both commits applied) → **19 test files passed, 129 tests passed** — identical count to Slice 5's baseline (0 new, 0 lost) |
+| Runtime harness command/scenario and exact result | `pnpm build:renderer` → succeeds, 52 modules transformed, no errors. `pnpm typecheck` (all 3 tsconfigs) → clean, 0 errors, on the final combined state. Manual "duplicate track w/ non-default effects" scenario (the harness column's literal instruction) is covered by `AudioContext.test.tsx`'s `duplicateTrack` test, which sets non-default distortion settings on the source track before duplicating and asserts the clone receives the same values via the real (unmocked) `AudioContext.tsx` code path — the closest available substitute for a manual Electron click-through in this environment, per the same substitution pattern used in every prior slice |
+| Rollback boundary | `git revert` both commits in reverse order: `refactor: consolidate effect setters to named object args (6b)`, then `refactor: consolidate effect setters to named object args (6a)`. **Important**: per Deviation #2, these two commits are NOT independently revertable/mergeable checkpoints the way prior slices' sub-commits were — reverting only 6b (keeping 6a) would leave `AudioEngine.ts`'s methods object-arg while `AudioContext.tsx` still calls them positionally, which does not compile. Both commits must be reverted together, or neither. |
+
+## Quality Gates (Slice 6, Full Repo)
+- `pnpm exec vitest run`: **19 passed (19) / 129 passed (129)** — 0 failures (verified on the final combined state after both 6a and 6b commits)
+- `pnpm typecheck`: clean (0 errors) — `tsc --noEmit` across all 3 tsconfigs
+- `pnpm lint`: clean (0 errors, 0 warnings)
+- `pnpm build:renderer`: succeeds (52 modules transformed)
+- `pnpm format:check`: all 14 touched files were already flagged pre-existing drift before this slice's edits (verified via `git stash`); new `effectSettings.ts` is not flagged; consistent with every prior slice's "don't fix pre-existing drift" convention
+
+## Diff Size (Slice 6, vs. 400-line review budget)
+
+| Commit | `git diff --stat` | Changed lines |
+|---|---|---|
+| 6a (`effectSettings.ts` create + `AudioEngine.ts` 4 setters + `audioContextInstance.ts` + `AudioEngine.test.ts`) | 4 files changed, 131 insertions(+), 77 deletions(-) | **208** |
+| 6b (`AudioContext.tsx` 4 callbacks + `duplicateTrack` + 4 wrapper hooks + `TrackPlayer.test.tsx` + `AudioContext.test.tsx` + 4 dialog test files) | 11 files changed, 149 insertions(+), 168 deletions(-) | **317** |
+| **Slice 6 total** | 15 files changed, 280 insertions(+), 245 deletions(-) | **525** |
+
+**Finding for the orchestrator — flagged explicitly, not assumed, per the batch's instruction**: unlike Slices 2/3 (where the suggested sub-split still left at least one half over budget) and Slice 4 (which split cleanly into two independently-green, independently-mergeable halves), **Slice 6 is a third, distinct category**: both halves individually measure under the 400-line budget (208 and 317), so on line-count alone no `size:exception` is needed — but the two halves are **not independently buildable** (verified empirically: checking out 6a alone and running `pnpm typecheck` produces 17 TS2554/TS2322 arity-mismatch errors across `AudioContext.tsx`, the 4 wrapper hooks, and `AudioContext.test.tsx`). This is the structural consequence design.md itself predicted: "the setter call shape is frozen until slice 6, which changes it everywhere at once." The two commits are still cut along the suggested file boundary for reviewer-diff-chunking purposes (each commit's own diff is coherent and individually reviewable in isolation as *text*), but a reviewer or CI system that tries to build/test/gate on the 6a commit alone will get a red build — this needs a real decision (e.g. review both commits together as one squashed unit, or accept that this specific PR's intermediate commit is a documented, intentional exception to "every commit builds").
+
+**Judgment on mechanical vs. logic-touching (per the batch's explicit request)**: this slice sits **between** Slice 5 (pure mechanical) and Slice 4 (real internal restructuring). The `AudioEngine.ts` setter bodies are byte-for-byte unchanged past the destructure line (mechanical). `AudioContext.tsx`'s 4 callbacks are a mechanical field-name substitution (`type`→`s.type` etc.). The 3 wrapper hooks with matching draft/settings shapes (Filter/Distortion/Reverb) are a pure syntactic simplification (positional call → direct object pass-through). The **one genuinely decision-bearing spot** is `duplicateTrack` and the Delay wrapper's field remap (`time`→`delayTime`) — both are still 1:1 field mappings with no computation, but they are the two places where a mistake (per this slice's own stated purpose) would have been a *silent* runtime bug rather than a compile error, which is exactly why the Field-by-Field Verification table above exists as an explicit, checked artifact rather than an implicit "it should just work" assumption.
+
+---
+
 ## Remaining Tasks
 - [x] Slice 2: shared CSS (PR 2) — complete
 - [x] Slice 3: shared JSX (PR 3) — complete
 - [x] Slice 4: generic hook (PR 4) — complete
 - [x] Slice 5: AudioEngine clamp/wiring (PR 5) — complete
-- [ ] Slice 6: setter consolidation (PR 6) — not started
+- [x] Slice 6: setter consolidation (PR 6) — complete, LAST SLICE
+
+None — all 6 slices of `reduce-effect-duplication` are complete.
 
 ## Workload / PR Boundary
 - Mode: chained/stacked PR slice (`stacked-to-main`, per tasks.md forecast)
-- Current work unit: Slice 5 — AudioEngine clamp/wiring (PR 5), single commit on this branch (no sub-split needed, well under budget)
-- Boundary: starts from 24 inline `Math.max(min, Math.min(max,x))` clamp expressions + 4 near-identical dry/wet/output gain-triple constructions duplicated across `_createFilterNodes`/`_createDistortionNodes`/`_createDelayNodes`/`_createReverbNodes`; ends with 1 shared `clamp()` helper + 1 shared `_createDryWetOutput()` factory, all 24 sites and all 4 builders using them, full suite green (129/129), zero regressions, zero bound/wiring changes at any of the 24 sites or 4 builders
-- Estimated review budget impact: **302 changed lines, well under the 400-line budget — no `size:exception` needed.** Both the tasks.md forecast (150-220) and the batch prompt's implied re-measurement ("~30" sites, "high 200s conservative") were off in different directions from the actual 24-site/302-line measurement, corrected here with the full bounds table as evidence
+- Current work unit: Slice 6 — setter consolidation (PR 6), split into 2 commits (6a: engine + types + engine test; 6b: consumer layer + its tests) along the suggested file boundary. **Not** two independently-green checkpoints — see Deviation #2 and the Diff Size finding above.
+- Boundary: starts from 3 triple-declared positional setter signatures (`AudioEngine.ts`, `audioContextInstance.ts`, `AudioContext.tsx`) plus a 4th undocumented positional call site (`duplicateTrack`), with cosmetic `outputLevel`/`output` naming drift across them; ends with 1 shared named-interface module (`effectSettings.ts`), all 4 layers + 4 wrapper hooks + `duplicateTrack` on the consolidated `(id, s: XSettings)` shape, full suite green (129/129), zero regressions, zero value/bounds/field-routing changes (verified via the 19-field-by-4-effect table)
+- Estimated review budget impact: **525 total changed lines across 2 commits (208 + 317), both individually under the 400-line budget — no `size:exception` needed on line count.** However, per the atomicity finding above, this is flagged as a structural (not size) exception to the "every commit independently green" pattern every prior slice maintained.
 
 ## Status
-4/4 slice-1 tasks complete (1.1–1.4). 5/5 slice-2 tasks complete (2.1–2.5). 6/6 slice-3 tasks complete (3.1–3.6). 6/6 slice-4 tasks complete (4.1–4.6). 4/4 slice-5 tasks complete (5.1–5.4). Slices 1–5 done. Slice 6 remains for a future apply batch (out of this batch's assigned scope, per the explicit "Slice 5 ONLY" instruction).
+4/4 slice-1 tasks complete (1.1–1.4). 5/5 slice-2 tasks complete (2.1–2.5). 6/6 slice-3 tasks complete (3.1–3.6). 6/6 slice-4 tasks complete (4.1–4.6). 4/4 slice-5 tasks complete (5.1–5.4). 8/8 slice-6 tasks complete (6.1–6.8). **All 6 slices of `reduce-effect-duplication` are complete.** `doc/TODO.md` line 239 and `doc/FUTURE-IMPROVEMENTS.md` § 1 updated to reflect completion. Ready for `sdd-verify`.

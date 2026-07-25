@@ -250,18 +250,102 @@ Baseline before any Slice 3 change (re-verified, matches Slice 2's final state):
 
 ---
 
+---
+
+# Slice 4: Generic Hook (PR 4)
+
+## Completed Tasks (Slice 4)
+- [x] 4.1 RED: `TrackPlayer.test.tsx` open/apply/cancel expects `useSettingsDialog` re-sync (fails) — N/A, see Deviations below
+- [x] 4.2 GREEN: create `useSettingsDialog.ts` (`isOpen,draft,setField,open,close,apply`)
+- [x] 4.3 GREEN: rewrite 5 `use*SettingsDialog.ts` as thin wrappers, same flat `draftX/setDraftX` shape
+- [x] 4.4 GREEN: update `TrackPlayer.tsx:111-115` + `components/index.ts` — N/A, not required (see Deviations)
+- [x] 4.5 Verify ADDED "hook contract stays identical": open reseeds, apply commits+closes, cancel discards (`TrackPlayer.test.tsx` only, no isolated hook test)
+- [x] 4.6 Parity gate: full suite green
+
+## Files Changed (Slice 4)
+
+| File | Action | What Was Done |
+|------|--------|----------------|
+| `src/renderer/components/TrackPlayer/components/useSettingsDialog.ts` | Created | Generic core `useSettingsDialog<TDraft extends object>(seed, onApply)`. Owns `isOpen`/`draft` state; `setField(key, value)` does an immutable partial update; `open()` calls `setDraft(seed())` then `setIsOpen(true)` (re-reads live state, matching pre-existing per-hook re-sync); `close()` just flips `isOpen` false (drafts left as-is, discarded on next `open()`); `apply()` calls `onApply(draft)` then closes. Exact shape from design's interface sketch. |
+| `.../effects/filter/useFilterSettingsDialog.ts` | Rewritten | `FilterDraft { type, cutoff, resonance, mix, output }`; `seed`/`onApply` memoized with the same per-field dependency lists the original hook's `open`/`apply` `useCallback`s used; `onApply` calls `setFilterSettings(id, type, cutoff, resonance, mix, output)` — identical call order to the original. Returns the exact same 12-key flat shape (`draftType/setDraftType/draftCutoff/...`) `FilterSettingsDialog.tsx` already consumes; each `setDraftX` is a plain arrow calling `setField('x', value)`. |
+| `.../effects/distortion/useDistortionSettingsDialog.ts` | Rewritten | `DistortionDraft { drive, tone, mix, output }`; `onApply` calls `setDistortionSettings(id, drive, tone, mix, output)` — same order as before. Same wrapper pattern. |
+| `.../effects/delay/useDelaySettingsDialog.ts` | Rewritten | `DelayDraft { time, feedback, mix, damping, output }`; `onApply` calls `setDelaySettings(id, time, feedback, mix, damping, output)` — same order as the original (`draftDelayTime, draftDelayFeedback, draftDelayMix, draftDelayDamping, draftDelayOutput`). Returns the same `draftDelayTime/setDraftDelayTime/...` 12-key shape. |
+| `.../effects/reverb/useReverbSettingsDialog.ts` | Rewritten | `ReverbDraft { room, mix, preDelay, damping, output }`; `onApply` calls `setReverbSettings(id, room, mix, preDelay, damping, output)` — same order as the original. Returns the same `draftReverbRoom/setDraftReverbRoom/...` 12-key shape. |
+| `.../fadeSettings/useFadeSettingsDialog.ts` | Rewritten | `FadeDraft { fadeIn, fadeOut, seekFade }`; `onApply` calls `setFadeDurations(id, fadeIn, fadeOut, seekFade)` — same order as the original. Returns the same `draftFadeIn/setDraftFadeIn/...` 8-key shape. |
+| `src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx` | Modified | Added 2 new cases: (1) `discards fade draft changes and does not call the engine when cancelled` — closes a pre-existing coverage gap (Filter/Delay/Reverb/Distortion already had a cancel test; Fade did not); (2) `reseeds fade draft values from the latest track state when reopened, discarding both the prior cancelled edit and the original mount value` — new regression-locking test for the parity spec's "open seeds drafts from current state" scenario: opens, edits without applying, cancels, rerenders with a changed `fadeInDuration` prop, reopens, and asserts the reopened draft reflects the new prop value (7) rather than the discarded edit (9) or the original mount value (5). |
+
+`TrackPlayer.tsx` and `components/index.ts` were **not** touched — verified via `git diff --stat` showing no entries for either file. Every wrapper hook kept its exact exported name, file path, parameter signature (`(state: TrackState) => {...}`), and return shape, so `TrackPlayer.tsx:111-115`'s 5 call sites and the barrel's existing `export * from './.../use*SettingsDialog'` lines required no edits — the frozen seam held with zero call-site churn, better than the design's own "update TrackPlayer.tsx + barrel" expectation (which was conditional: "only if the hook export paths require it").
+
+## Deviations from Design (Slice 4)
+
+1. **Task 4.1 (RED test) — N/A, not written as a failing test.** This is a byte-for-byte behavior-preserving refactor: every one of the 5 original hooks *already* re-reads live `state.*` fields inside `open()` before the refactor (verified by reading all 5 hook source files first). A black-box test asserting "open reseeds from live state" therefore cannot fail against the pre-refactor code — there is no defect to catch. Per `openspec/config.yaml`'s explicit apply guideline ("component-scoped hooks are not unit-tested in isolation; test the owning component instead") and the batch's explicit instruction ("route TDD/parity evidence through `TrackPlayer.test.tsx`... not new isolated hook test files"), no isolated-hook-import RED (the pattern used in slices 1 and 3, where a new file didn't exist yet) is available either, because `useSettingsDialog.ts` is consumed only by the 5 wrapper hooks, never imported directly by `TrackPlayer.test.tsx`. I confirmed this empirically rather than assuming it: I wrote the 2 new tests (fade cancel + fade reopen-reseed) and the new `useSettingsDialog.ts` core first, then ran the full suite while `useFilterSettingsDialog`/`useDelaySettingsDialog`/`useFadeSettingsDialog` were **still on their original, pre-refactor implementation** (only Distortion and Reverb had been rewritten at that checkpoint) — full suite was 19/19 files, 118/118 tests green at that mixed checkpoint, proving the 2 new tests pass against genuinely un-refactored code and are therefore a real safety-net/parity baseline, not a tautology written after the fact. This is the same category of finding already accepted for slices 1 (task 1.3), 2 (task 2.1) and 3 (tasks 3.3): structural/behavior-preserving migrations mark RED "N/A" with a documented investigation, and rely on the existing + newly-added regression tests as the parity gate instead.
+2. **Task 4.4 — `TrackPlayer.tsx:111-115` and `components/index.ts` left untouched.** Design's own File Changes table listed these as "Modify," but conditioned slice 4 on preserving each wrapper's external call signature and flat return shape specifically so the frozen seam would not require touching them — which I achieved exactly, so there was nothing to change. Verified via `git diff --stat` after both slice-4 commits: no entry for either file.
+3. **Per-field `setDraftX` setters are plain arrows, not individually memoized.** Design's sketch shows only the generic core's `setField` signature; it does not mandate stability for the wrapper-level per-field setters. The original hooks got free referential stability because each `setDraftX` was a raw `useState` dispatcher. The new wrappers instead build `setDraftX: (value) => setField('x', value)` as a fresh arrow per render. `setField` itself is stable (`useCallback` with `[]` deps in the generic core), but the per-field wrapper closures around it are not memoized. This is a micro reference-stability regression, not a behavior change — none of the 5 dialog `.tsx` files or `TrackPlayer.tsx` place these setters in a `useEffect`/`useMemo`/`useCallback` dependency array (confirmed by reading all 5 dialog `.tsx` files: `setDraftX` is only ever passed straight through as an `onChange` prop), so there is no re-render loop or stale-closure risk. Flagging for transparency, matching the same category of minor-deviation disclosure used in slices 1–3.
+4. **`seed`/`onApply` memoized with the same per-field dependency arrays the original `open`/`apply` `useCallback`s used** (e.g. Filter's `seed` depends on exactly `[state.filterType, state.filterCutoff, state.filterResonance, state.filterMix, state.filterOutput]`, not the whole `state` object) — a deliberate choice (not explicitly specified in design) to preserve the original hooks' re-render/memoization granularity as closely as possible, rather than introducing a new dependency-array shape as part of this refactor.
+
+## Issues Found (Slice 4)
+None. `pnpm typecheck` and `pnpm lint` were clean on the first attempt for every file in this slice. `pnpm format:check` flagged 2 of this slice's touched files (`TrackPlayer.test.tsx`, `useDistortionSettingsDialog.ts`) for prettier formatting — fixed with a scoped `pnpm exec prettier --write` on just those 2 files (same approach as Slice 3), re-verified 0 Slice-4 files remain flagged afterward; pre-existing repo-wide drift untouched.
+
+## Safety Net (Slice 4)
+Baseline before any Slice 4 change (re-verified, matches Slice 3's final state): `pnpm test:no-watch` → **19 test files / 118 tests passing** (116 pre-existing + the 2 new tests added in this slice, both passing against the still-unrefactored hooks at that checkpoint — see Deviation #1).
+
+## TDD Cycle Evidence (Slice 4)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|-------------|-----|-------|-------------|----------|
+| 4.1–4.2 (`useSettingsDialog` core + Filter/Distortion wrappers, "4a") | `src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx` (2 new cases: fade cancel, fade reopen-reseed) — consumer-level integration, no isolated hook test per convention | Integration (RTL, via `TrackPlayer.test.tsx`) | ✅ 19/19 files, 116/116 tests (pre-change, matches Slice 3 final) | ➖ N/A — behavior-preserving refactor of already-correct hooks; see Deviation #1 for the empirical investigation (2 new tests run and confirmed green against the still-unrefactored Filter/Delay/Fade hooks before any of those 3 files were touched) | ✅ Passed — after creating `useSettingsDialog.ts` and rewriting Filter + Distortion: full suite 19/19, 118/118 (2 new + 116 pre-existing, 0 regressions) | ✅ 5 cases — all 5 wrapper hooks (Filter/Distortion/Delay/Reverb/Fade) instantiate the same generic core with different `TDraft` shapes (1 field with a string-union type, 3–5 numeric fields, one with no `select`), each producing a distinct `onApply` call signature verified by its own dialog's existing apply-test assertion — proving the generic core's field-count/type genericity isn't hardcoded to one shape | ✅ Clean — one shared open/close/apply/draft-state implementation replaces 5x duplicated `useState`+`useCallback` boilerplate |
+| 4.3 (Delay/Reverb/Fade wrappers, "4b") | Existing `DelaySettingsDialog.test.tsx`, `ReverbSettingsDialog.test.tsx`, `FadeSettingsDialog.test.tsx` (unchanged) + the 2 new `TrackPlayer.test.tsx` fade cases + full suite as parity oracle | Integration (RTL, unchanged assertions + 2 new) | ✅ 19/19, 118/118 (after 4a) | ➖ N/A — same reasoning as 4a | ✅ Passed — after rewriting Delay, Reverb and Fade: full suite still 19/19, 118/118; `pnpm typecheck` clean; `pnpm lint` clean; `pnpm build:renderer` succeeds | ➖ N/A — structural only | ✅ Clean — all 5 dialogs now share one hook implementation; 5 near-identical `useState`/`useCallback` blocks collapsed into 5 thin field-mapping wrappers over 1 generic core |
+| 4.5 (hook-contract-identical verification) | `TrackPlayer.test.tsx`: `opens filter/delay/reverb/distortion settings...applies` (4 pre-existing, apply commits+closes), `discards filter/delay/reverb/distortion draft changes...cancelled` (4 pre-existing, cancel discards), `opens settings...applies` (fade apply, pre-existing), `discards fade draft changes...cancelled` (fade cancel, **new this slice**), `reseeds fade draft values from the latest track state when reopened` (open reseeds, **new this slice**) | Integration | ✅ (all of the above) | N/A — verification task, not a RED/GREEN pair | ✅ All 11 relevant assertions pass: open reseeds (fade, explicit reopen test), apply commits the current draft to the engine setter with unchanged argument order for all 5 effects, cancel discards without invoking any engine setter for all 5 effects (Filter/Delay/Reverb/Distortion via pre-existing tests, Fade via the new test added this slice) | N/A | N/A |
+| 4.6 | Full suite | Integration | ✅ (all of the above) | N/A — parity gate | ✅ 19/19 test files, 118/118 tests (0 regressions vs. Slice 3's 116 + 2 new intentional additions) | N/A | N/A |
+
+### Test Summary (Slice 4)
+- **Total tests written**: 2 new test cases (fade cancel, fade reopen-reseed) — the second is genuinely new behavior *coverage* (not new behavior), closing a gap the design's testing-strategy table explicitly asked for ("covers open re-sync, edit, apply, cancel for all 5")
+- **Total tests passing**: 118/118 (full suite: 116 pre-existing + 2 new), 0 regressions
+- **Layers used**: Integration only (2 new + 116 pre-existing, all via `TrackPlayer.test.tsx`/per-dialog RTL suites; no isolated hook unit tests, per project convention)
+- **Approval tests** (refactoring): 5 — the 5 pre-existing per-dialog test suites (30 tests) plus `TrackPlayer.test.tsx`'s pre-existing open/apply/cancel cases act as approval tests confirming unchanged hook behavior after the internal rewrite
+- **Pure functions created**: 1 (`useSettingsDialog`'s `setField` updater is a pure immutable-merge closure; the hook itself is not pure but its state-transition logic is isolated and small)
+
+## Work Unit Evidence (Slice 4 / PR 4, split 4a/4b)
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `pnpm test:no-watch` (full suite, vitest ignores path args) → **19 test files passed, 118 tests passed** (after 4a and after 4b) |
+| Runtime harness command/scenario and exact result | `pnpm build:renderer` (production Vite build) → succeeds, 52 modules transformed, 176ms build time, no errors; substitutes for "manual: edit+apply+cancel each dialog" (no Electron/manual-open harness available in this environment) — the pre-existing `TrackPlayer.test.tsx` integration suites already drive open→edit→apply/cancel through the real `AudioProvider`/mocked `AudioEngine` for all 5 dialogs and are included in the focused test run above |
+| Rollback boundary | `git revert` the 2 commits in reverse order: `refactor: rewrite Delay/Reverb/Fade hooks as thin useSettingsDialog wrappers (4b)`, `refactor: extract generic useSettingsDialog core; rewrite Filter/Distortion hooks (4a)` — isolated to the new `useSettingsDialog.ts` core, the 5 wrapper hook files, and the 2 new `TrackPlayer.test.tsx` cases; zero `.tsx`/CSS files touched, zero `TrackPlayer.tsx`/barrel changes to revert |
+
+## Quality Gates (Slice 4, Full Repo)
+- `pnpm test:no-watch`: **19 passed (19) / 118 passed (118)** — 0 failures (verified after 4a and again after 4b)
+- `pnpm typecheck`: clean (0 errors)
+- `pnpm lint`: clean (0 errors, 0 warnings)
+- `pnpm build:renderer`: succeeds (52 modules, 176ms)
+- `pnpm format:check`: 2 of this slice's own touched files were flagged and fixed with a scoped `prettier --write` (see Issues Found); re-verified 0 Slice-4 files remain flagged; pre-existing repo-wide drift unrelated to this change untouched
+
+## Diff Size (Slice 4, vs. 400-line review budget)
+
+| Commit | `git diff --stat` | Changed lines |
+|---|---|---|
+| 4a (`useSettingsDialog.ts` create + Filter/Distortion wrappers + 2 new `TrackPlayer.test.tsx` cases) | 4 files changed, 181 insertions(+), 76 deletions(-) | **257** |
+| 4b (Delay/Reverb/Fade wrappers) | 3 files changed, 128 insertions(+), 127 deletions(-) | **255** |
+| **Slice 4 total** | 7 files changed, 309 insertions(+), 203 deletions(-) | **512** |
+
+**Finding for the orchestrator, per the explicit instruction to flag rather than assume exception**: the tasks.md/design forecast (250–370, Medium risk) undercounted again — actual measured total is **512 changed lines**, over the 400-line budget by ~28%. Unlike slices 2 and 3 (where every proposed sub-split still exceeded 400 on at least one half), **slice 4 splits cleanly**: commit 4a (new core + Filter + Distortion + both new tests) is 257 lines, commit 4b (Delay + Reverb + Fade) is 255 lines — both comfortably under budget. Both commits are already isolated on this branch at that boundary, consistent with the already-resolved `stacked-to-main` chain strategy and the same practice used for 2a/2b and 3a/3b. **No `size:exception` is needed for this slice** — the per-work-unit 400-line budget is satisfied by the natural 4a/4b split.
+
+**Judgment on mechanical vs. logic-touching (per the batch's explicit request)**: this diff is **closer to logic-touching than slices 2/3 were**, though still behavior-preserving. Slices 2/3 were like-for-like structural substitutions (CSS variable extraction, JSX chrome extraction) with zero change to state-management code. Slice 4 genuinely restructures *how each hook manages state* — collapsing 5x independent `useState`-per-field + `useCallback`-per-action implementations into 5x thin field-mapping wrappers delegating to 1 shared generic hook (`useSettingsDialog<TDraft>`). The observable behavior at the dialog-component boundary is unchanged (verified by 0 assertion changes in the 5 pre-existing per-dialog suites + the 2 new regression tests), but the internal mechanism is a real hook-logic refactor, not a mechanical rename/relocate. I'm reporting this distinction explicitly rather than defaulting to the `size:exception` precedent from slices 2/3, per the batch instruction — but since the diff splits cleanly under budget (unlike those 2 slices), no exception decision is actually required here.
+
+---
+
 ## Remaining Tasks
 - [x] Slice 2: shared CSS (PR 2) — complete
 - [x] Slice 3: shared JSX (PR 3) — complete
-- [ ] Slice 4: generic hook (PR 4) — not started
+- [x] Slice 4: generic hook (PR 4) — complete
 - [ ] Slice 5: AudioEngine clamp/wiring (PR 5) — not started
 - [ ] Slice 6: setter consolidation (PR 6) — not started
 
 ## Workload / PR Boundary
 - Mode: chained/stacked PR slice (`stacked-to-main`, per tasks.md forecast)
-- Current work unit: Slice 3 — shared JSX (PR 3), split into commits 3a-part1/3a-part2/3b on this branch
-- Boundary: starts from 5 dialogs (99–122 lines each) with duplicated overlay/panel/title/field/actions JSX; ends with 2 new shared components (`EffectDialog.tsx`, `SettingsField.tsx`, 7 new unit tests) + all 5 dialogs rewritten to compose them with identical external props/behavior, full suite green (116/116), zero regressions in the 30 pre-existing per-dialog tests
-- Estimated review budget impact: **938 changed lines total, High risk — exceeds the 400-line budget even at the 3a/3b sub-split (3a alone = 550; 3b = 400, right at the boundary)**. Flagged to the orchestrator for a PR-splitting/size-exception decision, with an explicit "mechanical, not logic-touching" judgment offered per the batch instructions; not blocking this apply batch since the chain-strategy decision was already resolved before apply
+- Current work unit: Slice 4 — generic hook (PR 4), split into commits 4a/4b on this branch
+- Boundary: starts from 5 hooks (each with its own `useState`-per-field + `useCallback`-per-action implementation); ends with 1 shared generic core (`useSettingsDialog.ts`) + all 5 hooks rewritten as thin wrappers preserving their exact flat `draftX/setDraftX` return shape and setter-argument order, full suite green (118/118), zero regressions, zero changes to `TrackPlayer.tsx` or the barrel
+- Estimated review budget impact: **512 changed lines total, over the 400-line budget by ~28%, but splits cleanly into 4a (257) and 4b (255), both within budget — no `size:exception` needed.** Flagged the mechanical-vs-logic-touching judgment explicitly per the batch instruction: this slice is closer to real hook-logic refactoring than slices 2/3, even though behavior is fully preserved
 
 ## Status
-4/4 slice-1 tasks complete (1.1–1.4). 5/5 slice-2 tasks complete (2.1–2.5). 6/6 slice-3 tasks complete (3.1–3.6). Slices 1–3 done, ready for verify pending orchestrator's PR-size decision on slices 2 and 3. Slices 4–6 remain for future apply batches (out of this batch's assigned scope).
+4/4 slice-1 tasks complete (1.1–1.4). 5/5 slice-2 tasks complete (2.1–2.5). 6/6 slice-3 tasks complete (3.1–3.6). 6/6 slice-4 tasks complete (4.1–4.6). Slices 1–4 done. Slices 5–6 remain for future apply batches (out of this batch's assigned scope, per the explicit "Slice 4 ONLY" instruction).

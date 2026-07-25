@@ -64,10 +64,10 @@ Rationale: chain strategy already resolved (force-chained/stacked-to-main from p
 - [x] 4.6 Parity gate: full suite green
 
 ## Slice 5: AudioEngine clamp/wiring (PR 5)
-- [ ] 5.1 RED: `AudioEngine.test.ts` pins one clamp boundary pre-extraction
-- [ ] 5.2 GREEN: add `clamp(v,min,max)`; replace 24 inline `Math.max/min` sites
-- [ ] 5.3 GREEN: add `_createDryWetOutput()`; wire into filter/delay/reverb/distortion builders
-- [ ] 5.4 Parity gate: full suite green — same clamped values/wiring
+- [x] 5.1 RED: `AudioEngine.test.ts` pins one clamp boundary pre-extraction
+- [x] 5.2 GREEN: add `clamp(v,min,max)`; replace 24 inline `Math.max/min` sites
+- [x] 5.3 GREEN: add `_createDryWetOutput()`; wire into filter/delay/reverb/distortion builders
+- [x] 5.4 Parity gate: full suite green — same clamped values/wiring
 
 ## Slice 6: setter consolidation (PR 6)
 - [ ] 6.1 RED: `AudioEngine.test.ts` calls use object-arg shape (fails)

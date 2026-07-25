@@ -152,14 +152,13 @@ describe('DelaySettingsDialog', () => {
       fireEvent.click(applyBtn);
 
       await waitFor(() =>
-        expect(mockAudioEngine.setDelaySettings).toHaveBeenCalledWith(
-          'track-1',
-          450,
-          60,
-          40,
-          30,
-          90,
-        ),
+        expect(mockAudioEngine.setDelaySettings).toHaveBeenCalledWith('track-1', {
+          delayTime: 450,
+          feedback: 60,
+          mix: 40,
+          damping: 30,
+          output: 90,
+        }),
       );
 
       // Overlay closes after apply

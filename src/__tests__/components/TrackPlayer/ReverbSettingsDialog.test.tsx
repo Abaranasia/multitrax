@@ -156,14 +156,13 @@ describe('ReverbSettingsDialog', () => {
       fireEvent.click(applyBtn);
 
       await waitFor(() =>
-        expect(mockAudioEngine.setReverbSettings).toHaveBeenCalledWith(
-          'track-1',
-          'cathedral',
-          60,
-          100,
-          20,
-          80,
-        ),
+        expect(mockAudioEngine.setReverbSettings).toHaveBeenCalledWith('track-1', {
+          room: 'cathedral',
+          mix: 60,
+          preDelay: 100,
+          damping: 20,
+          output: 80,
+        }),
       );
 
       // Overlay closes after apply

@@ -28,14 +28,13 @@ export const useDelaySettingsDialog = (state: TrackState) => {
 
   const onApply = useCallback(
     (draft: DelayDraft) =>
-      setDelaySettings(
-        state.id,
-        draft.time,
-        draft.feedback,
-        draft.mix,
-        draft.damping,
-        draft.output,
-      ),
+      setDelaySettings(state.id, {
+        delayTime: draft.time,
+        feedback: draft.feedback,
+        mix: draft.mix,
+        damping: draft.damping,
+        output: draft.output,
+      }),
     [state.id, setDelaySettings],
   );
 

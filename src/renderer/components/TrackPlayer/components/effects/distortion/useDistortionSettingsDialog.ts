@@ -25,8 +25,7 @@ export const useDistortionSettingsDialog = (state: TrackState) => {
   );
 
   const onApply = useCallback(
-    (draft: DistortionDraft) =>
-      setDistortionSettings(state.id, draft.drive, draft.tone, draft.mix, draft.output),
+    (draft: DistortionDraft) => setDistortionSettings(state.id, draft),
     [state.id, setDistortionSettings],
   );
 

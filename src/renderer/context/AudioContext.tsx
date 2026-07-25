@@ -1,6 +1,12 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { AudioEngine } from '../audio/AudioEngine';
-import { FilterType, ReverbRoom, TrackState } from '../domain/TrackState';
+import { TrackState } from '../domain/TrackState';
+import {
+  FilterSettings,
+  DistortionSettings,
+  DelaySettings,
+  ReverbSettings,
+} from '../audio/effectSettings';
 import { Ctx, TrackEntry } from './audioContextInstance';
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -99,37 +105,33 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       const newId = crypto.randomUUID();
       engine.addTrack(newId, buffer);
-      engine.setFilterSettings(
-        newId,
-        source.state.filterType,
-        source.state.filterCutoff,
-        source.state.filterResonance,
-        source.state.filterMix,
-        source.state.filterOutput,
-      );
-      engine.setDelaySettings(
-        newId,
-        source.state.delayTime,
-        source.state.delayFeedback,
-        source.state.delayMix,
-        source.state.delayDamping,
-        source.state.delayOutput,
-      );
-      engine.setReverbSettings(
-        newId,
-        source.state.reverbRoom,
-        source.state.reverbMix,
-        source.state.reverbPreDelay,
-        source.state.reverbDamping,
-        source.state.reverbOutput,
-      );
-      engine.setDistortionSettings(
-        newId,
-        source.state.distortionDrive,
-        source.state.distortionTone,
-        source.state.distortionMix,
-        source.state.distortionOutput,
-      );
+      engine.setFilterSettings(newId, {
+        type: source.state.filterType,
+        cutoff: source.state.filterCutoff,
+        resonance: source.state.filterResonance,
+        mix: source.state.filterMix,
+        output: source.state.filterOutput,
+      });
+      engine.setDelaySettings(newId, {
+        delayTime: source.state.delayTime,
+        feedback: source.state.delayFeedback,
+        mix: source.state.delayMix,
+        damping: source.state.delayDamping,
+        output: source.state.delayOutput,
+      });
+      engine.setReverbSettings(newId, {
+        room: source.state.reverbRoom,
+        mix: source.state.reverbMix,
+        preDelay: source.state.reverbPreDelay,
+        damping: source.state.reverbDamping,
+        output: source.state.reverbOutput,
+      });
+      engine.setDistortionSettings(newId, {
+        drive: source.state.distortionDrive,
+        tone: source.state.distortionTone,
+        mix: source.state.distortionMix,
+        output: source.state.distortionOutput,
+      });
       engine.setVolume(newId, source.state.volume);
       engine.setPan(newId, source.state.pan);
       engine.setLoop(newId, source.state.loop);
@@ -304,15 +306,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const setFilterSettings = useCallback(
-    (
-      id: string,
-      type: FilterType,
-      cutoff: number,
-      resonance: number,
-      mix: number,
-      output: number,
-    ) => {
-      engine.setFilterSettings(id, type, cutoff, resonance, mix, output);
+    (id: string, s: FilterSettings) => {
+      engine.setFilterSettings(id, s);
       setTracks((prev) =>
         prev.map((t) =>
           t.state.id === id
@@ -320,11 +315,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 ...t,
                 state: {
                   ...t.state,
-                  filterType: type,
-                  filterCutoff: cutoff,
-                  filterResonance: resonance,
-                  filterMix: mix,
-                  filterOutput: output,
+                  filterType: s.type,
+                  filterCutoff: s.cutoff,
+                  filterResonance: s.resonance,
+                  filterMix: s.mix,
+                  filterOutput: s.output,
                 },
               }
             : t,
@@ -335,15 +330,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const setDelaySettings = useCallback(
-    (
-      id: string,
-      delayTime: number,
-      feedback: number,
-      mix: number,
-      damping: number,
-      output: number,
-    ) => {
-      engine.setDelaySettings(id, delayTime, feedback, mix, damping, output);
+    (id: string, s: DelaySettings) => {
+      engine.setDelaySettings(id, s);
       setTracks((prev) =>
         prev.map((t) =>
           t.state.id === id
@@ -351,11 +339,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 ...t,
                 state: {
                   ...t.state,
-                  delayTime,
-                  delayFeedback: feedback,
-                  delayMix: mix,
-                  delayDamping: damping,
-                  delayOutput: output,
+                  delayTime: s.delayTime,
+                  delayFeedback: s.feedback,
+                  delayMix: s.mix,
+                  delayDamping: s.damping,
+                  delayOutput: s.output,
                 },
               }
             : t,
@@ -366,15 +354,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const setReverbSettings = useCallback(
-    (
-      id: string,
-      room: ReverbRoom,
-      mix: number,
-      preDelay: number,
-      damping: number,
-      output: number,
-    ) => {
-      engine.setReverbSettings(id, room, mix, preDelay, damping, output);
+    (id: string, s: ReverbSettings) => {
+      engine.setReverbSettings(id, s);
       setTracks((prev) =>
         prev.map((t) =>
           t.state.id === id
@@ -382,11 +363,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 ...t,
                 state: {
                   ...t.state,
-                  reverbRoom: room,
-                  reverbMix: mix,
-                  reverbPreDelay: preDelay,
-                  reverbDamping: damping,
-                  reverbOutput: output,
+                  reverbRoom: s.room,
+                  reverbMix: s.mix,
+                  reverbPreDelay: s.preDelay,
+                  reverbDamping: s.damping,
+                  reverbOutput: s.output,
                 },
               }
             : t,
@@ -397,8 +378,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const setDistortionSettings = useCallback(
-    (id: string, drive: number, tone: number, mix: number, output: number) => {
-      engine.setDistortionSettings(id, drive, tone, mix, output);
+    (id: string, s: DistortionSettings) => {
+      engine.setDistortionSettings(id, s);
       setTracks((prev) =>
         prev.map((t) =>
           t.state.id === id
@@ -406,10 +387,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 ...t,
                 state: {
                   ...t.state,
-                  distortionDrive: drive,
-                  distortionTone: tone,
-                  distortionMix: mix,
-                  distortionOutput: output,
+                  distortionDrive: s.drive,
+                  distortionTone: s.tone,
+                  distortionMix: s.mix,
+                  distortionOutput: s.output,
                 },
               }
             : t,

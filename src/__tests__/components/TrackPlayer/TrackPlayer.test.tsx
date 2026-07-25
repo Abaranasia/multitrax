@@ -287,14 +287,13 @@ describe('TrackPlayer', () => {
     fireEvent.click(applyBtn);
 
     await waitFor(() =>
-      expect(mockAudioEngine.setFilterSettings).toHaveBeenCalledWith(
-        'track-1',
-        'highpass',
-        500,
-        4,
-        70,
-        90,
-      ),
+      expect(mockAudioEngine.setFilterSettings).toHaveBeenCalledWith('track-1', {
+        type: 'highpass',
+        cutoff: 500,
+        resonance: 4,
+        mix: 70,
+        output: 90,
+      }),
     );
 
     // Overlay closes after apply
@@ -361,7 +360,13 @@ describe('TrackPlayer', () => {
     fireEvent.click(applyBtn);
 
     await waitFor(() =>
-      expect(mockAudioEngine.setDelaySettings).toHaveBeenCalledWith('track-1', 450, 60, 40, 30, 90),
+      expect(mockAudioEngine.setDelaySettings).toHaveBeenCalledWith('track-1', {
+        delayTime: 450,
+        feedback: 60,
+        mix: 40,
+        damping: 30,
+        output: 90,
+      }),
     );
 
     // Overlay closes after apply
@@ -411,14 +416,13 @@ describe('TrackPlayer', () => {
     fireEvent.click(applyBtn);
 
     await waitFor(() =>
-      expect(mockAudioEngine.setReverbSettings).toHaveBeenCalledWith(
-        'track-1',
-        'cathedral',
-        60,
-        100,
-        20,
-        80,
-      ),
+      expect(mockAudioEngine.setReverbSettings).toHaveBeenCalledWith('track-1', {
+        room: 'cathedral',
+        mix: 60,
+        preDelay: 100,
+        damping: 20,
+        output: 80,
+      }),
     );
 
     // Overlay closes after apply
@@ -484,7 +488,12 @@ describe('TrackPlayer', () => {
     fireEvent.click(applyBtn);
 
     await waitFor(() =>
-      expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith('track-1', 75, 30, 60, 90),
+      expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith('track-1', {
+        drive: 75,
+        tone: 30,
+        mix: 60,
+        output: 90,
+      }),
     );
 
     // Overlay closes after apply

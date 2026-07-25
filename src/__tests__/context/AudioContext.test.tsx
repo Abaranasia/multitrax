@@ -273,7 +273,11 @@ describe('AudioContext', () => {
           >
             Add Track
           </button>
-          <button onClick={() => audio.setDistortionSettings(SOURCE_ID, 40, 60, 50, 80)}>
+          <button
+            onClick={() =>
+              audio.setDistortionSettings(SOURCE_ID, { drive: 40, tone: 60, mix: 50, output: 80 })
+            }
+          >
             Set Distortion
           </button>
           <button onClick={() => audio.duplicateTrack(SOURCE_ID)}>Duplicate</button>
@@ -298,7 +302,12 @@ describe('AudioContext', () => {
 
     fireEvent.click(screen.getByText('Set Distortion'));
     await waitFor(() =>
-      expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith(SOURCE_ID, 40, 60, 50, 80),
+      expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith(SOURCE_ID, {
+        drive: 40,
+        tone: 60,
+        mix: 50,
+        output: 80,
+      }),
     );
 
     fireEvent.click(screen.getByText('Duplicate'));
@@ -309,15 +318,19 @@ describe('AudioContext', () => {
     expect(screen.getByTestId('clone-title').textContent).toBe('Guitar copy');
     expect(screen.getByTestId('clone-playing').textContent).toBe('false');
     expect(mockAudioEngine.setPan).toHaveBeenCalledWith(CLONE_ID, 0);
-    expect(mockAudioEngine.setFilterSettings).toHaveBeenCalledWith(
-      CLONE_ID,
-      'lowpass',
-      1000,
-      1,
-      0,
-      100,
-    );
-    expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith(CLONE_ID, 40, 60, 50, 80);
+    expect(mockAudioEngine.setFilterSettings).toHaveBeenCalledWith(CLONE_ID, {
+      type: 'lowpass',
+      cutoff: 1000,
+      resonance: 1,
+      mix: 0,
+      output: 100,
+    });
+    expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith(CLONE_ID, {
+      drive: 40,
+      tone: 60,
+      mix: 50,
+      output: 80,
+    });
     expect(screen.getByTestId('clone-distortion-drive').textContent).toBe('40');
   });
 });

@@ -1,6 +1,12 @@
 import { createContext } from 'react';
 import { AudioEngine } from '../audio/AudioEngine';
-import { FilterType, ReverbRoom, TrackState } from '../domain/TrackState';
+import { TrackState } from '../domain/TrackState';
+import {
+  FilterSettings,
+  DistortionSettings,
+  DelaySettings,
+  ReverbSettings,
+} from '../audio/effectSettings';
 
 export interface TrackEntry {
   state: TrackState;
@@ -29,37 +35,10 @@ export interface AudioContextValue {
   setFadeOut: (id: string, enabled: boolean) => void;
   setSeekFade: (id: string, enabled: boolean) => void;
   setFadeDurations: (id: string, fadeIn: number, fadeOut: number, seekFade: number) => void;
-  setFilterSettings: (
-    id: string,
-    type: FilterType,
-    cutoff: number,
-    resonance: number,
-    mix: number,
-    output: number,
-  ) => void;
-  setDelaySettings: (
-    id: string,
-    delayTime: number,
-    feedback: number,
-    mix: number,
-    damping: number,
-    output: number,
-  ) => void;
-  setReverbSettings: (
-    id: string,
-    room: ReverbRoom,
-    mix: number,
-    preDelay: number,
-    damping: number,
-    output: number,
-  ) => void;
-  setDistortionSettings: (
-    id: string,
-    drive: number,
-    tone: number,
-    mix: number,
-    output: number,
-  ) => void;
+  setFilterSettings: (id: string, s: FilterSettings) => void;
+  setDelaySettings: (id: string, s: DelaySettings) => void;
+  setReverbSettings: (id: string, s: ReverbSettings) => void;
+  setDistortionSettings: (id: string, s: DistortionSettings) => void;
   updatePosition: (id: string, x: number, y: number) => void;
   tickCurrentTimes: () => void;
 }

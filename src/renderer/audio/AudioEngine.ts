@@ -1,4 +1,10 @@
 import { FilterType, ReverbRoom } from '../domain/TrackState';
+import {
+  FilterSettings,
+  DistortionSettings,
+  DelaySettings,
+  ReverbSettings,
+} from './effectSettings';
 
 /**
  * AudioEngine — infrastructure layer wrapping the Web Audio API.
@@ -494,14 +500,8 @@ export class AudioEngine {
 
   // ── Filter (insert effect) ──────────────────────────────────────────────────
 
-  setFilterSettings(
-    id: string,
-    type: FilterType,
-    cutoff: number,
-    resonance: number,
-    mix: number,
-    outputLevel: number,
-  ): void {
+  setFilterSettings(id: string, s: FilterSettings): void {
+    const { type, cutoff, resonance, mix, output } = s;
     const track = this.tracks.get(id);
     if (!track) return;
     const filter = track.filter;
@@ -511,7 +511,7 @@ export class AudioEngine {
     filter.cutoff = clamp(cutoff, FILTER_CUTOFF_MIN_HZ, FILTER_CUTOFF_MAX_HZ);
     filter.resonance = clamp(resonance, FILTER_RESONANCE_MIN, FILTER_RESONANCE_MAX);
     filter.mix = clamp(mix, 0, 100);
-    filter.outputLevel = clamp(outputLevel, 0, 100);
+    filter.outputLevel = clamp(output, 0, 100);
 
     // `type` is not an AudioParam, so it switches instantly — same as
     // reverb's instant `convolver.buffer` swap on room change.
@@ -528,7 +528,8 @@ export class AudioEngine {
 
   // ── Distortion (insert effect) ──────────────────────────────────────────────
 
-  setDistortionSettings(id: string, drive: number, tone: number, mix: number, outputLevel: number): void {
+  setDistortionSettings(id: string, s: DistortionSettings): void {
+    const { drive, tone, mix, output } = s;
     const track = this.tracks.get(id);
     if (!track) return;
     const distortion = track.distortion;
@@ -537,7 +538,7 @@ export class AudioEngine {
     distortion.drive = clamp(drive, 0, 100);
     distortion.tone = clamp(tone, 0, 100);
     distortion.mix = clamp(mix, 0, 100);
-    distortion.outputLevel = clamp(outputLevel, 0, 100);
+    distortion.outputLevel = clamp(output, 0, 100);
 
     // `curve` is not an AudioParam, so it rebuilds/swaps instantly — same
     // instant-swap idiom as reverb's `convolver.buffer` / filter's biquad type.
@@ -556,14 +557,8 @@ export class AudioEngine {
 
   // ── Delay (insert effect) ───────────────────────────────────────────────────
 
-  setDelaySettings(
-    id: string,
-    delayTimeMs: number,
-    feedback: number,
-    mix: number,
-    dampingAmount: number,
-    outputLevel: number,
-  ): void {
+  setDelaySettings(id: string, s: DelaySettings): void {
+    const { delayTime, feedback, mix, damping, output } = s;
     const track = this.tracks.get(id);
     if (!track) return;
     const delay = track.delay;
@@ -571,11 +566,11 @@ export class AudioEngine {
 
     // Floor of 1ms (not 0) because this DelayNode sits inside a feedback
     // cycle, unlike reverb's preDelay which doesn't.
-    delay.delayTimeMs = clamp(delayTimeMs, 1, DELAY_TIME_MAX_MS);
+    delay.delayTimeMs = clamp(delayTime, 1, DELAY_TIME_MAX_MS);
     delay.feedback = clamp(feedback, 0, DELAY_FEEDBACK_MAX);
     delay.mix = clamp(mix, 0, 100);
-    delay.dampingAmount = clamp(dampingAmount, 0, 100);
-    delay.outputLevel = clamp(outputLevel, 0, 100);
+    delay.dampingAmount = clamp(damping, 0, 100);
+    delay.outputLevel = clamp(output, 0, 100);
 
     delay.delayNode.delayTime.setTargetAtTime(delay.delayTimeMs / 1000, now, 0.01);
     delay.feedbackGain.gain.setTargetAtTime(delay.feedback / 100, now, 0.01);
@@ -593,14 +588,8 @@ export class AudioEngine {
 
   // ── Reverb (insert effect) ──────────────────────────────────────────────────
 
-  setReverbSettings(
-    id: string,
-    room: ReverbRoom,
-    mix: number,
-    preDelayMs: number,
-    dampingAmount: number,
-    outputLevel: number,
-  ): void {
+  setReverbSettings(id: string, s: ReverbSettings): void {
+    const { room, mix, preDelay, damping, output } = s;
     const track = this.tracks.get(id);
     if (!track) return;
     const reverb = track.reverb;
@@ -608,9 +597,9 @@ export class AudioEngine {
 
     reverb.room = room;
     reverb.mix = clamp(mix, 0, 100);
-    reverb.preDelayMs = clamp(preDelayMs, 0, 500);
-    reverb.dampingAmount = clamp(dampingAmount, 0, 100);
-    reverb.outputLevel = clamp(outputLevel, 0, 100);
+    reverb.preDelayMs = clamp(preDelay, 0, 500);
+    reverb.dampingAmount = clamp(damping, 0, 100);
+    reverb.outputLevel = clamp(output, 0, 100);
 
     reverb.convolver.buffer = this._getImpulseResponse(reverb.room);
 

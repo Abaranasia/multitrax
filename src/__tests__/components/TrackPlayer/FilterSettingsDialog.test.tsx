@@ -157,14 +157,13 @@ describe('FilterSettingsDialog', () => {
       fireEvent.click(applyBtn);
 
       await waitFor(() =>
-        expect(mockAudioEngine.setFilterSettings).toHaveBeenCalledWith(
-          'track-1',
-          'highpass',
-          500,
-          4,
-          70,
-          90,
-        ),
+        expect(mockAudioEngine.setFilterSettings).toHaveBeenCalledWith('track-1', {
+          type: 'highpass',
+          cutoff: 500,
+          resonance: 4,
+          mix: 70,
+          output: 90,
+        }),
       );
 
       // Overlay closes after apply

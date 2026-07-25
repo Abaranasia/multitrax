@@ -148,13 +148,12 @@ describe('DistortionSettingsDialog', () => {
       fireEvent.click(applyBtn);
 
       await waitFor(() =>
-        expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith(
-          'track-1',
-          75,
-          30,
-          60,
-          90,
-        ),
+        expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith('track-1', {
+          drive: 75,
+          tone: 30,
+          mix: 60,
+          output: 90,
+        }),
       );
 
       // Overlay closes after apply

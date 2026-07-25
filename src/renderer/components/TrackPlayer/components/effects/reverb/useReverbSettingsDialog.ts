@@ -33,15 +33,7 @@ export const useReverbSettingsDialog = (state: TrackState) => {
   );
 
   const onApply = useCallback(
-    (draft: ReverbDraft) =>
-      setReverbSettings(
-        state.id,
-        draft.room,
-        draft.mix,
-        draft.preDelay,
-        draft.damping,
-        draft.output,
-      ),
+    (draft: ReverbDraft) => setReverbSettings(state.id, draft),
     [state.id, setReverbSettings],
   );
 

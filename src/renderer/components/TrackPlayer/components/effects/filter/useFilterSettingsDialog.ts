@@ -33,15 +33,7 @@ export const useFilterSettingsDialog = (state: TrackState) => {
   );
 
   const onApply = useCallback(
-    (draft: FilterDraft) =>
-      setFilterSettings(
-        state.id,
-        draft.type,
-        draft.cutoff,
-        draft.resonance,
-        draft.mix,
-        draft.output,
-      ),
+    (draft: FilterDraft) => setFilterSettings(state.id, draft),
     [state.id, setFilterSettings],
   );
 

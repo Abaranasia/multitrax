@@ -1,49 +1,52 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { TrackState } from '../../../../../domain/TrackState';
 import { useAudio } from '../../../../../context/useAudio';
+import { useSettingsDialog } from '../../useSettingsDialog';
+
+interface DistortionDraft {
+  drive: number;
+  tone: number;
+  mix: number;
+  output: number;
+}
 
 /** Owns the open/closed state and draft values for a track's Distortion settings dialog. */
 export const useDistortionSettingsDialog = (state: TrackState) => {
   const { setDistortionSettings } = useAudio();
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [draftDrive, setDraftDrive] = useState(state.distortionDrive);
-  const [draftTone, setDraftTone] = useState(state.distortionTone);
-  const [draftMix, setDraftMix] = useState(state.distortionMix);
-  const [draftOutput, setDraftOutput] = useState(state.distortionOutput);
+  const seed = useCallback(
+    (): DistortionDraft => ({
+      drive: state.distortionDrive,
+      tone: state.distortionTone,
+      mix: state.distortionMix,
+      output: state.distortionOutput,
+    }),
+    [state.distortionDrive, state.distortionTone, state.distortionMix, state.distortionOutput],
+  );
 
-  const open = useCallback(() => {
-    setDraftDrive(state.distortionDrive);
-    setDraftTone(state.distortionTone);
-    setDraftMix(state.distortionMix);
-    setDraftOutput(state.distortionOutput);
-    setIsOpen(true);
-  }, [
-    state.distortionDrive,
-    state.distortionTone,
-    state.distortionMix,
-    state.distortionOutput,
-  ]);
+  const onApply = useCallback(
+    (draft: DistortionDraft) =>
+      setDistortionSettings(state.id, draft.drive, draft.tone, draft.mix, draft.output),
+    [state.id, setDistortionSettings],
+  );
 
-  const close = useCallback(() => setIsOpen(false), []);
-
-  const apply = useCallback(() => {
-    setDistortionSettings(state.id, draftDrive, draftTone, draftMix, draftOutput);
-    setIsOpen(false);
-  }, [state.id, draftDrive, draftTone, draftMix, draftOutput, setDistortionSettings]);
+  const { isOpen, draft, setField, open, close, apply } = useSettingsDialog<DistortionDraft>(
+    seed,
+    onApply,
+  );
 
   return {
     isOpen,
     open,
     close,
     apply,
-    draftDrive,
-    setDraftDrive,
-    draftTone,
-    setDraftTone,
-    draftMix,
-    setDraftMix,
-    draftOutput,
-    setDraftOutput,
+    draftDrive: draft.drive,
+    setDraftDrive: (value: number) => setField('drive', value),
+    draftTone: draft.tone,
+    setDraftTone: (value: number) => setField('tone', value),
+    draftMix: draft.mix,
+    setDraftMix: (value: number) => setField('mix', value),
+    draftOutput: draft.output,
+    setDraftOutput: (value: number) => setField('output', value),
   };
 };

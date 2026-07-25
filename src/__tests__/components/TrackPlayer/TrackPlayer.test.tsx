@@ -215,6 +215,54 @@ describe('TrackPlayer', () => {
     );
   });
 
+  it('discards fade draft changes and does not call the engine when cancelled', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const settingsBtn = screen.getByTitle('Configure fade durations');
+    fireEvent.click(settingsBtn);
+
+    const ranges = document.querySelectorAll('.fade-settings-panel input[type=range]');
+    fireEvent.change(ranges[0], { target: { value: '9' } });
+
+    fireEvent.click(screen.getByText('Cancel'));
+
+    expect(screen.queryByText('Apply')).toBeNull();
+    expect(mockAudioEngine.setFadeDurations).not.toHaveBeenCalled();
+  });
+
+  it('reseeds fade draft values from the latest track state when reopened, discarding both the prior cancelled edit and the original mount value', async () => {
+    const { rerender } = render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, fadeInDuration: 5 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    // Open, edit without applying, then close without applying (Cancel).
+    fireEvent.click(screen.getByTitle('Configure fade durations'));
+    await screen.findByText('Apply');
+    let ranges = document.querySelectorAll('.fade-settings-panel input[type=range]');
+    fireEvent.change(ranges[0], { target: { value: '9' } });
+    fireEvent.click(screen.getByText('Cancel'));
+
+    // Track state changes elsewhere (e.g. duplicate/undo) while the dialog is closed.
+    rerender(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, fadeInDuration: 7 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    // Reopening must reseed from the latest committed state (7), not the
+    // discarded draft edit (9) nor the original mount value (5).
+    fireEvent.click(screen.getByTitle('Configure fade durations'));
+    await screen.findByText('Apply');
+    ranges = document.querySelectorAll('.fade-settings-panel input[type=range]');
+    expect((ranges[0] as HTMLInputElement).value).toBe('7');
+  });
+
   it('opens filter settings, updates draft values and applies them to engine', async () => {
     render(
       <AudioProvider>
@@ -436,13 +484,7 @@ describe('TrackPlayer', () => {
     fireEvent.click(applyBtn);
 
     await waitFor(() =>
-      expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith(
-        'track-1',
-        75,
-        30,
-        60,
-        90,
-      ),
+      expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith('track-1', 75, 30, 60, 90),
     );
 
     // Overlay closes after apply

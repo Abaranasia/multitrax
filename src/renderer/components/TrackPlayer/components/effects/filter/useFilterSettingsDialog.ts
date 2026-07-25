@@ -1,54 +1,69 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { FilterType, TrackState } from '../../../../../domain/TrackState';
 import { useAudio } from '../../../../../context/useAudio';
+import { useSettingsDialog } from '../../useSettingsDialog';
+
+interface FilterDraft {
+  type: FilterType;
+  cutoff: number;
+  resonance: number;
+  mix: number;
+  output: number;
+}
 
 /** Owns the open/closed state and draft values for a track's Filter settings dialog. */
 export const useFilterSettingsDialog = (state: TrackState) => {
   const { setFilterSettings } = useAudio();
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [draftType, setDraftType] = useState<FilterType>(state.filterType);
-  const [draftCutoff, setDraftCutoff] = useState(state.filterCutoff);
-  const [draftResonance, setDraftResonance] = useState(state.filterResonance);
-  const [draftMix, setDraftMix] = useState(state.filterMix);
-  const [draftOutput, setDraftOutput] = useState(state.filterOutput);
+  const seed = useCallback(
+    (): FilterDraft => ({
+      type: state.filterType,
+      cutoff: state.filterCutoff,
+      resonance: state.filterResonance,
+      mix: state.filterMix,
+      output: state.filterOutput,
+    }),
+    [
+      state.filterType,
+      state.filterCutoff,
+      state.filterResonance,
+      state.filterMix,
+      state.filterOutput,
+    ],
+  );
 
-  const open = useCallback(() => {
-    setDraftType(state.filterType);
-    setDraftCutoff(state.filterCutoff);
-    setDraftResonance(state.filterResonance);
-    setDraftMix(state.filterMix);
-    setDraftOutput(state.filterOutput);
-    setIsOpen(true);
-  }, [
-    state.filterType,
-    state.filterCutoff,
-    state.filterResonance,
-    state.filterMix,
-    state.filterOutput,
-  ]);
+  const onApply = useCallback(
+    (draft: FilterDraft) =>
+      setFilterSettings(
+        state.id,
+        draft.type,
+        draft.cutoff,
+        draft.resonance,
+        draft.mix,
+        draft.output,
+      ),
+    [state.id, setFilterSettings],
+  );
 
-  const close = useCallback(() => setIsOpen(false), []);
-
-  const apply = useCallback(() => {
-    setFilterSettings(state.id, draftType, draftCutoff, draftResonance, draftMix, draftOutput);
-    setIsOpen(false);
-  }, [state.id, draftType, draftCutoff, draftResonance, draftMix, draftOutput, setFilterSettings]);
+  const { isOpen, draft, setField, open, close, apply } = useSettingsDialog<FilterDraft>(
+    seed,
+    onApply,
+  );
 
   return {
     isOpen,
     open,
     close,
     apply,
-    draftType,
-    setDraftType,
-    draftCutoff,
-    setDraftCutoff,
-    draftResonance,
-    setDraftResonance,
-    draftMix,
-    setDraftMix,
-    draftOutput,
-    setDraftOutput,
+    draftType: draft.type,
+    setDraftType: (value: FilterType) => setField('type', value),
+    draftCutoff: draft.cutoff,
+    setDraftCutoff: (value: number) => setField('cutoff', value),
+    draftResonance: draft.resonance,
+    setDraftResonance: (value: number) => setField('resonance', value),
+    draftMix: draft.mix,
+    setDraftMix: (value: number) => setField('mix', value),
+    draftOutput: draft.output,
+    setDraftOutput: (value: number) => setField('output', value),
   };
 };

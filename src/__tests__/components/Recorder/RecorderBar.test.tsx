@@ -66,7 +66,10 @@ describe('RecorderBar', () => {
     };
 
     // Provide electronAPI saveRecording stub (both window and globalThis)
-    const saveRecordingMock = vi.fn(async (_buf: ArrayBuffer, _name: string) => true);
+    const saveRecordingMock = vi.fn(async (_buf: ArrayBuffer, _name: string) => ({
+      saved: true,
+      filePath: '/mock/session.wav',
+    }));
     (window as any).electronAPI = { saveRecording: saveRecordingMock };
     (global as any).electronAPI = { saveRecording: saveRecordingMock };
   });
@@ -133,5 +136,65 @@ describe('RecorderBar', () => {
     });
 
     await waitFor(() => expect((window as any).electronAPI.saveRecording).toHaveBeenCalled());
+  });
+
+  it('logs the error and does not show the success/idle state when saveRecording fails', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const failingSaveRecording = vi.fn(async (_buf: ArrayBuffer, _name: string) => ({
+      saved: false,
+      error: 'ENOSPC: no space left on device',
+    }));
+    (window as any).electronAPI = { saveRecording: failingSaveRecording };
+    (global as any).electronAPI = { saveRecording: failingSaveRecording };
+
+    render(
+      <AudioProvider>
+        <RecorderBar />
+      </AudioProvider>,
+    );
+
+    const btn = screen.getByTitle('Start recording session');
+
+    vi.useFakeTimers();
+    await act(async () => {
+      fireEvent.click(btn);
+      vi.advanceTimersByTime(1000);
+    });
+    vi.useRealTimers();
+
+    if (!lastRecorder) throw new Error('Recorder not created');
+    if (lastRecorder.ondataavailable) {
+      lastRecorder.ondataavailable({
+        data: {
+          size: 1,
+          async arrayBuffer() {
+            return new ArrayBuffer(4);
+          },
+        },
+      });
+    }
+
+    const stopBtn = screen.getByTitle('Stop recording and save');
+    await act(async () => {
+      fireEvent.click(stopBtn);
+    });
+
+    await waitFor(() => expect(failingSaveRecording).toHaveBeenCalled());
+
+    // The failure must be logged distinctly, carrying the underlying error detail.
+    await waitFor(() =>
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('save'),
+        'ENOSPC: no space left on device',
+      ),
+    );
+
+    // The UI must NOT proceed straight to the plain success/idle 'Record' state —
+    // that would make a failed save indistinguishable from a successful one.
+    await waitFor(() => expect(screen.queryByText('Save failed')).toBeTruthy());
+    expect(screen.queryByText('Record')).toBeNull();
+
+    consoleErrorSpy.mockRestore();
   });
 });

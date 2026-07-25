@@ -209,6 +209,49 @@ describe('AudioEngine (unit)', () => {
     expect(engine.isPlaying('t3')).toBe(false);
   });
 
+  it('_stopSource swallows the expected InvalidStateError when a source is already stopped', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 5 } as unknown as AudioBuffer;
+    engine.addTrack('t-invalid-state', buf);
+    engine.play('t-invalid-state');
+
+    const track = (engine as any).tracks.get('t-invalid-state');
+    track.sourceNode.stop = () => {
+      throw new DOMException('already stopped', 'InvalidStateError');
+    };
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    expect(() => engine.stop('t-invalid-state')).not.toThrow();
+
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(track.sourceNode).toBeNull();
+  });
+
+  it('_stopSource surfaces an unexpected stop error via console.error instead of swallowing it', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 5 } as unknown as AudioBuffer;
+    engine.addTrack('t-unexpected-error', buf);
+    engine.play('t-unexpected-error');
+
+    const track = (engine as any).tracks.get('t-unexpected-error');
+    const unexpectedError = new Error('hardware failure');
+    track.sourceNode.stop = () => {
+      throw unexpectedError;
+    };
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    expect(() => engine.stop('t-unexpected-error')).not.toThrow();
+
+    expect(errorSpy).toHaveBeenCalledWith(expect.anything(), unexpectedError);
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(track.sourceNode).toBeNull();
+  });
+
   it('getBuffer returns the same buffer reference passed to addTrack, or undefined for an unknown id', () => {
     const engine = new AudioEngine();
     const buf = { duration: 8 } as unknown as AudioBuffer;
@@ -616,5 +659,194 @@ describe('AudioEngine (unit)', () => {
     engine.close();
     // closing should not throw and duration returns 0
     expect(engine.getDuration('t6')).toBe(0);
+  });
+
+  // ── Fade/loop scheduling (fake timers) ─────────────────────────────────────
+  // Scoped to this nested describe so the real-timer tests above are unaffected.
+  describe('fade/loop scheduling (fake timers)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('_playLoopWithFade schedules fade-in/fade-out gain anchors and re-invokes itself via onended when track.loop is true', () => {
+      const engine = new AudioEngine();
+      const buf = { duration: 10 } as unknown as AudioBuffer;
+      engine.addTrack('loopfade1', buf);
+      const track = (engine as any).tracks.get('loopfade1');
+      track.fadeIn = true;
+      track.fadeOut = true;
+      track.fadeInDuration = 2;
+      track.fadeOutDuration = 3;
+      // track.loop is true by default (see addTrack)
+
+      const replaySpy = vi.spyOn(engine as any, '_playLoopWithFade');
+
+      engine.play('loopfade1');
+
+      expect(replaySpy).toHaveBeenCalledTimes(1);
+      const gain = track.gainNode.gain;
+      // iterDuration = 10; fadeInEnd = min(2, 5) = 2; fadeOutStart = max(10-3=7, 5) = 7
+      expect(gain.setValueAtTime).toHaveBeenCalledWith(0, 0);
+      expect(gain.linearRampToValueAtTime).toHaveBeenCalledWith(track.volume, 2);
+      expect(gain.setValueAtTime).toHaveBeenCalledWith(track.volume, 7);
+      expect(gain.linearRampToValueAtTime).toHaveBeenCalledWith(0, 10);
+
+      const firstSource = track.sourceNode;
+      expect(firstSource.started).toBe(true);
+
+      // Simulate the source ending naturally: FakeSource.stop() schedules its
+      // onended callback via a real setTimeout(...,0), which fake timers
+      // intercept — flush it with advanceTimersByTime.
+      firstSource.stop();
+      vi.advanceTimersByTime(0);
+
+      expect(replaySpy).toHaveBeenCalledTimes(2);
+      expect(track.startOffset).toBe(0);
+      expect(track.playing).toBe(true);
+      expect(track.sourceNode).not.toBe(firstSource);
+    });
+
+    it('_playLoopWithFade does not re-invoke itself via onended when track.loop is false (stops instead)', () => {
+      const engine = new AudioEngine();
+      const buf = { duration: 6 } as unknown as AudioBuffer;
+      engine.addTrack('loopfade2', buf);
+      const track = (engine as any).tracks.get('loopfade2');
+      track.loop = false;
+      track.fadeOut = true;
+      track.fadeOutDuration = 2;
+
+      // play() only routes into _playLoopWithFade when loop && (fadeIn||fadeOut);
+      // call it directly to exercise the non-loop onended branch in isolation.
+      (engine as any)._playLoopWithFade(track);
+      const source = track.sourceNode;
+      expect(track.playing).toBe(true);
+
+      const replaySpy = vi.spyOn(engine as any, '_playLoopWithFade');
+      source.stop();
+      vi.advanceTimersByTime(0);
+
+      expect(replaySpy).not.toHaveBeenCalled();
+      expect(track.playing).toBe(false);
+      expect(track.startOffset).toBe(0);
+      expect(track.sourceNode).toBeNull();
+    });
+
+    it('_startFadeOut ramps gain to 0 over fadeOutDuration, then stops the source and invokes afterStop once the timer elapses', () => {
+      const engine = new AudioEngine();
+      const buf = { duration: 10 } as unknown as AudioBuffer;
+      engine.addTrack('fadeout1', buf);
+      const track = (engine as any).tracks.get('fadeout1');
+      track.fadeOutDuration = 4;
+      engine.play('fadeout1');
+      const source = track.sourceNode;
+
+      const afterStop = vi.fn();
+      (engine as any)._startFadeOut(track, afterStop);
+
+      const gain = track.gainNode.gain;
+      expect(gain.linearRampToValueAtTime).toHaveBeenCalledWith(0, track.fadeOutDuration);
+      expect(afterStop).not.toHaveBeenCalled();
+      expect(track.sourceNode).toBe(source);
+
+      vi.advanceTimersByTime(track.fadeOutDuration * 1000);
+
+      expect(afterStop).toHaveBeenCalledTimes(1);
+      expect(track.sourceNode).toBeNull();
+      expect(track.fadeOutTimer).toBeNull();
+      expect(gain.setValueAtTime).toHaveBeenCalledWith(track.volume, 0);
+    });
+
+    it('_cancelFadeOut clears a pending fade-out timer, stops the source immediately, and restores gain to track.volume', () => {
+      const engine = new AudioEngine();
+      const buf = { duration: 10 } as unknown as AudioBuffer;
+      engine.addTrack('cancelfade1', buf);
+      const track = (engine as any).tracks.get('cancelfade1');
+      track.fadeOutDuration = 5;
+      engine.play('cancelfade1');
+
+      const afterStop = vi.fn();
+      (engine as any)._startFadeOut(track, afterStop);
+      expect(track.fadeOutTimer).not.toBeNull();
+
+      (engine as any)._cancelFadeOut(track);
+
+      expect(track.fadeOutTimer).toBeNull();
+      expect(track.sourceNode).toBeNull();
+      expect(afterStop).not.toHaveBeenCalled();
+      const gain = track.gainNode.gain;
+      expect(gain.setValueAtTime).toHaveBeenCalledWith(track.volume, 0);
+
+      // The canceled timer must never fire afterStop, even after it would have elapsed.
+      vi.advanceTimersByTime(track.fadeOutDuration * 1000);
+      expect(afterStop).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── Setters + getRecordingStream (real timers) ─────────────────────────────
+
+  it('setLoop toggles track.loop and propagates to an active sourceNode.loop', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 5 } as unknown as AudioBuffer;
+    engine.addTrack('setloop1', buf);
+
+    engine.setLoop('setloop1', false);
+    expect((engine as any).tracks.get('setloop1').loop).toBe(false);
+
+    engine.play('setloop1');
+    const track = (engine as any).tracks.get('setloop1');
+    expect(track.sourceNode.loop).toBe(false);
+
+    engine.setLoop('setloop1', true);
+    expect(track.loop).toBe(true);
+    expect(track.sourceNode.loop).toBe(true);
+
+    expect(() => engine.setLoop('nonexistent', true)).not.toThrow();
+  });
+
+  it('setFadeIn toggles track.fadeIn', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 5 } as unknown as AudioBuffer;
+    engine.addTrack('setfadein1', buf);
+    expect((engine as any).tracks.get('setfadein1').fadeIn).toBe(false);
+    engine.setFadeIn('setfadein1', true);
+    expect((engine as any).tracks.get('setfadein1').fadeIn).toBe(true);
+    engine.setFadeIn('setfadein1', false);
+    expect((engine as any).tracks.get('setfadein1').fadeIn).toBe(false);
+    expect(() => engine.setFadeIn('nonexistent', true)).not.toThrow();
+  });
+
+  it('setFadeOut toggles track.fadeOut', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 5 } as unknown as AudioBuffer;
+    engine.addTrack('setfadeout1', buf);
+    expect((engine as any).tracks.get('setfadeout1').fadeOut).toBe(false);
+    engine.setFadeOut('setfadeout1', true);
+    expect((engine as any).tracks.get('setfadeout1').fadeOut).toBe(true);
+    engine.setFadeOut('setfadeout1', false);
+    expect((engine as any).tracks.get('setfadeout1').fadeOut).toBe(false);
+    expect(() => engine.setFadeOut('nonexistent', true)).not.toThrow();
+  });
+
+  it('setSeekFade toggles track.seekFade', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 5 } as unknown as AudioBuffer;
+    engine.addTrack('setseekfade1', buf);
+    expect((engine as any).tracks.get('setseekfade1').seekFade).toBe(false);
+    engine.setSeekFade('setseekfade1', true);
+    expect((engine as any).tracks.get('setseekfade1').seekFade).toBe(true);
+    engine.setSeekFade('setseekfade1', false);
+    expect((engine as any).tracks.get('setseekfade1').seekFade).toBe(false);
+    expect(() => engine.setSeekFade('nonexistent', true)).not.toThrow();
+  });
+
+  it('getRecordingStream returns the engine\'s recorderDest.stream by reference', () => {
+    const engine = new AudioEngine();
+    const stream = engine.getRecordingStream();
+    const recorderDest = (engine as any).recorderDest;
+    expect(stream).toBe(recorderDest.stream);
   });
 });

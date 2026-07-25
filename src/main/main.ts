@@ -8,6 +8,10 @@ const __dirname = path.dirname(__filename);
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
+// Session-scoped allowlist of paths granted via the native open-file dialog.
+// Replaced (not accumulated) on every `dialog:openAudioFiles` invocation.
+const grantedPaths = new Set<string>();
+
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1280,
@@ -55,6 +59,10 @@ ipcMain.handle('dialog:openAudioFiles', async () => {
     filters: [{ name: 'Audio', extensions: ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus'] }],
     properties: ['openFile', 'multiSelections'],
   });
+  grantedPaths.clear();
+  for (const filePath of result.filePaths) {
+    grantedPaths.add(path.resolve(filePath));
+  }
   return result.filePaths;
 });
 
@@ -73,14 +81,27 @@ ipcMain.handle(
 
     if (result.canceled || !result.filePath) return { saved: false };
 
-    fs.writeFileSync(result.filePath, Buffer.from(buffer));
-    return { saved: true, filePath: result.filePath };
+    try {
+      fs.writeFileSync(result.filePath, Buffer.from(buffer));
+      return { saved: true, filePath: result.filePath };
+    } catch (error) {
+      return { saved: false, error: (error as Error).message };
+    }
   },
 );
 
-// IPC: read audio file as ArrayBuffer
-ipcMain.handle('fs:readAudioFile', (_event, filePath: string) => {
+// IPC: read audio file as ArrayBuffer (only for paths granted by the open-file dialog)
+ipcMain.handle('fs:readAudioFile', (_event, filePath: string): Promise<ArrayBuffer> => {
   const resolved = path.resolve(filePath);
-  const data = fs.readFileSync(resolved);
-  return data.buffer;
+  if (!grantedPaths.has(resolved)) {
+    return Promise.reject(new Error('Access denied: path not granted by file dialog'));
+  }
+  try {
+    const data = fs.readFileSync(resolved);
+    return Promise.resolve(data.buffer);
+  } catch (error) {
+    return Promise.reject(
+      new Error(`Failed to read audio file: ${(error as Error).message}`, { cause: error }),
+    );
+  }
 });

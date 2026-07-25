@@ -916,7 +916,11 @@ export class AudioEngine {
       try {
         track.sourceNode.stop();
       } catch (error) {
-        console.warn('Error: ', error)
+        const isExpectedAlreadyStopped =
+          error instanceof DOMException && error.name === 'InvalidStateError';
+        if (!isExpectedAlreadyStopped) {
+          console.error('Unexpected error stopping source node: ', error);
+        }
       }
       track.sourceNode.disconnect();
       track.sourceNode = null;

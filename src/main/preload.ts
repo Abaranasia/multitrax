@@ -9,6 +9,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveRecording: (
     buffer: ArrayBuffer,
     suggestedName: string,
-  ): Promise<{ saved: boolean; filePath?: string }> =>
+  ): Promise<{ saved: boolean; filePath?: string; error?: string }> =>
     ipcRenderer.invoke('dialog:saveRecording', buffer, suggestedName),
 });

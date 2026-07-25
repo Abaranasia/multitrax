@@ -9,12 +9,7 @@ describe('EffectDialog', () => {
 
   it('renders the overlay/panel/title chrome using the effect prefix and title', () => {
     render(
-      <EffectDialog
-        effect="filter-settings"
-        title="◢ Filter"
-        onApply={vi.fn()}
-        onCancel={vi.fn()}
-      >
+      <EffectDialog effect="filter-settings" title="◢ Filter" onApply={vi.fn()} onCancel={vi.fn()}>
         <div>field</div>
       </EffectDialog>,
     );

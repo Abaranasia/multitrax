@@ -1,3 +1,6 @@
+import { EffectDialog } from '../../EffectDialog';
+import { SettingsField } from '../../SettingsField';
+
 import './DelaySettingsDialog.css';
 
 interface DelaySettingsDialogProps {
@@ -30,88 +33,63 @@ export const DelaySettingsDialog = ({
   onCancel,
 }: DelaySettingsDialogProps) => {
   return (
-    <div
-      className="delay-settings-overlay"
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={onCancel}
-    >
-      <div className="delay-settings-panel" onClick={(e) => e.stopPropagation()}>
-        <div className="delay-settings-title">·•● Delay</div>
-
-        <div className="delay-settings-field">
-          <span className="delay-settings-label">Time</span>
-          <input
-            type="range"
-            min={1}
-            max={2000}
-            step={10}
-            value={draftDelayTime}
-            onChange={(e) => setDraftDelayTime(Number(e.target.value))}
-          />
-          <span className="delay-settings-value">{draftDelayTime}ms</span>
-        </div>
-
-        <div className="delay-settings-field">
-          <span className="delay-settings-label">Feedback</span>
-          <input
-            type="range"
-            min={0}
-            max={90}
-            step={1}
-            value={draftDelayFeedback}
-            onChange={(e) => setDraftDelayFeedback(Number(e.target.value))}
-          />
-          <span className="delay-settings-value">{draftDelayFeedback}%</span>
-        </div>
-
-        <div className="delay-settings-field">
-          <span className="delay-settings-label">Tone</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={draftDelayDamping}
-            onChange={(e) => setDraftDelayDamping(Number(e.target.value))}
-          />
-          <span className="delay-settings-value">{draftDelayDamping}%</span>
-        </div>
-
-        <div className="delay-settings-field">
-          <span className="delay-settings-label">Output</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={draftDelayOutput}
-            onChange={(e) => setDraftDelayOutput(Number(e.target.value))}
-          />
-          <span className="delay-settings-value">{draftDelayOutput}%</span>
-        </div>
-
-        <div className="delay-settings-field">
-          <span className="delay-settings-label delay-settings-label--mix">Mix</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={draftDelayMix}
-            onChange={(e) => setDraftDelayMix(Number(e.target.value))}
-          />
-          <span className="delay-settings-value delay-settings-value--mix">{draftDelayMix}%</span>
-        </div>
-
-        <div className="delay-settings-actions">
-          <button className="delay-settings-apply" onClick={onApply}>
-            Apply
-          </button>
-          <button className="delay-settings-cancel" onClick={onCancel}>
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
+    <EffectDialog effect="delay-settings" title="·•● Delay" onApply={onApply} onCancel={onCancel}>
+      <SettingsField
+        kind="slider"
+        effect="delay-settings"
+        label="Time"
+        min={1}
+        max={2000}
+        step={10}
+        value={draftDelayTime}
+        onChange={setDraftDelayTime}
+        format={(v) => `${v}ms`}
+      />
+      <SettingsField
+        kind="slider"
+        effect="delay-settings"
+        label="Feedback"
+        min={0}
+        max={90}
+        step={1}
+        value={draftDelayFeedback}
+        onChange={setDraftDelayFeedback}
+        format={(v) => `${v}%`}
+      />
+      <SettingsField
+        kind="slider"
+        effect="delay-settings"
+        label="Tone"
+        min={0}
+        max={100}
+        step={1}
+        value={draftDelayDamping}
+        onChange={setDraftDelayDamping}
+        format={(v) => `${v}%`}
+      />
+      <SettingsField
+        kind="slider"
+        effect="delay-settings"
+        label="Output"
+        min={0}
+        max={100}
+        step={1}
+        value={draftDelayOutput}
+        onChange={setDraftDelayOutput}
+        format={(v) => `${v}%`}
+      />
+      <SettingsField
+        kind="slider"
+        effect="delay-settings"
+        label="Mix"
+        min={0}
+        max={100}
+        step={1}
+        value={draftDelayMix}
+        onChange={setDraftDelayMix}
+        format={(v) => `${v}%`}
+        mix
+      />
+    </EffectDialog>
   );
 };

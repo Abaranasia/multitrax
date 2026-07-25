@@ -334,18 +334,133 @@ Baseline before any Slice 4 change (re-verified, matches Slice 3's final state):
 
 ---
 
+---
+
+# Slice 5: AudioEngine clamp/wiring (PR 5)
+
+## Completed Tasks (Slice 5)
+- [x] 5.1 RED: `AudioEngine.test.ts` pins one clamp boundary pre-extraction
+- [x] 5.2 GREEN: add `clamp(v,min,max)`; replace 24 inline `Math.max/min` sites
+- [x] 5.3 GREEN: add `_createDryWetOutput()`; wire into filter/delay/reverb/distortion builders
+- [x] 5.4 Parity gate: full suite green — same clamped values/wiring
+
+## Measured Call-Site Count (correction to both estimates)
+
+Neither prompted estimate matched the real file. Verified via `rg 'Math\.max\(.*Math\.min\('` (count mode) against `src/renderer/audio/AudioEngine.ts` **before** any change:
+
+- **Actual total: 24 occurrences file-wide** — matches design.md's stated "24 call sites" and tasks.md task 5.2's literal count, and matches the original exploration.md estimate.
+- **Not "~30"**: the batch prompt's "~30 inline ... per the tasks-phase's re-measurement" does not match any real count in this file; grep confirms exactly 24, both before and there is no other Math.max/Math.min clamp pattern in the file.
+- **Not confined to the 4 setters (`494-625`)**: within that exact line range only **17** of the 24 sites exist (Filter 4, Distortion 4, Delay 5, Reverb 4). The remaining **7** are outside that range: `seek()` (2 sites, lines 380/427), `setVolume` (1, line 438), `setPan` (1, line 449), `setFadeDurations` (3, lines 487-489). Exploration.md's line-range attribution ("24 occurrences ... across the 4 setters (AudioEngine.ts:494-625)") was imprecise — it stated the correct total (24) but attributed all of them to the wrong location.
+- **Scope decision**: the batch instruction says "replace **every** inline `Math.max(min, Math.min(max, x))` call site with it, preserving each site's exact existing bounds" — this is unambiguous and unrestricted by line range, so all 24 sites (not just the 17 inside the 4 setters) were replaced. This also satisfies the spec's literal "24 call sites" requirement text in `design.md`, which is a whole-file count, not a per-method one.
+
+## Files Changed (Slice 5)
+
+| File | Action | What Was Done |
+|------|--------|----------------|
+| `src/renderer/audio/AudioEngine.ts` | Modified | Added module-level `const clamp = (v, min, max) => Math.max(min, Math.min(max, v))` directly below `DISTORTION_MAX_K`. Replaced all 24 inline `Math.max(min, Math.min(max, x))` call sites with `clamp(x, min, max)`, preserving each site's exact original bounds (see table below). Added `private _createDryWetOutput(): { dryGain, wetGain, outputGain }` — creates 3 `GainNode`s, wires `dryGain.connect(outputGain)` + `wetGain.connect(outputGain)`, and initialises `dryGain.gain.value=1`, `wetGain.gain.value=0`, `outputGain.gain.value=1`. Rewired all 4 `_create<Effect>Nodes()` builders (`_createFilterNodes`, `_createDistortionNodes`, `_createDelayNodes`, `_createReverbNodes`) to destructure `{ dryGain, wetGain, outputGain }` from `_createDryWetOutput()` instead of creating/wiring/initialising the triple inline; each builder keeps 100% of its own effect-specific middle-node creation (`biquadFilter`, `waveShaper`+`toneFilter`, `delayNode`+`feedbackGain`+`damping`, `preDelay`+`convolver`+`damping`) and its own `<lastMiddle>.connect(wetGain)` call, and removed the now-redundant explicit `outputGain.gain.value = X.outputLevel / 100` line in each builder (safe: every one of the 4 effects defaults `outputLevel` to `100`, so `100/100 === 1`, identical to the factory's `outputGain.gain.value = 1` default — verified this is a true no-op, not a behavior change). |
+| `src/__tests__/audio/AudioEngine.test.ts` | Modified | Added 11 new tests: 1 true-RED test for the new `_createDryWetOutput()` production symbol (fails against pre-refactor code — method does not exist), 2 wiring-triangulation tests (delay→reverb→panner cross-connections; a loop asserting all 4 effect inserts wire `dryGain`/`wetGain`→own `outputGain` via the shared factory), and 8 clamp-boundary approval tests pinning both the low and high bound of every one of the 24 sites (`setVolume`, `setPan`, `setFadeDurations`, `seek`, `setFilterSettings`, `setDistortionSettings`, `setDelaySettings`, `setReverbSettings` — each asserting the internal `track.*` field lands exactly on the documented min/max after an out-of-range input). |
+
+## Exact Bounds Preserved (all 24 sites, verified unchanged)
+
+| # | Site (method) | Field | Min | Max |
+|---|---|---|---|---|
+| 1 | `seek()` (seekFade branch) | `track.startOffset` | `0` | `track.buffer.duration` |
+| 2 | `seek()` (instant branch) | `track.startOffset` | `0` | `track.buffer.duration` |
+| 3 | `setVolume` | `track.volume` | `0` | `1` |
+| 4 | `setPan` | `track.pan` | `-1` | `1` |
+| 5 | `setFadeDurations` | `track.fadeInDuration` | `0` | `10` |
+| 6 | `setFadeDurations` | `track.fadeOutDuration` | `0` | `10` |
+| 7 | `setFadeDurations` | `track.seekFadeDuration` | `0` | `10` |
+| 8 | `setFilterSettings` | `filter.cutoff` | `FILTER_CUTOFF_MIN_HZ` (20) | `FILTER_CUTOFF_MAX_HZ` (20000) |
+| 9 | `setFilterSettings` | `filter.resonance` | `FILTER_RESONANCE_MIN` (0.1) | `FILTER_RESONANCE_MAX` (20) |
+| 10 | `setFilterSettings` | `filter.mix` | `0` | `100` |
+| 11 | `setFilterSettings` | `filter.outputLevel` | `0` | `100` |
+| 12 | `setDistortionSettings` | `distortion.drive` | `0` | `100` |
+| 13 | `setDistortionSettings` | `distortion.tone` | `0` | `100` |
+| 14 | `setDistortionSettings` | `distortion.mix` | `0` | `100` |
+| 15 | `setDistortionSettings` | `distortion.outputLevel` | `0` | `100` |
+| 16 | `setDelaySettings` | `delay.delayTimeMs` | `1` (feedback-loop floor, not 0) | `DELAY_TIME_MAX_MS` (2000) |
+| 17 | `setDelaySettings` | `delay.feedback` | `0` | `DELAY_FEEDBACK_MAX` (90) |
+| 18 | `setDelaySettings` | `delay.mix` | `0` | `100` |
+| 19 | `setDelaySettings` | `delay.dampingAmount` | `0` | `100` |
+| 20 | `setDelaySettings` | `delay.outputLevel` | `0` | `100` |
+| 21 | `setReverbSettings` | `reverb.mix` | `0` | `100` |
+| 22 | `setReverbSettings` | `reverb.preDelayMs` | `0` | `500` (not 2000 — distinct from delay's range) |
+| 23 | `setReverbSettings` | `reverb.dampingAmount` | `0` | `100` |
+| 24 | `setReverbSettings` | `reverb.outputLevel` | `0` | `100` |
+
+Every row above is verified by a passing boundary-pin test in `AudioEngine.test.ts` (both the low and the high bound are exercised per field, except rows 1-2 which share one `seek` test covering both `0` and `buffer.duration`).
+
+## Deviations from Design (Slice 5)
+
+1. **Clamp call-site count is 24 file-wide, not "the 4 setters" as exploration.md's line-range attribution implied.** See "Measured Call-Site Count" above. Resolved by following the batch prompt's literal, unrestricted instruction ("replace every inline call site") rather than exploration's imprecise line-range note.
+2. **Removed the per-builder explicit `outputGain.gain.value = X.outputLevel / 100` line.** Design's factory sketch says the factory "sets ... out=1" as the shared default; since all 4 `outputLevel` fields default to `100` (⇒ `100/100=1`), the explicit per-builder line became a literal no-op duplicate of the factory's own initialisation. Removed it as part of the extraction (not left as dead code) — verified via the existing + new tests that no builder's initial `outputGain.gain.value` changed (all still resolve to `1`).
+3. **RED test targets the new `_createDryWetOutput()` symbol directly, not a black-box behavior assertion.** Per strict-tdd.md's guidance ("if the production code already exists, write a test for the NEW behavior not yet implemented" / prefer genuine RED over approval-only), `_createDryWetOutput` is a brand-new symbol, so a direct test against it (`(engine as any)._createDryWetOutput()`) gives a real, guaranteed-failing RED (`TypeError: ... is not a function`) — unlike the `clamp()` extraction itself, which is a pure behavior-preserving rewrite of already-correct logic (no new behavior to RED against), handled instead via the Approval Testing pattern (write boundary-pinning tests first, confirm they pass against pre-refactor code as the safety net, then refactor, then confirm they still pass) — the same pattern already accepted for slices 1-4's structural migrations.
+
+## Issues Found (Slice 5)
+None. `pnpm typecheck`, `pnpm lint`, and `pnpm build:renderer` were clean on the first attempt. `pnpm format:check` still flags both touched files (`src/renderer/audio/AudioEngine.ts`, `src/__tests__/audio/AudioEngine.test.ts`) — verified via `git stash` + `pnpm exec prettier --check` on just those 2 files against the pre-slice-5 tree: **both were already flagged before any Slice 5 change** (pre-existing repo-wide drift, same category noted in every prior slice's Quality Gates section), so no fix was applied here to stay consistent with the established "don't touch pre-existing drift" convention.
+
+## Safety Net (Slice 5)
+Baseline before any Slice 5 change (re-verified, matches Slice 4's final state): `pnpm exec vitest run src/__tests__/audio/AudioEngine.test.ts` → **19/19 tests passing** (pre-existing `AudioEngine.test.ts` suite, before any new test was added).
+
+## TDD Cycle Evidence (Slice 5)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|-------------|-----|-------|-------------|----------|
+| 5.1 (`_createDryWetOutput` RED) | `src/__tests__/audio/AudioEngine.test.ts` | Unit | ✅ 19/19 (pre-change) | ✅ Written first — `(engine as any)._createDryWetOutput()`; confirmed failure: `TypeError: engine._createDryWetOutput is not a function` (ran full file: 1 failed, 29 passed — the other 10 new boundary/wiring tests already passed against the still-unrefactored engine, proving they are real approval-test baselines, not tautologies) | ✅ Passed — implemented `_createDryWetOutput()`; re-ran, 30/30 passing | ✅ 2 cases — direct factory-return assertions (dry=1/wet=0/out=1, dry→out/wet→out wiring) plus a second test looping over all 4 different effect inserts (`filter`, `distortion`, `delay`, `reverb` — 4 distinct builder shapes) asserting each one's own `dryGain`/`wetGain` wire into its own `outputGain`, proving the shared factory's wiring isn't hardcoded to one effect | ✅ Clean — one shared gain-triple constructor replaces 4x duplicated create+wire+init boilerplate |
+| 5.2 (clamp helper + 24 sites, approval-tested) | `src/__tests__/audio/AudioEngine.test.ts` (8 new boundary tests + 2 enhanced existing tests) | Unit | ✅ 19/19 (pre-change) | ➖ N/A (Approval Testing pattern, per strict-tdd.md's dedicated section for refactoring existing code) — wrote all 8 boundary-pin tests **before** touching `clamp`/the 24 sites; ran them against the pre-refactor `Math.max(min, Math.min(max,x))` code first: all 8 passed, proving they pin genuinely pre-existing (not newly-invented) behavior | ✅ Passed — added `clamp()` and replaced all 24 sites; re-ran full file, 30/30 still passing, 0 regressions, identical clamped values at every boundary | ✅ 16 cases — every one of the 24 sites has its low-bound AND high-bound exercised (2 sites share the single `seek` test's low/high; the rest are 1 test per setter covering 4-5 fields × 2 bounds each) — see the 24-row bounds table above for the full mapping | ✅ Clean — `clamp(v,min,max)` is a 1-line pure function; 24 duplicated `Math.max(min, Math.min(max, x))` expressions collapsed to 24 `clamp(x, min, max)` calls with zero bound changes |
+| 5.3 (rewire 4 builders) | Existing wiring tests (`addTrack wires filter->distortion->delay`, new `addTrack wires delay->reverb->panner`) + full `AudioEngine.test.ts` | Unit/Integration | ✅ (after 5.1/5.2) | ➖ N/A — structural migration (same category as prior slices' N/A rows): rewiring `_createFilterNodes`/`_createDistortionNodes`/`_createDelayNodes`/`_createReverbNodes` to call the now-implemented factory is a like-for-like substitution of already-tested wiring, not new behavior | ✅ Passed — after rewiring all 4 builders: full `AudioEngine.test.ts` 30/30, `pnpm typecheck` clean, `pnpm lint` clean, `pnpm build:renderer` succeeds | ➖ N/A — structural only, no new logic per builder | ✅ Clean — removed the duplicated inline `dryGain.connect(outputGain); wetGain.connect(outputGain);` + `dryGain.gain.value=1; wetGain.gain.value=0;` (+ redundant `outputGain.gain.value=...` no-op) from all 4 builders |
+| 5.4 (parity gate) | Full suite (`pnpm exec vitest run`) | Integration | ✅ (all of the above) | N/A — parity gate | ✅ **19 test files, 129 tests passing** (118 pre-slice-5 baseline + 11 new tests this slice, 0 regressions) | N/A | N/A |
+
+### Test Summary (Slice 5)
+- **Total tests written**: 11 new test cases (1 true-RED for `_createDryWetOutput`, 2 wiring-triangulation, 8 clamp-boundary approval tests covering all 24 sites at both bounds)
+- **Total tests passing**: 129/129 (full suite: 118 pre-existing + 11 new), 0 regressions
+- **Layers used**: Unit only (all 11 new tests are in `AudioEngine.test.ts`'s existing unit-test style against a `FakeAudioContext`; no UI/integration layer touched by this slice)
+- **Approval tests** (refactoring): 8 (the clamp-boundary tests — written and confirmed green against the pre-refactor `Math.max`/`Math.min` code first, then re-confirmed green after the `clamp()` extraction)
+- **Pure functions created**: 1 (`clamp(v, min, max)` — deterministic, no side effects, module-level)
+
+## Work Unit Evidence (Slice 5 / PR 5)
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `pnpm exec vitest run src/__tests__/audio/AudioEngine.test.ts` → **1 test file passed, 30 tests passed** (19 pre-existing + 11 new) |
+| Runtime harness command/scenario and exact result | N/A — no UI/runtime path touched (per tasks.md's own Suggested Work Units table: "N/A — no UI change" for this unit). `pnpm build:renderer` was additionally run as a sanity check (succeeds, 52 modules transformed) even though not required by the harness column, since this is DSP/audio-graph code |
+| Rollback boundary | `git revert` the Slice 5 commit(s) — fully isolated to `src/renderer/audio/AudioEngine.ts` and `src/__tests__/audio/AudioEngine.test.ts`; zero other production or test files touched |
+
+## Quality Gates (Slice 5, Full Repo)
+- `pnpm exec vitest run`: **19 test files passed (19) / 129 tests passed (129)** — 0 failures (118 pre-existing + 11 new)
+- `pnpm typecheck`: clean (0 errors)
+- `pnpm lint`: clean (0 errors, 0 warnings)
+- `pnpm build:renderer`: succeeds (52 modules transformed)
+- `pnpm format:check`: 79 files flagged repo-wide (pre-existing drift, down from 91 in Slice 4 due to intervening slices' own prettier fixes); both Slice 5's touched files (`AudioEngine.ts`, `AudioEngine.test.ts`) are among the flagged 79, but verified via `git stash` that **both were already flagged before any Slice 5 edit** — not introduced by this batch, consistent with every prior slice's "don't touch pre-existing drift" convention
+
+## Diff Size (Slice 5, vs. 400-line review budget)
+
+| File | `git diff --stat` |
+|---|---|
+| `src/renderer/audio/AudioEngine.ts` | 135 lines changed (69 insertions, 66 deletions net of the `+135/-66`... see exact stat below) |
+| `src/__tests__/audio/AudioEngine.test.ts` | 167 lines changed (all insertions) |
+
+Exact `git diff --stat`: `2 files changed, 236 insertions(+), 66 deletions(-)` → **302 changed lines total.**
+
+**Finding for the orchestrator**: both prompted forecasts undercounted or overcounted in different directions — tasks.md's own forecast (150-220, "Low" risk, "clamp swap is 1-line-for-1-line") was closer than the batch prompt's implied re-measurement ("~30" sites), but still low: actual measured total is **302 changed lines**, driven mostly by the 167 lines of NEW test code (11 new boundary/wiring/RED tests), not the production file (135 lines, and even that count is inflated by comment-line churn documenting the new shared factory, not logic growth — the net logic diff is closer to "24 one-line clamp swaps + 1 new 15-line private method + 4 builders losing ~6 lines of now-redundant inline gain setup each"). **302 is well under the 400-line budget** — no `size:exception` needed, matches the design/tasks.md prediction of "smallest slice so far."
+
+**Judgment on mechanical vs. logic-touching (per the batch's explicit request)**: this is the **most mechanical slice yet**, more so than slices 2/3. Every one of the 24 clamp replacements is a byte-for-byte behavior-preserving substitution (`Math.max(min, Math.min(max, x))` → `clamp(x, min, max)`, same `min`/`max` operands in the same order, verified in the 24-row bounds table above). The `_createDryWetOutput()` extraction is also purely structural: the exact same 2 `.connect()` calls and 3 gain-value assignments that used to appear inline 4× now appear once in a shared private method; no builder's own middle-node creation, connection order, or default value changed. Unlike slice 4 (which restructured *how* state was managed internally), this slice does not change *any* runtime decision path — it only changes *where* the same expressions are written. I'd classify this as pure mechanical deduplication, not logic-touching, despite operating on live DSP/audio-graph code — the 129/129 full-suite pass with 0 assertion changes to any pre-existing test, plus the 24-row exact-bounds table, is the parity evidence for that claim.
+
+---
+
 ## Remaining Tasks
 - [x] Slice 2: shared CSS (PR 2) — complete
 - [x] Slice 3: shared JSX (PR 3) — complete
 - [x] Slice 4: generic hook (PR 4) — complete
-- [ ] Slice 5: AudioEngine clamp/wiring (PR 5) — not started
+- [x] Slice 5: AudioEngine clamp/wiring (PR 5) — complete
 - [ ] Slice 6: setter consolidation (PR 6) — not started
 
 ## Workload / PR Boundary
 - Mode: chained/stacked PR slice (`stacked-to-main`, per tasks.md forecast)
-- Current work unit: Slice 4 — generic hook (PR 4), split into commits 4a/4b on this branch
-- Boundary: starts from 5 hooks (each with its own `useState`-per-field + `useCallback`-per-action implementation); ends with 1 shared generic core (`useSettingsDialog.ts`) + all 5 hooks rewritten as thin wrappers preserving their exact flat `draftX/setDraftX` return shape and setter-argument order, full suite green (118/118), zero regressions, zero changes to `TrackPlayer.tsx` or the barrel
-- Estimated review budget impact: **512 changed lines total, over the 400-line budget by ~28%, but splits cleanly into 4a (257) and 4b (255), both within budget — no `size:exception` needed.** Flagged the mechanical-vs-logic-touching judgment explicitly per the batch instruction: this slice is closer to real hook-logic refactoring than slices 2/3, even though behavior is fully preserved
+- Current work unit: Slice 5 — AudioEngine clamp/wiring (PR 5), single commit on this branch (no sub-split needed, well under budget)
+- Boundary: starts from 24 inline `Math.max(min, Math.min(max,x))` clamp expressions + 4 near-identical dry/wet/output gain-triple constructions duplicated across `_createFilterNodes`/`_createDistortionNodes`/`_createDelayNodes`/`_createReverbNodes`; ends with 1 shared `clamp()` helper + 1 shared `_createDryWetOutput()` factory, all 24 sites and all 4 builders using them, full suite green (129/129), zero regressions, zero bound/wiring changes at any of the 24 sites or 4 builders
+- Estimated review budget impact: **302 changed lines, well under the 400-line budget — no `size:exception` needed.** Both the tasks.md forecast (150-220) and the batch prompt's implied re-measurement ("~30" sites, "high 200s conservative") were off in different directions from the actual 24-site/302-line measurement, corrected here with the full bounds table as evidence
 
 ## Status
-4/4 slice-1 tasks complete (1.1–1.4). 5/5 slice-2 tasks complete (2.1–2.5). 6/6 slice-3 tasks complete (3.1–3.6). 6/6 slice-4 tasks complete (4.1–4.6). Slices 1–4 done. Slices 5–6 remain for future apply batches (out of this batch's assigned scope, per the explicit "Slice 4 ONLY" instruction).
+4/4 slice-1 tasks complete (1.1–1.4). 5/5 slice-2 tasks complete (2.1–2.5). 6/6 slice-3 tasks complete (3.1–3.6). 6/6 slice-4 tasks complete (4.1–4.6). 4/4 slice-5 tasks complete (5.1–5.4). Slices 1–5 done. Slice 6 remains for a future apply batch (out of this batch's assigned scope, per the explicit "Slice 5 ONLY" instruction).

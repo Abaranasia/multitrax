@@ -107,3 +107,4 @@ Main/preload output: `dist/main/`.
 - When modifying `seek()`: check both the instant-seek path AND the seek-fade timeout callback. Both need to route to `_playLoopWithFade` when `track.loop && (track.fadeIn || track.fadeOut)`.
 - The `Canvas` polling interval (100 ms) means `currentTime` lags up to 100 ms. Do not rely on exact timing from React state — query `engine.getCurrentTime` directly when precision matters.
 - `scripts/patch-gsettings.mjs` is Linux-only boilerplate; do not remove it — Electron crashes on GNOME 46+ without it.
+- Do not add an unmount cleanup that calls `engine.close()` in `AudioProvider` (`AudioContext.tsx`). `AudioProvider` wraps the whole app and lives for the process lifetime, but `main.tsx` renders it inside `React.StrictMode`, which dev-double-invokes effect cleanups on mount. Since a Web Audio `AudioContext` cannot be reopened once closed, that spurious cleanup permanently kills audio in dev on the first render.

@@ -1,0 +1,106 @@
+/* Distortion settings overlay */
+.distortion-settings-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 12, 30, 0.93);
+  backdrop-filter: blur(2px);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  cursor: default;
+}
+
+.distortion-settings-panel {
+  width: calc(100% - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.distortion-settings-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #c0c0d0;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.distortion-settings-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.distortion-settings-label {
+  font-size: 11px;
+  color: #888;
+  width: 64px;
+  flex-shrink: 0;
+}
+.distortion-settings-field input[type='range'] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #1a3a70;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.distortion-settings-field input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+}
+.distortion-settings-value {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: #a0a0b8;
+  width: 40px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Mix is the master control — it's what actually switches the effect on or
+   off, unlike the other fields which just shape an already-active effect. */
+.distortion-settings-label--mix,
+.distortion-settings-value--mix {
+  color: #f97316;
+}
+
+.distortion-settings-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.distortion-settings-apply,
+.distortion-settings-cancel {
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.distortion-settings-apply {
+  background: #1e3a8a;
+  color: #e0e0e0;
+}
+.distortion-settings-apply:hover {
+  background: #1d4ed8;
+}
+.distortion-settings-cancel {
+  background: #1a2a4a;
+  color: #888;
+}
+.distortion-settings-cancel:hover {
+  background: #243555;
+  color: #bbb;
+}

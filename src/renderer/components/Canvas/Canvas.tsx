@@ -1,4 +1,3 @@
-import React from 'react';
 import { useCanvas } from './useCanvas';
 
 import './Canvas.css';
@@ -8,8 +7,20 @@ import { RecorderBar } from '../Recorder/RecorderBar';
 export const Canvas = () => {
   const { tracks, onDragOver, onDrop, onOpenFiles, stopAll, playAll } = useCanvas();
 
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    void onDragOver(event);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    void onDrop(event);
+  };
+
+  const handleOpenFiles = () => {
+    void onOpenFiles();
+  };
+
   return (
-    <div className="canvas" onDragOver={onDragOver} onDrop={onDrop}>
+    <div className="canvas" onDragOver={handleDragOver} onDrop={handleDrop}>
       {tracks.length === 0 && (
         <div className="canvas-empty">
           <div className="canvas-empty-icon">🎵</div>
@@ -18,7 +29,7 @@ export const Canvas = () => {
         </div>
       )}
 
-      {tracks.map(t => (
+      {tracks.map((t) => (
         <TrackPlayer key={t.state.id} state={t.state} x={t.x} y={t.y} />
       ))}
 
@@ -27,7 +38,7 @@ export const Canvas = () => {
           className="btn-play-all"
           onClick={playAll}
           title="Play all tracks"
-          disabled={tracks.length === 0 || tracks.every(t => t.state.playing)}
+          disabled={tracks.length === 0 || tracks.every((t) => t.state.playing)}
         >
           ▶ Play All
         </button>
@@ -36,12 +47,12 @@ export const Canvas = () => {
           className="btn-stop-all"
           onClick={stopAll}
           title="Stop all tracks"
-          disabled={!tracks.some(t => t.state.playing)}
+          disabled={!tracks.some((t) => t.state.playing)}
         >
           ⏹ Stop All
         </button>
 
-        <button className="btn-open" onClick={onOpenFiles} title="Open audio files">
+        <button className="btn-open" onClick={handleOpenFiles} title="Open audio files">
           + Open Files
         </button>
       </div>

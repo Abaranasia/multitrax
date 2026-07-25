@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { FilterType, TrackState } from '../../domain/TrackState';
-import { useAudio } from '../../context/AudioContext';
+import { useAudio } from '../../context/useAudio';
 
 /** Owns the open/closed state and draft values for a track's Filter settings dialog. */
 export const useFilterSettingsDialog = (state: TrackState) => {
@@ -20,7 +20,13 @@ export const useFilterSettingsDialog = (state: TrackState) => {
     setDraftMix(state.filterMix);
     setDraftOutput(state.filterOutput);
     setIsOpen(true);
-  }, [state.filterType, state.filterCutoff, state.filterResonance, state.filterMix, state.filterOutput]);
+  }, [
+    state.filterType,
+    state.filterCutoff,
+    state.filterResonance,
+    state.filterMix,
+    state.filterOutput,
+  ]);
 
   const close = useCallback(() => setIsOpen(false), []);
 

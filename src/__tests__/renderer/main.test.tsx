@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unused-vars */
 import { describe, it, expect, vi } from 'vitest';
 
 document.body.innerHTML = '<div id="root"></div>';
@@ -5,7 +6,9 @@ document.body.innerHTML = '<div id="root"></div>';
 vi.mock('react-dom/client', () => {
   return {
     createRoot: (_el: HTMLElement) => ({
-      render: () => { (global as any).__TEST_RENDER_CALLED = true; },
+      render: () => {
+        (global as any).__TEST_RENDER_CALLED = true;
+      },
     }),
   };
 });

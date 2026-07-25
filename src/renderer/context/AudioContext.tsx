@@ -1,77 +1,14 @@
-import React, { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { AudioEngine } from '../audio/AudioEngine';
 import { FilterType, ReverbRoom, TrackState } from '../domain/TrackState';
-
-interface TrackEntry {
-  state: TrackState;
-  filePath: string;
-  // position of the draggable card on the canvas
-  x: number;
-  y: number;
-}
-
-interface AudioContextValue {
-  engine: AudioEngine;
-  tracks: TrackEntry[];
-  addTracks: (files: { path: string; name: string; buffer: ArrayBuffer }[]) => Promise<void>;
-  duplicateTrack: (id: string) => void;
-  removeTrack: (id: string) => void;
-  play: (id: string) => void;
-  pause: (id: string) => void;
-  stop: (id: string) => void;
-  stopAll: () => void;
-  playAll: () => void;
-  seek: (id: string, seconds: number) => void;
-  setVolume: (id: string, value: number) => void;
-  setPan: (id: string, value: number) => void;
-  setLoop: (id: string, loop: boolean) => void;
-  setFadeIn: (id: string, enabled: boolean) => void;
-  setFadeOut: (id: string, enabled: boolean) => void;
-  setSeekFade: (id: string, enabled: boolean) => void;
-  setFadeDurations: (id: string, fadeIn: number, fadeOut: number, seekFade: number) => void;
-  setFilterSettings: (
-    id: string,
-    type: FilterType,
-    cutoff: number,
-    resonance: number,
-    mix: number,
-    output: number,
-  ) => void;
-  setDelaySettings: (
-    id: string,
-    delayTime: number,
-    feedback: number,
-    mix: number,
-    damping: number,
-    output: number,
-  ) => void;
-  setReverbSettings: (
-    id: string,
-    room: ReverbRoom,
-    mix: number,
-    preDelay: number,
-    damping: number,
-    output: number,
-  ) => void;
-  updatePosition: (id: string, x: number, y: number) => void;
-  tickCurrentTimes: () => void;
-}
-
-const Ctx = createContext<AudioContextValue | null>(null);
+import { Ctx, TrackEntry } from './audioContextInstance';
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Lazy null-checked init prevents double AudioContext creation in StrictMode.
-  const engineRef = useRef<AudioEngine | null>(null);
-  if (!engineRef.current) engineRef.current = new AudioEngine();
-  const engine = engineRef.current;
-
-  // Close the AudioContext when the provider unmounts to release OS audio streams.
-  useEffect(() => {
-    return () => {
-      engineRef.current?.close();
-      engineRef.current = null;
-    };
-  }, []);
+  // Initialize the engine once per provider mount, without touching refs during render.
+  // AudioProvider wraps the whole app and lives for the process lifetime, so there is
+  // no real remount case to clean up after — closing on unmount only fired spuriously
+  // under StrictMode's dev-only double-invoke, permanently killing the AudioContext.
+  const [engine] = useState<AudioEngine>(() => new AudioEngine());
 
   const [tracks, setTracks] = useState<TrackEntry[]>([]);
   const nextPos = useRef({ x: 20, y: 20 });
@@ -89,9 +26,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const waveform = Array.from({ length: 48 }, (_, index) => {
           const sliceStart = (index / 48) * (audioBuffer.length ?? 0);
           const sliceEnd = ((index + 1) / 48) * (audioBuffer.length ?? 0);
-          const channelData = typeof audioBuffer.getChannelData === 'function'
-            ? audioBuffer.getChannelData(0)
-            : null;
+          const channelData =
+            typeof audioBuffer.getChannelData === 'function' ? audioBuffer.getChannelData(0) : null;
           let peak = 0;
           for (let i = sliceStart; i < sliceEnd; i += 1) {
             const value = channelData ? Math.abs(channelData[Math.floor(i)] ?? 0) : 0;
@@ -130,6 +66,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           reverbPreDelay: 20,
           reverbDamping: 50,
           reverbOutput: 100,
+          distortionDrive: 0,
+          distortionTone: 100,
+          distortionMix: 0,
+          distortionOutput: 100,
           waveform,
         };
 
@@ -146,14 +86,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         };
       }
 
-      setTracks(prev => [...prev, ...newEntries]);
+      setTracks((prev) => [...prev, ...newEntries]);
     },
     [engine],
   );
 
   const duplicateTrack = useCallback(
     (id: string) => {
-      const source = tracks.find(t => t.state.id === id);
+      const source = tracks.find((t) => t.state.id === id);
       const buffer = engine.getBuffer(id);
       if (!source || !buffer) return;
 
@@ -183,6 +123,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         source.state.reverbDamping,
         source.state.reverbOutput,
       );
+      engine.setDistortionSettings(
+        newId,
+        source.state.distortionDrive,
+        source.state.distortionTone,
+        source.state.distortionMix,
+        source.state.distortionOutput,
+      );
       engine.setVolume(newId, source.state.volume);
       engine.setPan(newId, source.state.pan);
       engine.setLoop(newId, source.state.loop);
@@ -200,7 +147,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         y: source.y + 20,
       };
 
-      setTracks(prev => [...prev, newEntry]);
+      setTracks((prev) => [...prev, newEntry]);
     },
     [engine, tracks],
   );
@@ -208,7 +155,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const removeTrack = useCallback(
     (id: string) => {
       engine.removeTrack(id);
-      setTracks(prev => prev.filter(t => t.state.id !== id));
+      setTracks((prev) => prev.filter((t) => t.state.id !== id));
     },
     [engine],
   );
@@ -216,8 +163,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const play = useCallback(
     (id: string) => {
       engine.play(id);
-      setTracks(prev =>
-        prev.map(t => (t.state.id === id ? { ...t, state: { ...t.state, playing: true } } : t)),
+      setTracks((prev) =>
+        prev.map((t) => (t.state.id === id ? { ...t, state: { ...t.state, playing: true } } : t)),
       );
     },
     [engine],
@@ -226,8 +173,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const pause = useCallback(
     (id: string) => {
       engine.pause(id);
-      setTracks(prev =>
-        prev.map(t => (t.state.id === id ? { ...t, state: { ...t.state, playing: false } } : t)),
+      setTracks((prev) =>
+        prev.map((t) => (t.state.id === id ? { ...t, state: { ...t.state, playing: false } } : t)),
       );
     },
     [engine],
@@ -236,11 +183,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const stop = useCallback(
     (id: string) => {
       engine.stop(id);
-      setTracks(prev =>
-        prev.map(t =>
-          t.state.id === id
-            ? { ...t, state: { ...t.state, playing: false, currentTime: 0 } }
-            : t,
+      setTracks((prev) =>
+        prev.map((t) =>
+          t.state.id === id ? { ...t, state: { ...t.state, playing: false, currentTime: 0 } } : t,
         ),
       );
     },
@@ -249,30 +194,31 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const stopAll = useCallback(() => {
     engine.stopAll();
-    setTracks(prev =>
-      prev.map(t => ({ ...t, state: { ...t.state, playing: false, currentTime: 0 } })),
+    setTracks((prev) =>
+      prev.map((t) => ({ ...t, state: { ...t.state, playing: false, currentTime: 0 } })),
     );
   }, [engine]);
 
   const playAll = useCallback(() => {
     engine.playAll();
-    setTracks(prev =>
-      prev.map(t => ({ ...t, state: { ...t.state, playing: true } })),
-    );
+    setTracks((prev) => prev.map((t) => ({ ...t, state: { ...t.state, playing: true } })));
   }, [engine]);
 
   const seek = useCallback(
     (id: string, seconds: number) => {
       engine.seek(id, seconds);
-      setTracks(prev =>
-        prev.map(t => {
+      setTracks((prev) =>
+        prev.map((t) => {
           if (t.state.id !== id) return t;
           // During seek-fade the audio is still playing from the old position;
           // let tickCurrentTimes update currentTime naturally.
           if (t.state.seekFade && t.state.playing) {
             return { ...t, state: { ...t.state, playing: engine.isPlaying(id) } };
           }
-          return { ...t, state: { ...t.state, currentTime: seconds, playing: engine.isPlaying(id) } };
+          return {
+            ...t,
+            state: { ...t.state, currentTime: seconds, playing: engine.isPlaying(id) },
+          };
         }),
       );
     },
@@ -282,8 +228,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setVolume = useCallback(
     (id: string, value: number) => {
       engine.setVolume(id, value);
-      setTracks(prev =>
-        prev.map(t => (t.state.id === id ? { ...t, state: { ...t.state, volume: value } } : t)),
+      setTracks((prev) =>
+        prev.map((t) => (t.state.id === id ? { ...t, state: { ...t.state, volume: value } } : t)),
       );
     },
     [engine],
@@ -292,8 +238,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setPan = useCallback(
     (id: string, value: number) => {
       engine.setPan(id, value);
-      setTracks(prev =>
-        prev.map(t => (t.state.id === id ? { ...t, state: { ...t.state, pan: value } } : t)),
+      setTracks((prev) =>
+        prev.map((t) => (t.state.id === id ? { ...t, state: { ...t.state, pan: value } } : t)),
       );
     },
     [engine],
@@ -302,8 +248,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setLoop = useCallback(
     (id: string, loop: boolean) => {
       engine.setLoop(id, loop);
-      setTracks(prev =>
-        prev.map(t => (t.state.id === id ? { ...t, state: { ...t.state, loop } } : t)),
+      setTracks((prev) =>
+        prev.map((t) => (t.state.id === id ? { ...t, state: { ...t.state, loop } } : t)),
       );
     },
     [engine],
@@ -312,10 +258,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setFadeIn = useCallback(
     (id: string, enabled: boolean) => {
       engine.setFadeIn(id, enabled);
-      setTracks(prev =>
-        prev.map(t =>
-          t.state.id === id ? { ...t, state: { ...t.state, fadeIn: enabled } } : t,
-        ),
+      setTracks((prev) =>
+        prev.map((t) => (t.state.id === id ? { ...t, state: { ...t.state, fadeIn: enabled } } : t)),
       );
     },
     [engine],
@@ -324,8 +268,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setFadeOut = useCallback(
     (id: string, enabled: boolean) => {
       engine.setFadeOut(id, enabled);
-      setTracks(prev =>
-        prev.map(t =>
+      setTracks((prev) =>
+        prev.map((t) =>
           t.state.id === id ? { ...t, state: { ...t.state, fadeOut: enabled } } : t,
         ),
       );
@@ -336,8 +280,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setSeekFade = useCallback(
     (id: string, enabled: boolean) => {
       engine.setSeekFade(id, enabled);
-      setTracks(prev =>
-        prev.map(t =>
+      setTracks((prev) =>
+        prev.map((t) =>
           t.state.id === id ? { ...t, state: { ...t.state, seekFade: enabled } } : t,
         ),
       );
@@ -348,8 +292,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setFadeDurations = useCallback(
     (id: string, fadeInDuration: number, fadeOutDuration: number, seekFadeDuration: number) => {
       engine.setFadeDurations(id, fadeInDuration, fadeOutDuration, seekFadeDuration);
-      setTracks(prev =>
-        prev.map(t =>
+      setTracks((prev) =>
+        prev.map((t) =>
           t.state.id === id
             ? { ...t, state: { ...t.state, fadeInDuration, fadeOutDuration, seekFadeDuration } }
             : t,
@@ -360,10 +304,17 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const setFilterSettings = useCallback(
-    (id: string, type: FilterType, cutoff: number, resonance: number, mix: number, output: number) => {
+    (
+      id: string,
+      type: FilterType,
+      cutoff: number,
+      resonance: number,
+      mix: number,
+      output: number,
+    ) => {
       engine.setFilterSettings(id, type, cutoff, resonance, mix, output);
-      setTracks(prev =>
-        prev.map(t =>
+      setTracks((prev) =>
+        prev.map((t) =>
           t.state.id === id
             ? {
                 ...t,
@@ -384,10 +335,17 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const setDelaySettings = useCallback(
-    (id: string, delayTime: number, feedback: number, mix: number, damping: number, output: number) => {
+    (
+      id: string,
+      delayTime: number,
+      feedback: number,
+      mix: number,
+      damping: number,
+      output: number,
+    ) => {
       engine.setDelaySettings(id, delayTime, feedback, mix, damping, output);
-      setTracks(prev =>
-        prev.map(t =>
+      setTracks((prev) =>
+        prev.map((t) =>
           t.state.id === id
             ? {
                 ...t,
@@ -408,10 +366,17 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const setReverbSettings = useCallback(
-    (id: string, room: ReverbRoom, mix: number, preDelay: number, damping: number, output: number) => {
+    (
+      id: string,
+      room: ReverbRoom,
+      mix: number,
+      preDelay: number,
+      damping: number,
+      output: number,
+    ) => {
       engine.setReverbSettings(id, room, mix, preDelay, damping, output);
-      setTracks(prev =>
-        prev.map(t =>
+      setTracks((prev) =>
+        prev.map((t) =>
           t.state.id === id
             ? {
                 ...t,
@@ -431,14 +396,37 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [engine],
   );
 
+  const setDistortionSettings = useCallback(
+    (id: string, drive: number, tone: number, mix: number, output: number) => {
+      engine.setDistortionSettings(id, drive, tone, mix, output);
+      setTracks((prev) =>
+        prev.map((t) =>
+          t.state.id === id
+            ? {
+                ...t,
+                state: {
+                  ...t.state,
+                  distortionDrive: drive,
+                  distortionTone: tone,
+                  distortionMix: mix,
+                  distortionOutput: output,
+                },
+              }
+            : t,
+        ),
+      );
+    },
+    [engine],
+  );
+
   const updatePosition = useCallback((id: string, x: number, y: number) => {
-    setTracks(prev => prev.map(t => (t.state.id === id ? { ...t, x, y } : t)));
+    setTracks((prev) => prev.map((t) => (t.state.id === id ? { ...t, x, y } : t)));
   }, []);
 
   // Called by animation frame to sync currentTime
   const tickCurrentTimes = useCallback(() => {
-    setTracks(prev =>
-      prev.map(t => ({
+    setTracks((prev) =>
+      prev.map((t) => ({
         ...t,
         state: {
           ...t.state,
@@ -473,6 +461,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setFilterSettings,
         setDelaySettings,
         setReverbSettings,
+        setDistortionSettings,
         updatePosition,
         tickCurrentTimes,
       }}
@@ -480,10 +469,4 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {children}
     </Ctx.Provider>
   );
-};
-
-export const useAudio = (): AudioContextValue => {
-  const ctx = useContext(Ctx);
-  if (!ctx) throw new Error('useAudio must be used inside AudioProvider');
-  return ctx;
 };

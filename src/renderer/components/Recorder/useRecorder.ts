@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAudio } from '../../context/AudioContext';
+import { useAudio } from '../../context/useAudio';
 import { encodeWav } from '../../utils/encodeWav';
 import { formatTime } from '../../utils/formatTime';
 
@@ -24,9 +24,10 @@ export const useRecorder = () => {
   const start = useCallback(() => {
     const stream = engine.getRecordingStream();
 
-    const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'].find(m =>
-      MediaRecorder.isTypeSupported(m),
-    ) ?? '';
+    const mime =
+      ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'].find((m) =>
+        MediaRecorder.isTypeSupported(m),
+      ) ?? '';
 
     const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : {});
     chunksRef.current = [];
@@ -56,7 +57,7 @@ export const useRecorder = () => {
 
     setElapsed(0);
     setStatus('recording');
-    timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000);
+    timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
   }, [engine]);
 
   const stop = useCallback(() => {

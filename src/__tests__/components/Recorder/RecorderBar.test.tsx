@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-this-alias, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unused-vars, @typescript-eslint/require-await */
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
@@ -5,7 +6,9 @@ import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-libra
 // Minimal mock AudioEngine used by AudioProvider
 const mockAudioEngine = {
   getRecordingStream: vi.fn(() => ({})),
-  audioContext: { decodeAudioData: vi.fn(async (b: ArrayBuffer) => ({ duration: 1 } as unknown as AudioBuffer)) },
+  audioContext: {
+    decodeAudioData: vi.fn(async (b: ArrayBuffer) => ({ duration: 1 }) as unknown as AudioBuffer),
+  },
   close: vi.fn(),
 };
 
@@ -35,7 +38,10 @@ describe('RecorderBar', () => {
       ondataavailable: ((e: any) => void) | null = null;
       onstop: (() => void) | null = null;
       state = 'inactive';
-      constructor(public stream: any, options?: any) {
+      constructor(
+        public stream: any,
+        options?: any,
+      ) {
         this.mimeType = options?.mimeType || '';
         lastRecorder = this;
       }
@@ -86,7 +92,9 @@ describe('RecorderBar', () => {
 
     expect(screen.getByText('Record')).toBeTruthy();
     expect(screen.getByText('--:--')).toBeTruthy();
-    expect(container.querySelector('.recorder-bar')?.className).toContain('recorder-bar--top-right');
+    expect(container.querySelector('.recorder-bar')?.className).toContain(
+      'recorder-bar--top-right',
+    );
   });
 
   it('starts recording, updates elapsed time and triggers save on stop', async () => {
@@ -112,7 +120,14 @@ describe('RecorderBar', () => {
     // simulate dataavailable event
     if (!lastRecorder) throw new Error('Recorder not created');
     if (lastRecorder.ondataavailable) {
-      lastRecorder.ondataavailable({ data: { size: 1, async arrayBuffer() { return new ArrayBuffer(4); } } });
+      lastRecorder.ondataavailable({
+        data: {
+          size: 1,
+          async arrayBuffer() {
+            return new ArrayBuffer(4);
+          },
+        },
+      });
     }
 
     // stop recording (should trigger onstop -> save flow)

@@ -5,6 +5,8 @@ import { useTrackPlayer } from './useTrackPlayer';
 import { TrackContextMenu } from './TrackContextMenu';
 import { FilterSettingsDialog } from './FilterSettingsDialog';
 import { useFilterSettingsDialog } from './useFilterSettingsDialog';
+import { DistortionSettingsDialog } from './DistortionSettingsDialog';
+import { useDistortionSettingsDialog } from './useDistortionSettingsDialog';
 
 import './TrackPlayer.css';
 
@@ -137,11 +139,12 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
     }
   }, [state.waveform, progress]);
   const filterDialog = useFilterSettingsDialog(state);
+  const distortionDialog = useDistortionSettingsDialog(state);
 
   return (
     <div
       ref={cardRef}
-      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}${delaySettingsOpen ? ' track-player--delay-open' : ''}${filterDialog.isOpen ? ' track-player--filter-open' : ''}`}
+      className={`track-player${reverbSettingsOpen ? ' track-player--reverb-open' : ''}${delaySettingsOpen ? ' track-player--delay-open' : ''}${filterDialog.isOpen ? ' track-player--filter-open' : ''}${distortionDialog.isOpen ? ' track-player--distortion-open' : ''}`}
       style={{ left: x, top: y }}
       onMouseDown={onMouseDown}
       onContextMenu={onContextMenu}
@@ -163,6 +166,15 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             title="Filter settings"
           >
             F
+          </button>
+
+          {/* Distortion settings */}
+          <button
+            className={`btn-distortion${state.distortionMix > 0 ? ' btn-distortion--active' : ''}`}
+            onClick={distortionDialog.open}
+            title="Waveshape settings"
+          >
+            W
           </button>
 
           {/* Delay settings */}
@@ -239,7 +251,11 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <button
               type="button"
               className={`loop-toggle toggle--fade-in${state.fadeIn ? ' loop-on' : ''}`}
-              title={state.fadeIn ? 'Disable fade in' : `Enable ${fmt(state.fadeInDuration)}s fade in on play`}
+              title={
+                state.fadeIn
+                  ? 'Disable fade in'
+                  : `Enable ${fmt(state.fadeInDuration)}s fade in on play`
+              }
               onClick={() => setFadeIn(state.id, !state.fadeIn)}
             >
               <span className="loop-label">I</span>
@@ -249,7 +265,11 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <button
               type="button"
               className={`loop-toggle toggle--fade-out${state.fadeOut ? ' loop-on' : ''}`}
-              title={state.fadeOut ? 'Disable fade out' : `Enable ${fmt(state.fadeOutDuration)}s fade out on stop/pause`}
+              title={
+                state.fadeOut
+                  ? 'Disable fade out'
+                  : `Enable ${fmt(state.fadeOutDuration)}s fade out on stop/pause`
+              }
               onClick={() => setFadeOut(state.id, !state.fadeOut)}
             >
               <span className="loop-label">O</span>
@@ -259,7 +279,11 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <button
               type="button"
               className={`loop-toggle toggle--seek-fade${state.seekFade ? ' loop-on' : ''}`}
-              title={state.seekFade ? 'Disable seek fade' : `Enable ${fmt(state.seekFadeDuration)}s fade out/in on seek`}
+              title={
+                state.seekFade
+                  ? 'Disable seek fade'
+                  : `Enable ${fmt(state.seekFadeDuration)}s fade out/in on seek`
+              }
               onClick={() => setSeekFade(state.id, !state.seekFade)}
             >
               <span className="loop-label">S</span>
@@ -285,7 +309,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             max={1}
             step={0.01}
             value={state.pan}
-            onChange={e => setPan(state.id, parseFloat(e.target.value))}
+            onChange={(e) => setPan(state.id, parseFloat(e.target.value))}
             onDoubleClick={() => setPan(state.id, 0)}
             title={`Pan: ${
               state.pan === 0
@@ -295,11 +319,12 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
                   : `${Math.round(state.pan * 100)}% Right`
             }`}
             style={{
-              background: state.pan === 0
-                ? '#0f3460'
-                : state.pan < 0
-                  ? `linear-gradient(90deg, #239989 0%, #abc5c2 ${Math.round((state.pan + 1) * 50)}%, #0f3460 ${Math.round((state.pan + 1) * 50)}%, #0f3460 100%)`
-                  : `linear-gradient(90deg, #0f3460 0%, #0f3460 ${Math.round(state.pan * 50 + 50)}%, #abc5c2 ${Math.round(state.pan * 50 + 50)}%, #239989 100%)`,
+              background:
+                state.pan === 0
+                  ? '#0f3460'
+                  : state.pan < 0
+                    ? `linear-gradient(90deg, #239989 0%, #abc5c2 ${Math.round((state.pan + 1) * 50)}%, #0f3460 ${Math.round((state.pan + 1) * 50)}%, #0f3460 100%)`
+                    : `linear-gradient(90deg, #0f3460 0%, #0f3460 ${Math.round(state.pan * 50 + 50)}%, #abc5c2 ${Math.round(state.pan * 50 + 50)}%, #239989 100%)`,
             }}
           />
           <span className="pan-label">R</span>
@@ -314,7 +339,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             max={1}
             step={0.01}
             value={state.volume}
-            onChange={e => setVolume(state.id, parseFloat(e.target.value))}
+            onChange={(e) => setVolume(state.id, parseFloat(e.target.value))}
             title={`Volume: ${Math.round(state.volume * 100)}%`}
             style={{
               background: `linear-gradient(90deg, #abc5c2 0%, #239989 ${Math.round(state.volume * 100)}%, #0f3460 ${Math.round(state.volume * 100)}%, #0f3460 100%)`,
@@ -328,21 +353,21 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
       {settingsOpen && (
         <div
           className="fade-settings-overlay"
-          onMouseDown={e => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={() => setSettingsOpen(false)}
         >
-          <div
-            className="fade-settings-panel"
-            onClick={e => e.stopPropagation()}
-          >
+          <div className="fade-settings-panel" onClick={(e) => e.stopPropagation()}>
             <div className="fade-settings-title">⚙ Fade Durations</div>
 
             <div className="fade-settings-field">
               <span className="fade-settings-label">Fade In</span>
               <input
-                type="range" min={0} max={10} step={0.5}
+                type="range"
+                min={0}
+                max={10}
+                step={0.5}
                 value={draftFadeIn}
-                onChange={e => setDraftFadeIn(Number(e.target.value))}
+                onChange={(e) => setDraftFadeIn(Number(e.target.value))}
               />
               <span className="fade-settings-value">{fmt(draftFadeIn)}s</span>
             </div>
@@ -350,9 +375,12 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <div className="fade-settings-field">
               <span className="fade-settings-label">Fade Out</span>
               <input
-                type="range" min={0} max={10} step={0.5}
+                type="range"
+                min={0}
+                max={10}
+                step={0.5}
                 value={draftFadeOut}
-                onChange={e => setDraftFadeOut(Number(e.target.value))}
+                onChange={(e) => setDraftFadeOut(Number(e.target.value))}
               />
               <span className="fade-settings-value">{fmt(draftFadeOut)}s</span>
             </div>
@@ -360,16 +388,23 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <div className="fade-settings-field">
               <span className="fade-settings-label">Seek Fade</span>
               <input
-                type="range" min={0} max={10} step={0.5}
+                type="range"
+                min={0}
+                max={10}
+                step={0.5}
                 value={draftSeekFade}
-                onChange={e => setDraftSeekFade(Number(e.target.value))}
+                onChange={(e) => setDraftSeekFade(Number(e.target.value))}
               />
               <span className="fade-settings-value">{fmt(draftSeekFade)}s</span>
             </div>
 
             <div className="fade-settings-actions">
-              <button className="fade-settings-apply" onClick={applySettings}>Apply</button>
-              <button className="fade-settings-cancel" onClick={() => setSettingsOpen(false)}>Cancel</button>
+              <button className="fade-settings-apply" onClick={applySettings}>
+                Apply
+              </button>
+              <button className="fade-settings-cancel" onClick={() => setSettingsOpen(false)}>
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -379,21 +414,21 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
       {delaySettingsOpen && (
         <div
           className="delay-settings-overlay"
-          onMouseDown={e => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={() => setDelaySettingsOpen(false)}
         >
-          <div
-            className="delay-settings-panel"
-            onClick={e => e.stopPropagation()}
-          >
+          <div className="delay-settings-panel" onClick={(e) => e.stopPropagation()}>
             <div className="delay-settings-title">·•● Delay</div>
 
             <div className="delay-settings-field">
               <span className="delay-settings-label">Time</span>
               <input
-                type="range" min={1} max={2000} step={10}
+                type="range"
+                min={1}
+                max={2000}
+                step={10}
                 value={draftDelayTime}
-                onChange={e => setDraftDelayTime(Number(e.target.value))}
+                onChange={(e) => setDraftDelayTime(Number(e.target.value))}
               />
               <span className="delay-settings-value">{draftDelayTime}ms</span>
             </div>
@@ -401,9 +436,12 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <div className="delay-settings-field">
               <span className="delay-settings-label">Feedback</span>
               <input
-                type="range" min={0} max={90} step={1}
+                type="range"
+                min={0}
+                max={90}
+                step={1}
                 value={draftDelayFeedback}
-                onChange={e => setDraftDelayFeedback(Number(e.target.value))}
+                onChange={(e) => setDraftDelayFeedback(Number(e.target.value))}
               />
               <span className="delay-settings-value">{draftDelayFeedback}%</span>
             </div>
@@ -411,9 +449,12 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <div className="delay-settings-field">
               <span className="delay-settings-label">Tone</span>
               <input
-                type="range" min={0} max={100} step={1}
+                type="range"
+                min={0}
+                max={100}
+                step={1}
                 value={draftDelayDamping}
-                onChange={e => setDraftDelayDamping(Number(e.target.value))}
+                onChange={(e) => setDraftDelayDamping(Number(e.target.value))}
               />
               <span className="delay-settings-value">{draftDelayDamping}%</span>
             </div>
@@ -421,9 +462,12 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <div className="delay-settings-field">
               <span className="delay-settings-label">Output</span>
               <input
-                type="range" min={0} max={100} step={1}
+                type="range"
+                min={0}
+                max={100}
+                step={1}
                 value={draftDelayOutput}
-                onChange={e => setDraftDelayOutput(Number(e.target.value))}
+                onChange={(e) => setDraftDelayOutput(Number(e.target.value))}
               />
               <span className="delay-settings-value">{draftDelayOutput}%</span>
             </div>
@@ -431,16 +475,25 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <div className="delay-settings-field">
               <span className="delay-settings-label delay-settings-label--mix">Mix</span>
               <input
-                type="range" min={0} max={100} step={1}
+                type="range"
+                min={0}
+                max={100}
+                step={1}
                 value={draftDelayMix}
-                onChange={e => setDraftDelayMix(Number(e.target.value))}
+                onChange={(e) => setDraftDelayMix(Number(e.target.value))}
               />
-              <span className="delay-settings-value delay-settings-value--mix">{draftDelayMix}%</span>
+              <span className="delay-settings-value delay-settings-value--mix">
+                {draftDelayMix}%
+              </span>
             </div>
 
             <div className="delay-settings-actions">
-              <button className="delay-settings-apply" onClick={applyDelaySettings}>Apply</button>
-              <button className="delay-settings-cancel" onClick={() => setDelaySettingsOpen(false)}>Cancel</button>
+              <button className="delay-settings-apply" onClick={applyDelaySettings}>
+                Apply
+              </button>
+              <button className="delay-settings-cancel" onClick={() => setDelaySettingsOpen(false)}>
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -450,13 +503,10 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
       {reverbSettingsOpen && (
         <div
           className="reverb-settings-overlay"
-          onMouseDown={e => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={() => setReverbSettingsOpen(false)}
         >
-          <div
-            className="reverb-settings-panel"
-            onClick={e => e.stopPropagation()}
-          >
+          <div className="reverb-settings-panel" onClick={(e) => e.stopPropagation()}>
             <div className="reverb-settings-title">🎛️ Reverb</div>
 
             <div className="reverb-settings-field">
@@ -464,7 +514,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
               <select
                 className="reverb-settings-select"
                 value={draftReverbRoom}
-                onChange={e => setDraftReverbRoom(e.target.value as ReverbRoom)}
+                onChange={(e) => setDraftReverbRoom(e.target.value as ReverbRoom)}
               >
                 <option value="small-room">Small Room</option>
                 <option value="hall">Hall</option>
@@ -476,9 +526,12 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <div className="reverb-settings-field">
               <span className="reverb-settings-label">Pre-delay</span>
               <input
-                type="range" min={0} max={500} step={10}
+                type="range"
+                min={0}
+                max={500}
+                step={10}
                 value={draftReverbPreDelay}
-                onChange={e => setDraftReverbPreDelay(Number(e.target.value))}
+                onChange={(e) => setDraftReverbPreDelay(Number(e.target.value))}
               />
               <span className="reverb-settings-value">{draftReverbPreDelay}ms</span>
             </div>
@@ -486,9 +539,12 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <div className="reverb-settings-field">
               <span className="reverb-settings-label">Damping</span>
               <input
-                type="range" min={0} max={100} step={1}
+                type="range"
+                min={0}
+                max={100}
+                step={1}
                 value={draftReverbDamping}
-                onChange={e => setDraftReverbDamping(Number(e.target.value))}
+                onChange={(e) => setDraftReverbDamping(Number(e.target.value))}
               />
               <span className="reverb-settings-value">{draftReverbDamping}%</span>
             </div>
@@ -496,9 +552,12 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <div className="reverb-settings-field">
               <span className="reverb-settings-label">Output</span>
               <input
-                type="range" min={0} max={100} step={1}
+                type="range"
+                min={0}
+                max={100}
+                step={1}
                 value={draftReverbOutput}
-                onChange={e => setDraftReverbOutput(Number(e.target.value))}
+                onChange={(e) => setDraftReverbOutput(Number(e.target.value))}
               />
               <span className="reverb-settings-value">{draftReverbOutput}%</span>
             </div>
@@ -506,16 +565,28 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             <div className="reverb-settings-field">
               <span className="reverb-settings-label reverb-settings-label--mix">Mix</span>
               <input
-                type="range" min={0} max={100} step={1}
+                type="range"
+                min={0}
+                max={100}
+                step={1}
                 value={draftReverbMix}
-                onChange={e => setDraftReverbMix(Number(e.target.value))}
+                onChange={(e) => setDraftReverbMix(Number(e.target.value))}
               />
-              <span className="reverb-settings-value reverb-settings-value--mix">{draftReverbMix}%</span>
+              <span className="reverb-settings-value reverb-settings-value--mix">
+                {draftReverbMix}%
+              </span>
             </div>
 
             <div className="reverb-settings-actions">
-              <button className="reverb-settings-apply" onClick={applyReverbSettings}>Apply</button>
-              <button className="reverb-settings-cancel" onClick={() => setReverbSettingsOpen(false)}>Cancel</button>
+              <button className="reverb-settings-apply" onClick={applyReverbSettings}>
+                Apply
+              </button>
+              <button
+                className="reverb-settings-cancel"
+                onClick={() => setReverbSettingsOpen(false)}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -539,9 +610,29 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
         />
       )}
 
+      {/* ── Distortion settings overlay ──────────────────────────────────── */}
+      {distortionDialog.isOpen && (
+        <DistortionSettingsDialog
+          draftDrive={distortionDialog.draftDrive}
+          setDraftDrive={distortionDialog.setDraftDrive}
+          draftTone={distortionDialog.draftTone}
+          setDraftTone={distortionDialog.setDraftTone}
+          draftMix={distortionDialog.draftMix}
+          setDraftMix={distortionDialog.setDraftMix}
+          draftOutput={distortionDialog.draftOutput}
+          setDraftOutput={distortionDialog.setDraftOutput}
+          onApply={distortionDialog.apply}
+          onCancel={distortionDialog.close}
+        />
+      )}
+
       {/* ── Right-click context menu ─────────────────────────────────────── */}
       {contextMenuPosition && (
-        <TrackContextMenu x={contextMenuPosition.x} y={contextMenuPosition.y} onDuplicate={duplicate} />
+        <TrackContextMenu
+          x={contextMenuPosition.x}
+          y={contextMenuPosition.y}
+          onDuplicate={duplicate}
+        />
       )}
     </div>
   );

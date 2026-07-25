@@ -9,7 +9,7 @@ import { FilterType, ReverbRoom } from '../domain/TrackState';
  *   - Reverb subgraph        (persists, insert effect — see ReverbNodes below)
  */
 
-const FADE_DURATION = 5;      // seconds (play/stop fades)
+const FADE_DURATION = 5; // seconds (play/stop fades)
 const SEEK_FADE_DURATION = 2; // seconds (seek cross-fade)
 
 // Lowpass cutoff range shared by the delay "tone" and reverb "damping"
@@ -42,6 +42,10 @@ const FILTER_CUTOFF_MAX_HZ = 20000;
 const FILTER_RESONANCE_MIN = 0.1;
 const FILTER_RESONANCE_MAX = 20;
 
+// Maximum "k" coefficient fed into the distortion waveshaper curve formula;
+// drive% (0–100) is scaled linearly onto this range.
+const DISTORTION_MAX_K = 100;
+
 /**
  * Per-track filter insert: dry/wet split around a single BiquadFilterNode.
  * `outputGain` is intentionally left unconnected by `_createFilterNodes` —
@@ -54,9 +58,28 @@ interface FilterNodes {
   wetGain: GainNode;
   outputGain: GainNode;
   type: FilterType;
-  cutoff: number;      // 20–20000 (Hz)
-  resonance: number;   // 0.1–20 (Q)
-  mix: number;         // 0–100 (%)
+  cutoff: number; // 20–20000 (Hz)
+  resonance: number; // 0.1–20 (Q)
+  mix: number; // 0–100 (%)
+  outputLevel: number; // 0–100 (%)
+}
+
+/**
+ * Per-track distortion/saturation insert: dry/wet split around a
+ * WaveShaperNode, with a post-shaper lowpass (tone) filter on the wet path.
+ * `outputGain` is intentionally left unconnected by `_createDistortionNodes`
+ * — this insert sits before delay in the chain, so the caller (`addTrack`)
+ * wires `outputGain` onward into delay's entry points.
+ */
+interface DistortionNodes {
+  dryGain: GainNode;
+  waveShaper: WaveShaperNode;
+  toneFilter: BiquadFilterNode;
+  wetGain: GainNode;
+  outputGain: GainNode;
+  drive: number; // 0–100 (%)
+  tone: number; // 0–100 (%)
+  mix: number; // 0–100 (%)
   outputLevel: number; // 0–100 (%)
 }
 
@@ -73,11 +96,11 @@ interface DelayNodes {
   damping: BiquadFilterNode;
   wetGain: GainNode;
   outputGain: GainNode;
-  delayTimeMs: number;    // 1–2000 (ms)
-  feedback: number;       // 0–90 (%)
-  mix: number;            // 0–100 (%)
-  dampingAmount: number;  // 0–100 (%)
-  outputLevel: number;    // 0–100 (%)
+  delayTimeMs: number; // 1–2000 (ms)
+  feedback: number; // 0–90 (%)
+  mix: number; // 0–100 (%)
+  dampingAmount: number; // 0–100 (%)
+  outputLevel: number; // 0–100 (%)
 }
 
 /** Per-track reverb insert: GainNode → [dry/wet split] → outputGain → pannerNode. */
@@ -89,8 +112,8 @@ interface ReverbNodes {
   wetGain: GainNode;
   outputGain: GainNode;
   room: ReverbRoom;
-  mix: number;        // 0–100 (%)
-  preDelayMs: number;  // 0–500 (ms)
+  mix: number; // 0–100 (%)
+  preDelayMs: number; // 0–500 (ms)
   dampingAmount: number; // 0–100 (%)
   outputLevel: number; // 0–100 (%)
 }
@@ -98,22 +121,23 @@ interface ReverbNodes {
 interface TrackNodes {
   gainNode: GainNode;
   filter: FilterNodes;
+  distortion: DistortionNodes;
   delay: DelayNodes;
   reverb: ReverbNodes;
   pannerNode: StereoPannerNode;
   sourceNode: AudioBufferSourceNode | null;
   buffer: AudioBuffer;
-  startOffset: number;   // seconds — where playback was paused
-  startedAt: number;     // audioContext.currentTime when last play() called
+  startOffset: number; // seconds — where playback was paused
+  startedAt: number; // audioContext.currentTime when last play() called
   loop: boolean;
   playing: boolean;
-  volume: number;        // target volume (0–1), independent of gain ramp
-  pan: number;           // target pan (-1 to 1), independent of ramp
+  volume: number; // target volume (0–1), independent of gain ramp
+  pan: number; // target pan (-1 to 1), independent of ramp
   fadeIn: boolean;
   fadeOut: boolean;
   seekFade: boolean;
-  fadeInDuration: number;   // seconds (0–10)
-  fadeOutDuration: number;  // seconds (0–10)
+  fadeInDuration: number; // seconds (0–10)
+  fadeOutDuration: number; // seconds (0–10)
   seekFadeDuration: number; // seconds (0–10)
   fadeOutTimer: ReturnType<typeof setTimeout> | null;
 }
@@ -149,6 +173,7 @@ export class AudioEngine {
   addTrack(id: string, buffer: AudioBuffer): void {
     const gainNode = this.ctx.createGain();
     const filter = this._createFilterNodes();
+    const distortion = this._createDistortionNodes();
     const delay = this._createDelayNodes();
     const reverb = this._createReverbNodes();
     const pannerNode = this.ctx.createStereoPanner();
@@ -157,12 +182,16 @@ export class AudioEngine {
     gainNode.connect(delay.dryGain);
     gainNode.connect(delay.delayNode);
 
-    // Chain order: gainNode → filter insert → delay insert → reverb insert → masterGain.
+    // Chain order: gainNode → filter insert → distortion insert → delay insert → reverb insert → masterGain.
     gainNode.connect(filter.dryGain);
     gainNode.connect(filter.biquadFilter);
-    
-    filter.outputGain.connect(delay.dryGain);
-    filter.outputGain.connect(delay.delayNode);
+
+    filter.outputGain.connect(distortion.dryGain);
+    filter.outputGain.connect(distortion.waveShaper);
+
+    distortion.outputGain.connect(delay.dryGain);
+    distortion.outputGain.connect(delay.delayNode);
+
     delay.outputGain.connect(reverb.dryGain);
     delay.outputGain.connect(reverb.preDelay);
     reverb.outputGain.connect(pannerNode);
@@ -171,6 +200,7 @@ export class AudioEngine {
     this.tracks.set(id, {
       gainNode,
       filter,
+      distortion,
       delay,
       reverb,
       pannerNode,
@@ -185,9 +215,9 @@ export class AudioEngine {
       fadeIn: false,
       fadeOut: false,
       seekFade: false,
-      fadeInDuration: 5,
-      fadeOutDuration: 5,
-      seekFadeDuration: 2,
+      fadeInDuration: FADE_DURATION,
+      fadeOutDuration: FADE_DURATION,
+      seekFadeDuration: SEEK_FADE_DURATION,
       fadeOutTimer: null,
     });
   }
@@ -202,6 +232,11 @@ export class AudioEngine {
     track.filter.biquadFilter.disconnect();
     track.filter.wetGain.disconnect();
     track.filter.outputGain.disconnect();
+    track.distortion.dryGain.disconnect();
+    track.distortion.waveShaper.disconnect();
+    track.distortion.toneFilter.disconnect();
+    track.distortion.wetGain.disconnect();
+    track.distortion.outputGain.disconnect();
     track.delay.dryGain.disconnect();
     track.delay.delayNode.disconnect();
     track.delay.feedbackGain.disconnect();
@@ -227,7 +262,9 @@ export class AudioEngine {
     // If a fade-out was in progress (source still running), cancel it cleanly
     this._cancelFadeOut(track);
 
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    if (this.ctx.state === 'suspended') {
+      void this.ctx.resume();
+    }
 
     // When loop and any fade are both active, manage looping manually so that
     // gain automations (fade-out near end, fade-in at restart) can be
@@ -447,8 +484,8 @@ export class AudioEngine {
   ): void {
     const track = this.tracks.get(id);
     if (!track) return;
-    track.fadeInDuration   = Math.max(0, Math.min(10, fadeInDuration));
-    track.fadeOutDuration  = Math.max(0, Math.min(10, fadeOutDuration));
+    track.fadeInDuration = Math.max(0, Math.min(10, fadeInDuration));
+    track.fadeOutDuration = Math.max(0, Math.min(10, fadeOutDuration));
     track.seekFadeDuration = Math.max(0, Math.min(10, seekFadeDuration));
   }
 
@@ -484,6 +521,34 @@ export class AudioEngine {
     filter.wetGain.gain.setTargetAtTime(wet, now, 0.01);
 
     filter.outputGain.gain.setTargetAtTime(filter.outputLevel / 100, now, 0.01);
+  }
+
+  // ── Distortion (insert effect) ──────────────────────────────────────────────
+
+  setDistortionSettings(id: string, drive: number, tone: number, mix: number, outputLevel: number): void {
+    const track = this.tracks.get(id);
+    if (!track) return;
+    const distortion = track.distortion;
+    const now = this.ctx.currentTime;
+
+    distortion.drive = Math.max(0, Math.min(100, drive));
+    distortion.tone = Math.max(0, Math.min(100, tone));
+    distortion.mix = Math.max(0, Math.min(100, mix));
+    distortion.outputLevel = Math.max(0, Math.min(100, outputLevel));
+
+    // `curve` is not an AudioParam, so it rebuilds/swaps instantly — same
+    // instant-swap idiom as reverb's `convolver.buffer` / filter's biquad type.
+    distortion.waveShaper.curve = this._makeDistortionCurve(distortion.drive);
+
+    const toneFrequency =
+      DAMPING_MIN_HZ + (distortion.tone / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
+    distortion.toneFilter.frequency.setTargetAtTime(toneFrequency, now, 0.01);
+
+    const wet = distortion.mix / 100;
+    distortion.dryGain.gain.setTargetAtTime(1 - wet, now, 0.01);
+    distortion.wetGain.gain.setTargetAtTime(wet, now, 0.01);
+
+    distortion.outputGain.gain.setTargetAtTime(distortion.outputLevel / 100, now, 0.01);
   }
 
   // ── Delay (insert effect) ───────────────────────────────────────────────────
@@ -607,10 +672,10 @@ export class AudioEngine {
    * sits before delay in the chain).
    */
   private _createFilterNodes(): FilterNodes {
-    const dryGain      = this.ctx.createGain();
+    const dryGain = this.ctx.createGain();
     const biquadFilter = this.ctx.createBiquadFilter();
-    const wetGain      = this.ctx.createGain();
-    const outputGain   = this.ctx.createGain();
+    const wetGain = this.ctx.createGain();
+    const outputGain = this.ctx.createGain();
 
     biquadFilter.connect(wetGain);
     dryGain.connect(outputGain);
@@ -641,6 +706,80 @@ export class AudioEngine {
   }
 
   /**
+   * Builds the per-track distortion/saturation insert and wires its internal
+   * routing:
+   *   dryGain ────────────────────────────────────────────────┐
+   *   waveShaper ──────────→ toneFilter ──────────→ wetGain    ┴→ outputGain
+   * Callers connect the track's upstream node into both dryGain and
+   * waveShaper, and connect outputGain onward (into delay's entry points,
+   * since distortion sits before delay in the chain).
+   */
+  private _createDistortionNodes(): DistortionNodes {
+    const dryGain = this.ctx.createGain();
+    const waveShaper = this.ctx.createWaveShaper();
+    const toneFilter = this.ctx.createBiquadFilter();
+    const wetGain = this.ctx.createGain();
+    const outputGain = this.ctx.createGain();
+
+    toneFilter.type = 'lowpass';
+    waveShaper.oversample = '4x';
+
+    waveShaper.connect(toneFilter);
+    toneFilter.connect(wetGain);
+    dryGain.connect(outputGain);
+    wetGain.connect(outputGain);
+    // outputGain intentionally left unconnected here — see addTrack().
+
+    const distortion: DistortionNodes = {
+      dryGain,
+      waveShaper,
+      toneFilter,
+      wetGain,
+      outputGain,
+      drive: 0,
+      tone: 100,
+      mix: 0,
+      outputLevel: 100,
+    };
+
+    // Initialise gains/filter/curve to match the default (mix = 0 ⇒ fully dry).
+    dryGain.gain.value = 1;
+    wetGain.gain.value = 0;
+    waveShaper.curve = this._makeDistortionCurve(distortion.drive);
+    toneFilter.frequency.value =
+      DAMPING_MIN_HZ + (distortion.tone / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
+    outputGain.gain.value = distortion.outputLevel / 100;
+
+    return distortion;
+  }
+
+  /**
+   * Synthesises a classic soft-clip overdrive transfer curve for the
+   * distortion waveshaper. `drive` (0–100) scales the `k` coefficient:
+   * `k=0` yields a near-identity (transparent) pass-through; higher `k`
+   * increasingly compresses the signal at larger |x|.
+   *
+   * NOTE: the commonly-copied MDN/StackOverflow version of this formula uses
+   * a `20*deg` numerator coefficient, which reduces to `curve(x) = x/3` at
+   * k=0 — a fixed ~-9.5dB cut, not a transparent pass-through. Using `60*deg`
+   * instead normalizes the k=0 case to exactly `curve(x) = x` (since
+   * `3 * 60*deg / pi === 1`), while uniformly scaling — and therefore fully
+   * preserving the shape of — the saturation curve at every other drive
+   * level.
+   */
+  private _makeDistortionCurve(drive: number): Float32Array<ArrayBuffer> {
+    const k = (drive / 100) * DISTORTION_MAX_K;
+    const n = 44100;
+    const curve = new Float32Array(n);
+    const deg = Math.PI / 180;
+    for (let i = 0; i < n; i++) {
+      const x = (i * 2) / n - 1;
+      curve[i] = ((3 + k) * x * 60 * deg) / (Math.PI + k * Math.abs(x));
+    }
+    return curve;
+  }
+
+  /**
    * Builds the per-track delay/echo insert and wires its internal routing:
    *   dryGain ─────────────────────────────────────┐
    *   delayNode ──────────────────────────→ wetGain ┴→ outputGain
@@ -650,12 +789,12 @@ export class AudioEngine {
    * before reverb in the chain).
    */
   private _createDelayNodes(): DelayNodes {
-    const dryGain      = this.ctx.createGain();
-    const delayNode    = this.ctx.createDelay(DELAY_TIME_MAX_S);
+    const dryGain = this.ctx.createGain();
+    const delayNode = this.ctx.createDelay(DELAY_TIME_MAX_S);
     const feedbackGain = this.ctx.createGain();
-    const damping      = this.ctx.createBiquadFilter();
-    const wetGain      = this.ctx.createGain();
-    const outputGain   = this.ctx.createGain();
+    const damping = this.ctx.createBiquadFilter();
+    const wetGain = this.ctx.createGain();
+    const outputGain = this.ctx.createGain();
 
     damping.type = 'lowpass';
 
@@ -689,7 +828,8 @@ export class AudioEngine {
     wetGain.gain.value = 0;
     delayNode.delayTime.value = delay.delayTimeMs / 1000;
     feedbackGain.gain.value = delay.feedback / 100;
-    damping.frequency.value = DAMPING_MAX_HZ - (delay.dampingAmount / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
+    damping.frequency.value =
+      DAMPING_MAX_HZ - (delay.dampingAmount / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
     outputGain.gain.value = delay.outputLevel / 100;
 
     return delay;
@@ -704,11 +844,11 @@ export class AudioEngine {
    * last in the chain).
    */
   private _createReverbNodes(): ReverbNodes {
-    const dryGain    = this.ctx.createGain();
-    const preDelay   = this.ctx.createDelay(0.5);
-    const convolver  = this.ctx.createConvolver();
-    const damping    = this.ctx.createBiquadFilter();
-    const wetGain    = this.ctx.createGain();
+    const dryGain = this.ctx.createGain();
+    const preDelay = this.ctx.createDelay(0.5);
+    const convolver = this.ctx.createConvolver();
+    const damping = this.ctx.createBiquadFilter();
+    const wetGain = this.ctx.createGain();
     const outputGain = this.ctx.createGain();
 
     damping.type = 'lowpass';
@@ -740,7 +880,8 @@ export class AudioEngine {
     dryGain.gain.value = 1;
     wetGain.gain.value = 0;
     preDelay.delayTime.value = reverb.preDelayMs / 1000;
-    damping.frequency.value = DAMPING_MAX_HZ - (reverb.dampingAmount / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
+    damping.frequency.value =
+      DAMPING_MAX_HZ - (reverb.dampingAmount / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
     outputGain.gain.value = reverb.outputLevel / 100;
     convolver.buffer = this._getImpulseResponse(reverb.room);
 
@@ -770,7 +911,11 @@ export class AudioEngine {
 
   private _stopSource(track: TrackNodes): void {
     if (track.sourceNode) {
-      try { track.sourceNode.stop(); } catch (_) { /* already stopped */ }
+      try {
+        track.sourceNode.stop();
+      } catch (error) {
+        console.warn('Error: ', error)
+      }
       track.sourceNode.disconnect();
       track.sourceNode = null;
     }
@@ -789,13 +934,13 @@ export class AudioEngine {
    * midpoint so there is always a smooth V-shape.
    */
   private _playLoopWithFade(track: TrackNodes): void {
-    const now          = this.ctx.currentTime;
-    const iterOffset   = track.startOffset;
+    const now = this.ctx.currentTime;
+    const iterOffset = track.startOffset;
     const iterDuration = track.buffer.duration - iterOffset;
 
     const source = this.ctx.createBufferSource();
     source.buffer = track.buffer;
-    source.loop   = false; // looping is managed manually here
+    source.loop = false; // looping is managed manually here
     source.connect(track.gainNode);
 
     source.onended = () => {
@@ -807,9 +952,9 @@ export class AudioEngine {
         track.startOffset = 0;
         this._playLoopWithFade(track);
       } else {
-        track.playing     = false;
+        track.playing = false;
         track.startOffset = 0;
-        track.sourceNode  = null;
+        track.sourceNode = null;
       }
     };
 
@@ -818,7 +963,7 @@ export class AudioEngine {
 
     if (track.fadeIn && track.fadeOut) {
       // Fade in from silence, hold at target volume, fade out to silence.
-      const fadeInEnd    = Math.min(track.fadeInDuration,  iterDuration / 2);
+      const fadeInEnd = Math.min(track.fadeInDuration, iterDuration / 2);
       const fadeOutStart = Math.max(iterDuration - track.fadeOutDuration, iterDuration / 2);
       track.gainNode.gain.setValueAtTime(0, now);
       track.gainNode.gain.linearRampToValueAtTime(track.volume, now + fadeInEnd);
@@ -839,9 +984,9 @@ export class AudioEngine {
     }
 
     source.start(now, iterOffset);
-    track.sourceNode  = source;
-    track.startedAt   = now;
-    track.playing     = true;
+    track.sourceNode = source;
+    track.startedAt = now;
+    track.playing = true;
   }
 
   /** Ramps gain to 0 over track.fadeOutDuration, then calls _stopSource + afterStop cb. */

@@ -40,6 +40,12 @@
   min-height: 225px;
 }
 
+/* The distortion panel has the same row count (title + 4 fields + actions)
+   as the filter panel, so it needs the same extra headroom. */
+.track-player--distortion-open {
+  min-height: 225px;
+}
+
 .track-header {
   display: flex;
   align-items: center;
@@ -124,7 +130,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  
+
   padding: 8px 10px;
 }
 
@@ -132,7 +138,9 @@
   width: 1px;
   border-radius: 999px;
   background: linear-gradient(180deg, #64d2ff 0%, #a855f7 100%);
-  transition: height 0.15s linear, opacity 0.15s linear;
+  transition:
+    height 0.15s linear,
+    opacity 0.15s linear;
 }
 
 .waveform-progress {
@@ -202,7 +210,9 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .loop-toggle:hover {
   background: #1a3a70;
@@ -229,7 +239,9 @@
   height: 12px;
   background: #555;
   border-radius: 50%;
-  transition: transform 0.2s, background 0.2s;
+  transition:
+    transform 0.2s,
+    background 0.2s;
 }
 .loop-on .loop-track {
   background: #4c1d95;
@@ -246,7 +258,7 @@
   transition: color 0.2s;
 }
 .loop-on .loop-label {
-   color: #FFFFFF;
+  color: #ffffff;
 }
 .loop-toggle:hover .loop-track {
   background: #a855f7;
@@ -268,36 +280,65 @@
 /* Fade In — cyan */
 .toggle--fade-in.loop-on {
   background: #06b6d4;
-  color: #FFFFFF;
+  color: #ffffff;
 }
-.toggle--fade-in.loop-on .loop-track       { background: #134e4a; }
-.toggle--fade-in.loop-on .loop-thumb       { background: #06b6d4; }
-.toggle--fade-in.loop-on .loop-label       { color: #FFFFFF; }
-.toggle--fade-in:hover .loop-label         { color: #67e8f9; }
-.toggle--fade-in.loop-on:hover .loop-track { background: #155e57; }
+.toggle--fade-in.loop-on .loop-track {
+  background: #134e4a;
+}
+.toggle--fade-in.loop-on .loop-thumb {
+  background: #06b6d4;
+}
+.toggle--fade-in.loop-on .loop-label {
+  color: #ffffff;
+}
+.toggle--fade-in:hover .loop-label {
+  color: #67e8f9;
+}
+.toggle--fade-in.loop-on:hover .loop-track {
+  background: #155e57;
+}
 
 /* Fade Out — orange */
 .toggle--fade-out.loop-on {
   background: #f97316;
-  color: #FFFFFF;
-;
+  color: #ffffff;
 }
-.toggle--fade-out.loop-on .loop-track       { background: #7c2d12; }
-.toggle--fade-out.loop-on .loop-thumb       { background: #f97316; }
-.toggle--fade-out.loop-on .loop-label       { color: #FFFFFF; }
-.toggle--fade-out:hover .loop-label         { color: #fdba74; }
-.toggle--fade-out.loop-on:hover .loop-track { background: #9a3412; }
+.toggle--fade-out.loop-on .loop-track {
+  background: #7c2d12;
+}
+.toggle--fade-out.loop-on .loop-thumb {
+  background: #f97316;
+}
+.toggle--fade-out.loop-on .loop-label {
+  color: #ffffff;
+}
+.toggle--fade-out:hover .loop-label {
+  color: #fdba74;
+}
+.toggle--fade-out.loop-on:hover .loop-track {
+  background: #9a3412;
+}
 
 /* Seek Fade — green */
 .toggle--seek-fade.loop-on {
   background: #22c55e;
-  color: #FFFFFF;
+  color: #ffffff;
 }
-.toggle--seek-fade.loop-on .loop-track       { background: #14532d; }
-.toggle--seek-fade.loop-on .loop-thumb       { background: #22c55e; }
-.toggle--seek-fade.loop-on .loop-label       { color: #FFFFFF; }
-.toggle--seek-fade:hover .loop-label         { color: #86efac; }
-.toggle--seek-fade.loop-on:hover .loop-track { background: #166534; }
+.toggle--seek-fade.loop-on .loop-track {
+  background: #14532d;
+}
+.toggle--seek-fade.loop-on .loop-thumb {
+  background: #22c55e;
+}
+.toggle--seek-fade.loop-on .loop-label {
+  color: #ffffff;
+}
+.toggle--seek-fade:hover .loop-label {
+  color: #86efac;
+}
+.toggle--seek-fade.loop-on:hover .loop-track {
+  background: #166534;
+}
 
 /* Pan */
 .pan-control {
@@ -395,15 +436,16 @@
   color: #000000;
 }
 
-/* Filter / Delay / Reverb settings buttons — white by default, orange on
-   hover, filled rounded green when the effect is active (mix > 0). */
+/* Filter / Distortion / Delay / Reverb settings buttons — white by default,
+   orange on hover, filled rounded green when the effect is active (mix > 0). */
 .btn-filter,
+.btn-distortion,
 .btn-delay,
 .btn-reverb {
   background: none;
   border: 1px solid transparent;
   border-radius: 50%;
-  color: #AAA;
+  color: #aaa;
   cursor: pointer;
   font-size: 11px;
   font-weight: 700;
@@ -414,15 +456,20 @@
   justify-content: center;
   padding: 0;
   line-height: 1;
-  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    background-color 0.15s,
+    border-color 0.15s;
   flex-shrink: 0;
 }
 .btn-filter:hover,
+.btn-distortion:hover,
 .btn-delay:hover,
 .btn-reverb:hover {
   color: #f59e0b;
 }
 .btn-filter--active,
+.btn-distortion--active,
 .btn-delay--active,
 .btn-reverb--active {
   color: #fff;
@@ -430,6 +477,7 @@
   border-color: #16a34a;
 }
 .btn-filter--active:hover,
+.btn-distortion--active:hover,
 .btn-delay--active:hover,
 .btn-reverb--active:hover {
   color: #fff;

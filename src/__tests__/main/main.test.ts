@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-function-type, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 import { describe, it, expect, vi } from 'vitest';
 
 // Mock electron before importing the module under test
@@ -32,7 +33,7 @@ vi.mock('electron', () => {
 
 // Mock fs so we can inspect read/write without touching disk
 vi.mock('fs', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal<typeof import('fs')>();
   const writeFileSync = vi.fn();
   const readFileSync = vi.fn();
   return {

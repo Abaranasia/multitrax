@@ -1,4 +1,4 @@
-import { ReverbRoom } from '../../domain/TrackState';
+import { ReverbRoom } from '../../../../../domain/TrackState';
 import './ReverbSettingsDialog.css';
 
 interface ReverbSettingsDialogProps {

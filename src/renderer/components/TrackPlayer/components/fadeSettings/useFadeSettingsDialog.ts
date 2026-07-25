@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { TrackState } from '../../domain/TrackState';
-import { useAudio } from '../../context/useAudio';
+import { TrackState } from '../../../../domain/TrackState';
+import { useAudio } from '../../../../context/useAudio';
 
 /** Owns the open/closed state and draft values for a track's Fade settings dialog. */
 export const useFadeSettingsDialog = (state: TrackState) => {

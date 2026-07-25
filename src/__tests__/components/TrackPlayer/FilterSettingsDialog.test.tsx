@@ -3,7 +3,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 
-import { FilterSettingsDialog } from '@/renderer/components/TrackPlayer/FilterSettingsDialog';
+import { FilterSettingsDialog } from '@/renderer/components/TrackPlayer/components/effects/filter/FilterSettingsDialog';
 
 const mockAudioEngine = {
   audioContext: {

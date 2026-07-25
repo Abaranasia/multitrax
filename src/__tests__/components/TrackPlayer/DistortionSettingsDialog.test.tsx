@@ -3,7 +3,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 
-import { DistortionSettingsDialog } from '@/renderer/components/TrackPlayer/DistortionSettingsDialog';
+import { DistortionSettingsDialog } from '@/renderer/components/TrackPlayer/components/effects/distortion/DistortionSettingsDialog';
 
 const mockAudioEngine = {
   audioContext: {

@@ -1,7 +1,7 @@
 import { useCallback, useRef, type MouseEvent as ReactMouseEvent } from 'react';
 import { TrackState } from '../../domain/TrackState';
 import { useAudio } from '../../context/useAudio';
-import { useTrackContextMenu } from './useTrackContextMenu';
+import { useTrackContextMenu } from './components/contextMenu/useTrackContextMenu';
 
 interface UseTrackPlayerProps {
   state: TrackState;

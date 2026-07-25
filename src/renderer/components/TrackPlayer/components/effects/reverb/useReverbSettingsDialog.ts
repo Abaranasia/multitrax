@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { ReverbRoom, TrackState } from '../../domain/TrackState';
-import { useAudio } from '../../context/useAudio';
+import { ReverbRoom, TrackState } from '../../../../../domain/TrackState';
+import { useAudio } from '../../../../../context/useAudio';
 
 /** Owns the open/closed state and draft values for a track's Reverb settings dialog. */
 export const useReverbSettingsDialog = (state: TrackState) => {

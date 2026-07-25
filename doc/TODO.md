@@ -198,6 +198,13 @@ what's meant to stay a focused mixing/monitoring tool.
   making it easier to compare levels, mute/solo states, and per-track controls
   at a glance.
 
+- [ ] **Real-time effect preview + floating settings panel** — convert the
+  Filter/Distortion/Delay/Reverb settings dialogs from "draft state,
+  Apply/Cancel" full-bleed overlays into a live-preview floating panel
+  positioned beside the `TrackPlayer` card instead of covering it, so tweaking
+  a knob is heard immediately and the waveform/transport controls stay visible
+  while adjusting. Full technical plan in `doc/REALTIME-EFFECTS-PLAN.md`.
+
 ---
 
 ## Coding improvements

@@ -1,39 +1,16 @@
-/* eslint-disable @typescript-eslint/no-misused-promises, @typescript-eslint/no-unused-vars, @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import React from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, render, screen, waitFor, cleanup } from '@testing-library/react';
 
-const TRACK_ID = '00000000-0000-0000-0000-000000000000';
-const FAKE_BUFFER = { duration: 12 } as unknown as AudioBuffer;
+import { createMockAudioEngine } from '@/__tests__/test-utils/mockAudioEngine';
 
-const mockAudioEngine = {
-  audioContext: {
-    decodeAudioData: vi.fn(
-      async (buffer: ArrayBuffer) => ({ duration: 12 }) as unknown as AudioBuffer,
-    ),
-  },
-  addTrack: vi.fn(),
-  removeTrack: vi.fn(),
-  getBuffer: vi.fn((_id: string) => FAKE_BUFFER),
-  play: vi.fn(),
-  pause: vi.fn(),
-  stop: vi.fn(),
-  seek: vi.fn(),
-  setVolume: vi.fn(),
-  setPan: vi.fn(),
-  setLoop: vi.fn(),
-  setFadeIn: vi.fn(),
-  setFadeOut: vi.fn(),
-  setSeekFade: vi.fn(),
-  setFadeDurations: vi.fn(),
-  setFilterSettings: vi.fn(),
-  setDelaySettings: vi.fn(),
-  setReverbSettings: vi.fn(),
-  setDistortionSettings: vi.fn(),
-  isPlaying: vi.fn().mockReturnValue(false),
-  getCurrentTime: vi.fn().mockReturnValue(0),
-  close: vi.fn(),
-};
+const TRACK_ID = '00000000-0000-0000-0000-000000000000';
+
+const mockAudioEngine = createMockAudioEngine({
+  decodeAudioDataDuration: 12,
+  getBufferDuration: 12,
+});
 
 vi.mock('@/renderer/audio/AudioEngine', () => ({
   AudioEngine: vi.fn(() => mockAudioEngine),

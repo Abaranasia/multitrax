@@ -3,14 +3,10 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
 
+import { createMockAudioEngine } from '@/__tests__/test-utils/mockAudioEngine';
+
 // Minimal mock AudioEngine used by AudioProvider
-const mockAudioEngine = {
-  getRecordingStream: vi.fn(() => ({})),
-  audioContext: {
-    decodeAudioData: vi.fn(async (b: ArrayBuffer) => ({ duration: 1 }) as unknown as AudioBuffer),
-  },
-  close: vi.fn(),
-};
+const mockAudioEngine = createMockAudioEngine({ decodeAudioDataDuration: 1 });
 
 vi.mock('@/renderer/audio/AudioEngine', () => ({
   AudioEngine: vi.fn(() => mockAudioEngine),

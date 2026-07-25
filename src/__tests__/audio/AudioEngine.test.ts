@@ -258,6 +258,16 @@ describe('AudioEngine (unit)', () => {
     expect(engine.getDuration('t4')).toBe(2);
   });
 
+  it('setVolume clamps value to [0,1] at both boundaries', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 2 } as unknown as AudioBuffer;
+    engine.addTrack('t4c', buf);
+    engine.setVolume('t4c', -5);
+    expect((engine as any).tracks.get('t4c').volume).toBe(0);
+    engine.setVolume('t4c', 5);
+    expect((engine as any).tracks.get('t4c').volume).toBe(1);
+  });
+
   it('setPan clamps value and updates the panner', () => {
     const engine = new AudioEngine();
     const buf = { duration: 2 } as unknown as AudioBuffer;
@@ -266,6 +276,34 @@ describe('AudioEngine (unit)', () => {
     engine.setPan('t4b', 5); // clamps to 1
     // no throw; validate getDuration still works
     expect(engine.getDuration('t4b')).toBe(2);
+  });
+
+  it('setPan clamps value to [-1,1] at both boundaries', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 2 } as unknown as AudioBuffer;
+    engine.addTrack('t4d', buf);
+    engine.setPan('t4d', -5);
+    expect((engine as any).tracks.get('t4d').pan).toBe(-1);
+    engine.setPan('t4d', 5);
+    expect((engine as any).tracks.get('t4d').pan).toBe(1);
+  });
+
+  it('setFadeDurations clamps each duration independently to [0,10]', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 5 } as unknown as AudioBuffer;
+    engine.addTrack('t10', buf);
+
+    engine.setFadeDurations('t10', -5, 50, -5);
+    let track = (engine as any).tracks.get('t10');
+    expect(track.fadeInDuration).toBe(0);
+    expect(track.fadeOutDuration).toBe(10);
+    expect(track.seekFadeDuration).toBe(0);
+
+    engine.setFadeDurations('t10', 50, -5, 50);
+    track = (engine as any).tracks.get('t10');
+    expect(track.fadeInDuration).toBe(10);
+    expect(track.fadeOutDuration).toBe(0);
+    expect(track.seekFadeDuration).toBe(10);
   });
 
   it('seek updates offsets when not playing and when playing with seekFade', () => {
@@ -287,6 +325,18 @@ describe('AudioEngine (unit)', () => {
     expect(engine.getDuration('t5')).toBe(20);
   });
 
+  it('seek clamps the offset to [0, buffer.duration]', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 12 } as unknown as AudioBuffer;
+    engine.addTrack('t5b', buf);
+
+    engine.seek('t5b', -20);
+    expect(engine.getCurrentTime('t5b')).toBe(0);
+
+    engine.seek('t5b', 999);
+    expect(engine.getCurrentTime('t5b')).toBe(12);
+  });
+
   it('setFilterSettings updates the filter chain without throwing', () => {
     const engine = new AudioEngine();
     const buf = { duration: 6 } as unknown as AudioBuffer;
@@ -294,6 +344,26 @@ describe('AudioEngine (unit)', () => {
     engine.setFilterSettings('t9', 'highpass', 500, 4, 70, 90);
     // no throw; engine remains valid
     expect(engine.getDuration('t9')).toBe(6);
+  });
+
+  it('setFilterSettings clamps each parameter to its pre-refactor documented range', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 6 } as unknown as AudioBuffer;
+    engine.addTrack('t9b', buf);
+
+    engine.setFilterSettings('t9b', 'lowpass', -500, 0, -10, -10);
+    let filter = (engine as any).tracks.get('t9b').filter;
+    expect(filter.cutoff).toBe(20); // FILTER_CUTOFF_MIN_HZ
+    expect(filter.resonance).toBe(0.1); // FILTER_RESONANCE_MIN
+    expect(filter.mix).toBe(0);
+    expect(filter.outputLevel).toBe(0);
+
+    engine.setFilterSettings('t9b', 'lowpass', 999999, 999, 999, 999);
+    filter = (engine as any).tracks.get('t9b').filter;
+    expect(filter.cutoff).toBe(20000); // FILTER_CUTOFF_MAX_HZ
+    expect(filter.resonance).toBe(20); // FILTER_RESONANCE_MAX
+    expect(filter.mix).toBe(100);
+    expect(filter.outputLevel).toBe(100);
   });
 
   it('addTrack wires filter.outputGain -> distortion.dryGain/waveShaper -> distortion.outputGain -> delay.dryGain/delayNode', () => {
@@ -307,6 +377,41 @@ describe('AudioEngine (unit)', () => {
     expect(filter.outputGain.connectedTo).toContain(distortion.waveShaper);
     expect(distortion.outputGain.connectedTo).toContain(delay.dryGain);
     expect(distortion.outputGain.connectedTo).toContain(delay.delayNode);
+  });
+
+  it('addTrack wires delay.outputGain -> reverb.dryGain/preDelay -> reverb.outputGain -> pannerNode', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 6 } as unknown as AudioBuffer;
+    engine.addTrack('td4', buf);
+    const track = (engine as any).tracks.get('td4');
+    const { delay, reverb, pannerNode } = track;
+
+    expect(delay.outputGain.connectedTo).toContain(reverb.dryGain);
+    expect(delay.outputGain.connectedTo).toContain(reverb.preDelay);
+    expect(reverb.outputGain.connectedTo).toContain(pannerNode);
+  });
+
+  it('_createDryWetOutput builds a dry/wet/output gain triple wired dry->out and wet->out, initialised to dry=1/wet=0/out=1', () => {
+    const engine = new AudioEngine();
+    const { dryGain, wetGain, outputGain } = (engine as any)._createDryWetOutput();
+
+    expect(dryGain.gain.value).toBe(1);
+    expect(wetGain.gain.value).toBe(0);
+    expect(outputGain.gain.value).toBe(1);
+    expect(dryGain.connectedTo).toContain(outputGain);
+    expect(wetGain.connectedTo).toContain(outputGain);
+  });
+
+  it('each effect insert wires its own dryGain/wetGain into its own outputGain (via the shared factory)', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 6 } as unknown as AudioBuffer;
+    engine.addTrack('td5', buf);
+    const { filter, distortion, delay, reverb } = (engine as any).tracks.get('td5');
+
+    for (const insert of [filter, distortion, delay, reverb]) {
+      expect(insert.dryGain.connectedTo).toContain(insert.outputGain);
+      expect(insert.wetGain.connectedTo).toContain(insert.outputGain);
+    }
   });
 
   it('setDistortionSettings updates existing distortion nodes without throwing or recreating them', () => {
@@ -323,6 +428,26 @@ describe('AudioEngine (unit)', () => {
     expect(after.tone).toBe(40);
     expect(after.mix).toBe(60);
     expect(after.outputLevel).toBe(80);
+  });
+
+  it('setDistortionSettings clamps each parameter to its pre-refactor documented range', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 6 } as unknown as AudioBuffer;
+    engine.addTrack('td2b', buf);
+
+    engine.setDistortionSettings('td2b', -10, -10, -10, -10);
+    let distortion = (engine as any).tracks.get('td2b').distortion;
+    expect(distortion.drive).toBe(0);
+    expect(distortion.tone).toBe(0);
+    expect(distortion.mix).toBe(0);
+    expect(distortion.outputLevel).toBe(0);
+
+    engine.setDistortionSettings('td2b', 999, 999, 999, 999);
+    distortion = (engine as any).tracks.get('td2b').distortion;
+    expect(distortion.drive).toBe(100);
+    expect(distortion.tone).toBe(100);
+    expect(distortion.mix).toBe(100);
+    expect(distortion.outputLevel).toBe(100);
   });
 
   it('_makeDistortionCurve is a near-identity pass-through at drive=0 and increasingly compressive at higher |x| for drive=100', () => {
@@ -397,6 +522,28 @@ describe('AudioEngine (unit)', () => {
     expect(engine.getDuration('t8')).toBe(6);
   });
 
+  it('setDelaySettings clamps each parameter to its pre-refactor documented range', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 6 } as unknown as AudioBuffer;
+    engine.addTrack('t8b', buf);
+
+    engine.setDelaySettings('t8b', -100, -10, -10, -10, -10);
+    let delay = (engine as any).tracks.get('t8b').delay;
+    expect(delay.delayTimeMs).toBe(1); // floor of 1ms, not 0 (feedback-loop constraint)
+    expect(delay.feedback).toBe(0);
+    expect(delay.mix).toBe(0);
+    expect(delay.dampingAmount).toBe(0);
+    expect(delay.outputLevel).toBe(0);
+
+    engine.setDelaySettings('t8b', 999999, 999, 999, 999, 999);
+    delay = (engine as any).tracks.get('t8b').delay;
+    expect(delay.delayTimeMs).toBe(2000); // DELAY_TIME_MAX_MS
+    expect(delay.feedback).toBe(90); // DELAY_FEEDBACK_MAX
+    expect(delay.mix).toBe(100);
+    expect(delay.dampingAmount).toBe(100);
+    expect(delay.outputLevel).toBe(100);
+  });
+
   it('setReverbSettings updates the reverb chain without throwing', () => {
     const engine = new AudioEngine();
     const buf = { duration: 6 } as unknown as AudioBuffer;
@@ -404,6 +551,26 @@ describe('AudioEngine (unit)', () => {
     engine.setReverbSettings('t7', 'cathedral', 60, 100, 20, 80);
     // no throw; engine remains valid
     expect(engine.getDuration('t7')).toBe(6);
+  });
+
+  it('setReverbSettings clamps each parameter to its pre-refactor documented range', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 6 } as unknown as AudioBuffer;
+    engine.addTrack('t7b', buf);
+
+    engine.setReverbSettings('t7b', 'hall', -10, -10, -10, -10);
+    let reverb = (engine as any).tracks.get('t7b').reverb;
+    expect(reverb.mix).toBe(0);
+    expect(reverb.preDelayMs).toBe(0);
+    expect(reverb.dampingAmount).toBe(0);
+    expect(reverb.outputLevel).toBe(0);
+
+    engine.setReverbSettings('t7b', 'hall', 999, 999, 999, 999);
+    reverb = (engine as any).tracks.get('t7b').reverb;
+    expect(reverb.mix).toBe(100);
+    expect(reverb.preDelayMs).toBe(500); // pre-delay max is 500ms, unlike delay's 2000ms
+    expect(reverb.dampingAmount).toBe(100);
+    expect(reverb.outputLevel).toBe(100);
   });
 
   it('close disconnects tracks and closes context', () => {

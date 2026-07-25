@@ -46,6 +46,9 @@ const FILTER_RESONANCE_MAX = 20;
 // drive% (0–100) is scaled linearly onto this range.
 const DISTORTION_MAX_K = 100;
 
+/** Clamps `v` into the inclusive `[min, max]` range. */
+const clamp = (v: number, min: number, max: number): number => Math.max(min, Math.min(max, v));
+
 /**
  * Per-track filter insert: dry/wet split around a single BiquadFilterNode.
  * `outputGain` is intentionally left unconnected by `_createFilterNodes` —
@@ -377,7 +380,7 @@ export class AudioEngine {
         track.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
         track.gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
 
-        track.startOffset = Math.max(0, Math.min(seconds, track.buffer.duration));
+        track.startOffset = clamp(seconds, 0, track.buffer.duration);
         track.playing = false;
 
         // Resume playback with fade-in from the new position.
@@ -424,7 +427,7 @@ export class AudioEngine {
     track.gainNode.gain.setValueAtTime(track.volume, this.ctx.currentTime);
     if (wasPlaying) this._stopSource(track);
 
-    track.startOffset = Math.max(0, Math.min(seconds, track.buffer.duration));
+    track.startOffset = clamp(seconds, 0, track.buffer.duration);
     track.playing = false;
 
     if (wasPlaying) this.play(id);
@@ -435,7 +438,7 @@ export class AudioEngine {
   setVolume(id: string, value: number): void {
     const track = this.tracks.get(id);
     if (!track) return;
-    track.volume = Math.max(0, Math.min(1, value));
+    track.volume = clamp(value, 0, 1);
     // Cancel any ongoing fade ramp and jump to the new volume immediately
     track.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
     track.gainNode.gain.setTargetAtTime(track.volume, this.ctx.currentTime, 0.01);
@@ -446,7 +449,7 @@ export class AudioEngine {
   setPan(id: string, value: number): void {
     const track = this.tracks.get(id);
     if (!track) return;
-    track.pan = Math.max(-1, Math.min(1, value));
+    track.pan = clamp(value, -1, 1);
     track.pannerNode.pan.setTargetAtTime(track.pan, this.ctx.currentTime, 0.01);
   }
 
@@ -484,9 +487,9 @@ export class AudioEngine {
   ): void {
     const track = this.tracks.get(id);
     if (!track) return;
-    track.fadeInDuration = Math.max(0, Math.min(10, fadeInDuration));
-    track.fadeOutDuration = Math.max(0, Math.min(10, fadeOutDuration));
-    track.seekFadeDuration = Math.max(0, Math.min(10, seekFadeDuration));
+    track.fadeInDuration = clamp(fadeInDuration, 0, 10);
+    track.fadeOutDuration = clamp(fadeOutDuration, 0, 10);
+    track.seekFadeDuration = clamp(seekFadeDuration, 0, 10);
   }
 
   // ── Filter (insert effect) ──────────────────────────────────────────────────
@@ -505,10 +508,10 @@ export class AudioEngine {
     const now = this.ctx.currentTime;
 
     filter.type = type;
-    filter.cutoff = Math.max(FILTER_CUTOFF_MIN_HZ, Math.min(FILTER_CUTOFF_MAX_HZ, cutoff));
-    filter.resonance = Math.max(FILTER_RESONANCE_MIN, Math.min(FILTER_RESONANCE_MAX, resonance));
-    filter.mix = Math.max(0, Math.min(100, mix));
-    filter.outputLevel = Math.max(0, Math.min(100, outputLevel));
+    filter.cutoff = clamp(cutoff, FILTER_CUTOFF_MIN_HZ, FILTER_CUTOFF_MAX_HZ);
+    filter.resonance = clamp(resonance, FILTER_RESONANCE_MIN, FILTER_RESONANCE_MAX);
+    filter.mix = clamp(mix, 0, 100);
+    filter.outputLevel = clamp(outputLevel, 0, 100);
 
     // `type` is not an AudioParam, so it switches instantly — same as
     // reverb's instant `convolver.buffer` swap on room change.
@@ -531,10 +534,10 @@ export class AudioEngine {
     const distortion = track.distortion;
     const now = this.ctx.currentTime;
 
-    distortion.drive = Math.max(0, Math.min(100, drive));
-    distortion.tone = Math.max(0, Math.min(100, tone));
-    distortion.mix = Math.max(0, Math.min(100, mix));
-    distortion.outputLevel = Math.max(0, Math.min(100, outputLevel));
+    distortion.drive = clamp(drive, 0, 100);
+    distortion.tone = clamp(tone, 0, 100);
+    distortion.mix = clamp(mix, 0, 100);
+    distortion.outputLevel = clamp(outputLevel, 0, 100);
 
     // `curve` is not an AudioParam, so it rebuilds/swaps instantly — same
     // instant-swap idiom as reverb's `convolver.buffer` / filter's biquad type.
@@ -568,11 +571,11 @@ export class AudioEngine {
 
     // Floor of 1ms (not 0) because this DelayNode sits inside a feedback
     // cycle, unlike reverb's preDelay which doesn't.
-    delay.delayTimeMs = Math.max(1, Math.min(DELAY_TIME_MAX_MS, delayTimeMs));
-    delay.feedback = Math.max(0, Math.min(DELAY_FEEDBACK_MAX, feedback));
-    delay.mix = Math.max(0, Math.min(100, mix));
-    delay.dampingAmount = Math.max(0, Math.min(100, dampingAmount));
-    delay.outputLevel = Math.max(0, Math.min(100, outputLevel));
+    delay.delayTimeMs = clamp(delayTimeMs, 1, DELAY_TIME_MAX_MS);
+    delay.feedback = clamp(feedback, 0, DELAY_FEEDBACK_MAX);
+    delay.mix = clamp(mix, 0, 100);
+    delay.dampingAmount = clamp(dampingAmount, 0, 100);
+    delay.outputLevel = clamp(outputLevel, 0, 100);
 
     delay.delayNode.delayTime.setTargetAtTime(delay.delayTimeMs / 1000, now, 0.01);
     delay.feedbackGain.gain.setTargetAtTime(delay.feedback / 100, now, 0.01);
@@ -604,10 +607,10 @@ export class AudioEngine {
     const now = this.ctx.currentTime;
 
     reverb.room = room;
-    reverb.mix = Math.max(0, Math.min(100, mix));
-    reverb.preDelayMs = Math.max(0, Math.min(500, preDelayMs));
-    reverb.dampingAmount = Math.max(0, Math.min(100, dampingAmount));
-    reverb.outputLevel = Math.max(0, Math.min(100, outputLevel));
+    reverb.mix = clamp(mix, 0, 100);
+    reverb.preDelayMs = clamp(preDelayMs, 0, 500);
+    reverb.dampingAmount = clamp(dampingAmount, 0, 100);
+    reverb.outputLevel = clamp(outputLevel, 0, 100);
 
     reverb.convolver.buffer = this._getImpulseResponse(reverb.room);
 
@@ -664,6 +667,34 @@ export class AudioEngine {
   // ── Private ────────────────────────────────────────────────────────────────
 
   /**
+   * Builds the dry/wet/output gain triple shared by every insert effect
+   * (filter, distortion, delay, reverb):
+   *   dryGain ──────────┐
+   *                      ┴→ outputGain
+   *   wetGain ──────────┘
+   * Initialises dryGain=1/wetGain=0/outputGain=1 (mix = 0 ⇒ fully dry, full
+   * output level) — the shared default every builder previously set inline.
+   * `outputGain` is intentionally left unconnected here; each caller
+   * (`addTrack`) wires it onward into the next insert's entry points.
+   * Callers create their own effect-specific middle node(s) and connect the
+   * last one into the returned `wetGain`.
+   */
+  private _createDryWetOutput(): { dryGain: GainNode; wetGain: GainNode; outputGain: GainNode } {
+    const dryGain = this.ctx.createGain();
+    const wetGain = this.ctx.createGain();
+    const outputGain = this.ctx.createGain();
+
+    dryGain.connect(outputGain);
+    wetGain.connect(outputGain);
+
+    dryGain.gain.value = 1;
+    wetGain.gain.value = 0;
+    outputGain.gain.value = 1;
+
+    return { dryGain, wetGain, outputGain };
+  }
+
+  /**
    * Builds the per-track filter insert and wires its internal routing:
    *   dryGain ─────────────────────────┐
    *   biquadFilter ──────────→ wetGain ┴→ outputGain
@@ -672,15 +703,10 @@ export class AudioEngine {
    * sits before delay in the chain).
    */
   private _createFilterNodes(): FilterNodes {
-    const dryGain = this.ctx.createGain();
+    const { dryGain, wetGain, outputGain } = this._createDryWetOutput();
     const biquadFilter = this.ctx.createBiquadFilter();
-    const wetGain = this.ctx.createGain();
-    const outputGain = this.ctx.createGain();
 
     biquadFilter.connect(wetGain);
-    dryGain.connect(outputGain);
-    wetGain.connect(outputGain);
-    // outputGain intentionally left unconnected here — see addTrack().
 
     const filter: FilterNodes = {
       dryGain,
@@ -694,13 +720,11 @@ export class AudioEngine {
       outputLevel: 100,
     };
 
-    // Initialise gains/filter to match the default (mix = 0 ⇒ fully dry).
-    dryGain.gain.value = 1;
-    wetGain.gain.value = 0;
+    // Initialise the filter to match the default (mix = 0 ⇒ fully dry).
+    // Gains are already dry=1/wet=0/out=1 via _createDryWetOutput().
     biquadFilter.type = filter.type;
     biquadFilter.frequency.value = filter.cutoff;
     biquadFilter.Q.value = filter.resonance;
-    outputGain.gain.value = filter.outputLevel / 100;
 
     return filter;
   }
@@ -715,20 +739,15 @@ export class AudioEngine {
    * since distortion sits before delay in the chain).
    */
   private _createDistortionNodes(): DistortionNodes {
-    const dryGain = this.ctx.createGain();
+    const { dryGain, wetGain, outputGain } = this._createDryWetOutput();
     const waveShaper = this.ctx.createWaveShaper();
     const toneFilter = this.ctx.createBiquadFilter();
-    const wetGain = this.ctx.createGain();
-    const outputGain = this.ctx.createGain();
 
     toneFilter.type = 'lowpass';
     waveShaper.oversample = '4x';
 
     waveShaper.connect(toneFilter);
     toneFilter.connect(wetGain);
-    dryGain.connect(outputGain);
-    wetGain.connect(outputGain);
-    // outputGain intentionally left unconnected here — see addTrack().
 
     const distortion: DistortionNodes = {
       dryGain,
@@ -742,13 +761,11 @@ export class AudioEngine {
       outputLevel: 100,
     };
 
-    // Initialise gains/filter/curve to match the default (mix = 0 ⇒ fully dry).
-    dryGain.gain.value = 1;
-    wetGain.gain.value = 0;
+    // Initialise the filter/curve to match the default (mix = 0 ⇒ fully dry).
+    // Gains are already dry=1/wet=0/out=1 via _createDryWetOutput().
     waveShaper.curve = this._makeDistortionCurve(distortion.drive);
     toneFilter.frequency.value =
       DAMPING_MIN_HZ + (distortion.tone / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
-    outputGain.gain.value = distortion.outputLevel / 100;
 
     return distortion;
   }
@@ -789,12 +806,10 @@ export class AudioEngine {
    * before reverb in the chain).
    */
   private _createDelayNodes(): DelayNodes {
-    const dryGain = this.ctx.createGain();
+    const { dryGain, wetGain, outputGain } = this._createDryWetOutput();
     const delayNode = this.ctx.createDelay(DELAY_TIME_MAX_S);
     const feedbackGain = this.ctx.createGain();
     const damping = this.ctx.createBiquadFilter();
-    const wetGain = this.ctx.createGain();
-    const outputGain = this.ctx.createGain();
 
     damping.type = 'lowpass';
 
@@ -804,10 +819,6 @@ export class AudioEngine {
     delayNode.connect(feedbackGain);
     feedbackGain.connect(damping);
     damping.connect(delayNode);
-
-    dryGain.connect(outputGain);
-    wetGain.connect(outputGain);
-    // outputGain intentionally left unconnected here — see addTrack().
 
     const delay: DelayNodes = {
       dryGain,
@@ -823,14 +834,12 @@ export class AudioEngine {
       outputLevel: 100,
     };
 
-    // Initialise gains/filter to match the default (mix = 0 ⇒ fully dry).
-    dryGain.gain.value = 1;
-    wetGain.gain.value = 0;
+    // Initialise the delay/filter to match the default (mix = 0 ⇒ fully dry).
+    // Gains are already dry=1/wet=0/out=1 via _createDryWetOutput().
     delayNode.delayTime.value = delay.delayTimeMs / 1000;
     feedbackGain.gain.value = delay.feedback / 100;
     damping.frequency.value =
       DAMPING_MAX_HZ - (delay.dampingAmount / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
-    outputGain.gain.value = delay.outputLevel / 100;
 
     return delay;
   }
@@ -844,12 +853,10 @@ export class AudioEngine {
    * last in the chain).
    */
   private _createReverbNodes(): ReverbNodes {
-    const dryGain = this.ctx.createGain();
+    const { dryGain, wetGain, outputGain } = this._createDryWetOutput();
     const preDelay = this.ctx.createDelay(0.5);
     const convolver = this.ctx.createConvolver();
     const damping = this.ctx.createBiquadFilter();
-    const wetGain = this.ctx.createGain();
-    const outputGain = this.ctx.createGain();
 
     damping.type = 'lowpass';
     convolver.normalize = true;
@@ -857,10 +864,8 @@ export class AudioEngine {
     preDelay.connect(convolver);
     convolver.connect(damping);
     damping.connect(wetGain);
-    dryGain.connect(outputGain);
-    wetGain.connect(outputGain);
-    // outputGain intentionally left unconnected here — see addTrack(), which
-    // now wires it onward into the panner (reverb no longer sits last).
+    // outputGain wiring onward (into the panner, since reverb no longer sits
+    // last in the chain) is done by the caller — see addTrack().
 
     const reverb: ReverbNodes = {
       dryGain,
@@ -876,13 +881,11 @@ export class AudioEngine {
       outputLevel: 100,
     };
 
-    // Initialise gains/filter to match the default (mix = 0 ⇒ fully dry).
-    dryGain.gain.value = 1;
-    wetGain.gain.value = 0;
+    // Initialise the reverb/filter to match the default (mix = 0 ⇒ fully dry).
+    // Gains are already dry=1/wet=0/out=1 via _createDryWetOutput().
     preDelay.delayTime.value = reverb.preDelayMs / 1000;
     damping.frequency.value =
       DAMPING_MAX_HZ - (reverb.dampingAmount / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
-    outputGain.gain.value = reverb.outputLevel / 100;
     convolver.buffer = this._getImpulseResponse(reverb.room);
 
     return reverb;

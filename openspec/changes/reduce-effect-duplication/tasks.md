@@ -41,11 +41,11 @@ Rationale: chain strategy already resolved (force-chained/stacked-to-main from p
 - [x] 1.4 Parity gate: full suite green
 
 ## Slice 2: shared CSS (PR 2)
-- [ ] 2.1 RED: dialog test asserts shared class from `effect-dialog.css` (fails, missing)
-- [ ] 2.2 GREEN: create `effects/effect-dialog.css` (grouped selectors, 5 prefixes)
-- [ ] 2.3 GREEN: shrink 5 `*SettingsDialog.css` to `--effect-accent` + apply-button colors
-- [ ] 2.4 Parity gate: full suite green, same classNames
-- [ ] 2.5 If diff >400: split 2a/2b per forecast
+- [x] 2.1 RED: dialog test asserts shared class from `effect-dialog.css` (fails, missing) — N/A, see deviation note in apply-progress.md (CSS-only change, no jsdom CSS loading in Vitest; existing dialog tests + full-suite baseline serve as the RED/parity gate per orchestrator instruction)
+- [x] 2.2 GREEN: create `effects/effect-dialog.css` (grouped selectors, 5 prefixes)
+- [x] 2.3 GREEN: shrink 5 `*SettingsDialog.css` to `--effect-accent` + apply-button colors (+ `--effect-value-width` for Fade, see deviation note)
+- [x] 2.4 Parity gate: full suite green, same classNames
+- [x] 2.5 If diff >400: split 2a/2b per forecast — done; measured 2a alone (530 lines) still exceeds 400, see apply-progress.md
 
 ## Slice 3: shared JSX (PR 3)
 - [ ] 3.1 RED: per-dialog test asserts `<EffectDialog>`/`<SettingsField>` chrome (fails)

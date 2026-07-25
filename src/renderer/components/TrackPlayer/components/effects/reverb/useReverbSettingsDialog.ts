@@ -1,69 +1,69 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { ReverbRoom, TrackState } from '../../../../../domain/TrackState';
 import { useAudio } from '../../../../../context/useAudio';
+import { useSettingsDialog } from '../../useSettingsDialog';
+
+interface ReverbDraft {
+  room: ReverbRoom;
+  mix: number;
+  preDelay: number;
+  damping: number;
+  output: number;
+}
 
 /** Owns the open/closed state and draft values for a track's Reverb settings dialog. */
 export const useReverbSettingsDialog = (state: TrackState) => {
   const { setReverbSettings } = useAudio();
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [draftReverbRoom, setDraftReverbRoom] = useState<ReverbRoom>(state.reverbRoom);
-  const [draftReverbMix, setDraftReverbMix] = useState(state.reverbMix);
-  const [draftReverbPreDelay, setDraftReverbPreDelay] = useState(state.reverbPreDelay);
-  const [draftReverbDamping, setDraftReverbDamping] = useState(state.reverbDamping);
-  const [draftReverbOutput, setDraftReverbOutput] = useState(state.reverbOutput);
+  const seed = useCallback(
+    (): ReverbDraft => ({
+      room: state.reverbRoom,
+      mix: state.reverbMix,
+      preDelay: state.reverbPreDelay,
+      damping: state.reverbDamping,
+      output: state.reverbOutput,
+    }),
+    [
+      state.reverbRoom,
+      state.reverbMix,
+      state.reverbPreDelay,
+      state.reverbDamping,
+      state.reverbOutput,
+    ],
+  );
 
-  const open = useCallback(() => {
-    setDraftReverbRoom(state.reverbRoom);
-    setDraftReverbMix(state.reverbMix);
-    setDraftReverbPreDelay(state.reverbPreDelay);
-    setDraftReverbDamping(state.reverbDamping);
-    setDraftReverbOutput(state.reverbOutput);
-    setIsOpen(true);
-  }, [
-    state.reverbRoom,
-    state.reverbMix,
-    state.reverbPreDelay,
-    state.reverbDamping,
-    state.reverbOutput,
-  ]);
+  const onApply = useCallback(
+    (draft: ReverbDraft) =>
+      setReverbSettings(
+        state.id,
+        draft.room,
+        draft.mix,
+        draft.preDelay,
+        draft.damping,
+        draft.output,
+      ),
+    [state.id, setReverbSettings],
+  );
 
-  const close = useCallback(() => setIsOpen(false), []);
-
-  const apply = useCallback(() => {
-    setReverbSettings(
-      state.id,
-      draftReverbRoom,
-      draftReverbMix,
-      draftReverbPreDelay,
-      draftReverbDamping,
-      draftReverbOutput,
-    );
-    setIsOpen(false);
-  }, [
-    state.id,
-    draftReverbRoom,
-    draftReverbMix,
-    draftReverbPreDelay,
-    draftReverbDamping,
-    draftReverbOutput,
-    setReverbSettings,
-  ]);
+  const { isOpen, draft, setField, open, close, apply } = useSettingsDialog<ReverbDraft>(
+    seed,
+    onApply,
+  );
 
   return {
     isOpen,
     open,
     close,
     apply,
-    draftReverbRoom,
-    setDraftReverbRoom,
-    draftReverbMix,
-    setDraftReverbMix,
-    draftReverbPreDelay,
-    setDraftReverbPreDelay,
-    draftReverbDamping,
-    setDraftReverbDamping,
-    draftReverbOutput,
-    setDraftReverbOutput,
+    draftReverbRoom: draft.room,
+    setDraftReverbRoom: (value: ReverbRoom) => setField('room', value),
+    draftReverbMix: draft.mix,
+    setDraftReverbMix: (value: number) => setField('mix', value),
+    draftReverbPreDelay: draft.preDelay,
+    setDraftReverbPreDelay: (value: number) => setField('preDelay', value),
+    draftReverbDamping: draft.damping,
+    setDraftReverbDamping: (value: number) => setField('damping', value),
+    draftReverbOutput: draft.output,
+    setDraftReverbOutput: (value: number) => setField('output', value),
   };
 };

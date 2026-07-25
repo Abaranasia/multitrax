@@ -56,12 +56,12 @@ Rationale: chain strategy already resolved (force-chained/stacked-to-main from p
 - [x] 3.6 If diff >400: split 3a/3b per forecast — done; measured total 938 lines (3a alone 550, 3b 400), see apply-progress.md
 
 ## Slice 4: generic hook (PR 4)
-- [ ] 4.1 RED: `TrackPlayer.test.tsx` open/apply/cancel expects `useSettingsDialog` re-sync (fails)
-- [ ] 4.2 GREEN: create `useSettingsDialog.ts` (`isOpen,draft,setField,open,close,apply`)
-- [ ] 4.3 GREEN: rewrite 5 `use*SettingsDialog.ts` as thin wrappers, same flat `draftX/setDraftX` shape
-- [ ] 4.4 GREEN: update `TrackPlayer.tsx:111-115` + `components/index.ts`
-- [ ] 4.5 Verify ADDED "hook contract stays identical": open reseeds, apply commits+closes, cancel discards (`TrackPlayer.test.tsx` only, no isolated hook test)
-- [ ] 4.6 Parity gate: full suite green
+- [x] 4.1 RED: `TrackPlayer.test.tsx` open/apply/cancel expects `useSettingsDialog` re-sync (fails) — N/A, see deviation note in apply-progress.md (behavior-preserving refactor of already-correct hooks; no black-box test can RED without a real pre-existing defect — 2 new tests added and verified green against pre-refactor code as the safety-net baseline, mirroring slices 1/2/3's precedent)
+- [x] 4.2 GREEN: create `useSettingsDialog.ts` (`isOpen,draft,setField,open,close,apply`)
+- [x] 4.3 GREEN: rewrite 5 `use*SettingsDialog.ts` as thin wrappers, same flat `draftX/setDraftX` shape
+- [x] 4.4 GREEN: update `TrackPlayer.tsx:111-115` + `components/index.ts` — N/A, not required (wrapper signatures/exports unchanged, frozen seam held with zero call-site changes)
+- [x] 4.5 Verify ADDED "hook contract stays identical": open reseeds, apply commits+closes, cancel discards (`TrackPlayer.test.tsx` only, no isolated hook test)
+- [x] 4.6 Parity gate: full suite green
 
 ## Slice 5: AudioEngine clamp/wiring (PR 5)
 - [ ] 5.1 RED: `AudioEngine.test.ts` pins one clamp boundary pre-extraction

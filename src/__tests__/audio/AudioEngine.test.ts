@@ -362,7 +362,7 @@ describe('AudioEngine (unit)', () => {
     expect(filter.cutoff).toBe(20); // FILTER_CUTOFF_MIN_HZ
     expect(filter.resonance).toBe(0.1); // FILTER_RESONANCE_MIN
     expect(filter.mix).toBe(0);
-    expect(filter.outputLevel).toBe(0);
+    expect(filter.output).toBe(0);
 
     engine.setFilterSettings('t9b', {
       type: 'lowpass',
@@ -375,7 +375,7 @@ describe('AudioEngine (unit)', () => {
     expect(filter.cutoff).toBe(20000); // FILTER_CUTOFF_MAX_HZ
     expect(filter.resonance).toBe(20); // FILTER_RESONANCE_MAX
     expect(filter.mix).toBe(100);
-    expect(filter.outputLevel).toBe(100);
+    expect(filter.output).toBe(100);
   });
 
   it('addTrack wires filter.outputGain -> distortion.dryGain/waveShaper -> distortion.outputGain -> delay.dryGain/delayNode', () => {
@@ -439,7 +439,7 @@ describe('AudioEngine (unit)', () => {
     expect(after.drive).toBe(70);
     expect(after.tone).toBe(40);
     expect(after.mix).toBe(60);
-    expect(after.outputLevel).toBe(80);
+    expect(after.output).toBe(80);
   });
 
   it('setDistortionSettings clamps each parameter to its pre-refactor documented range', () => {
@@ -452,14 +452,14 @@ describe('AudioEngine (unit)', () => {
     expect(distortion.drive).toBe(0);
     expect(distortion.tone).toBe(0);
     expect(distortion.mix).toBe(0);
-    expect(distortion.outputLevel).toBe(0);
+    expect(distortion.output).toBe(0);
 
     engine.setDistortionSettings('td2b', { drive: 999, tone: 999, mix: 999, output: 999 });
     distortion = (engine as any).tracks.get('td2b').distortion;
     expect(distortion.drive).toBe(100);
     expect(distortion.tone).toBe(100);
     expect(distortion.mix).toBe(100);
-    expect(distortion.outputLevel).toBe(100);
+    expect(distortion.output).toBe(100);
   });
 
   it('_makeDistortionCurve is a near-identity pass-through at drive=0 and increasingly compressive at higher |x| for drive=100', () => {
@@ -551,7 +551,7 @@ describe('AudioEngine (unit)', () => {
     expect(delay.feedback).toBe(0);
     expect(delay.mix).toBe(0);
     expect(delay.dampingAmount).toBe(0);
-    expect(delay.outputLevel).toBe(0);
+    expect(delay.output).toBe(0);
 
     engine.setDelaySettings('t8b', {
       delayTime: 999999,
@@ -565,7 +565,7 @@ describe('AudioEngine (unit)', () => {
     expect(delay.feedback).toBe(90); // DELAY_FEEDBACK_MAX
     expect(delay.mix).toBe(100);
     expect(delay.dampingAmount).toBe(100);
-    expect(delay.outputLevel).toBe(100);
+    expect(delay.output).toBe(100);
   });
 
   it('setReverbSettings updates the reverb chain without throwing', () => {
@@ -599,14 +599,14 @@ describe('AudioEngine (unit)', () => {
     expect(reverb.mix).toBe(0);
     expect(reverb.preDelayMs).toBe(0);
     expect(reverb.dampingAmount).toBe(0);
-    expect(reverb.outputLevel).toBe(0);
+    expect(reverb.output).toBe(0);
 
     engine.setReverbSettings('t7b', { room: 'hall', mix: 999, preDelay: 999, damping: 999, output: 999 });
     reverb = (engine as any).tracks.get('t7b').reverb;
     expect(reverb.mix).toBe(100);
     expect(reverb.preDelayMs).toBe(500); // pre-delay max is 500ms, unlike delay's 2000ms
     expect(reverb.dampingAmount).toBe(100);
-    expect(reverb.outputLevel).toBe(100);
+    expect(reverb.output).toBe(100);
   });
 
   it('close disconnects tracks and closes context', () => {

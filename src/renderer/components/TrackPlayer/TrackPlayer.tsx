@@ -2,17 +2,19 @@ import { useEffect, useRef } from 'react';
 import { TrackState } from '../../domain/TrackState';
 import { formatTime } from '../../utils/formatTime';
 import { useTrackPlayer } from './useTrackPlayer';
-import { TrackContextMenu } from './components/contextMenu/TrackContextMenu';
-import { FilterSettingsDialog } from './components/effects/filter/FilterSettingsDialog';
-import { useFilterSettingsDialog } from './components/effects/filter/useFilterSettingsDialog';
-import { DistortionSettingsDialog } from './components/effects/distortion/DistortionSettingsDialog';
-import { useDistortionSettingsDialog } from './components/effects/distortion/useDistortionSettingsDialog';
-import { FadeSettingsDialog } from './components/fadeSettings/FadeSettingsDialog';
-import { useFadeSettingsDialog } from './components/fadeSettings/useFadeSettingsDialog';
-import { DelaySettingsDialog } from './components/effects/delay/DelaySettingsDialog';
-import { useDelaySettingsDialog } from './components/effects/delay/useDelaySettingsDialog';
-import { ReverbSettingsDialog } from './components/effects/reverb/ReverbSettingsDialog';
-import { useReverbSettingsDialog } from './components/effects/reverb/useReverbSettingsDialog';
+import {
+  TrackContextMenu,
+  FilterSettingsDialog,
+  useFilterSettingsDialog,
+  DistortionSettingsDialog,
+  useDistortionSettingsDialog,
+  FadeSettingsDialog,
+  useFadeSettingsDialog,
+  DelaySettingsDialog,
+  useDelaySettingsDialog,
+  ReverbSettingsDialog,
+  useReverbSettingsDialog,
+} from './components';
 
 import './TrackPlayer.css';
 

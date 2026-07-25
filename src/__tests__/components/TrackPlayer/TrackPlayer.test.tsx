@@ -446,7 +446,7 @@ describe('TrackPlayer', () => {
       </AudioProvider>,
     );
 
-    const distortionBtn = screen.getByTitle('Distortion settings');
+    const distortionBtn = screen.getByTitle('Waveshape settings');
     fireEvent.click(distortionBtn);
 
     const applyBtn = await screen.findByText('Apply');
@@ -481,7 +481,7 @@ describe('TrackPlayer', () => {
       </AudioProvider>,
     );
 
-    const distortionBtn = screen.getByTitle('Distortion settings');
+    const distortionBtn = screen.getByTitle('Waveshape settings');
     fireEvent.click(distortionBtn);
 
     const ranges = document.querySelectorAll('.distortion-settings-panel input[type=range]');
@@ -500,7 +500,7 @@ describe('TrackPlayer', () => {
       </AudioProvider>,
     );
 
-    expect(screen.getByTitle('Distortion settings').className).not.toContain(
+    expect(screen.getByTitle('Waveshape settings').className).not.toContain(
       'btn-distortion--active',
     );
 
@@ -510,7 +510,7 @@ describe('TrackPlayer', () => {
       </AudioProvider>,
     );
 
-    expect(screen.getByTitle('Distortion settings').className).toContain('btn-distortion--active');
+    expect(screen.getByTitle('Waveshape settings').className).toContain('btn-distortion--active');
   });
 
   it('opens a context menu on right-click and duplicates the track', async () => {

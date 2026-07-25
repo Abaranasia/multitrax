@@ -1,4 +1,7 @@
 import { ReverbRoom } from '../../../../../domain/TrackState';
+import { EffectDialog } from '../../EffectDialog';
+import { SettingsField } from '../../SettingsField';
+
 import './ReverbSettingsDialog.css';
 
 interface ReverbSettingsDialogProps {
@@ -31,91 +34,65 @@ export const ReverbSettingsDialog = ({
   onCancel,
 }: ReverbSettingsDialogProps) => {
   return (
-    <div
-      className="reverb-settings-overlay"
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={onCancel}
-    >
-      <div className="reverb-settings-panel" onClick={(e) => e.stopPropagation()}>
-        <div className="reverb-settings-title">🎛️ Reverb</div>
-
-        <div className="reverb-settings-field">
-          <span className="reverb-settings-label">Room</span>
-          <select
-            className="reverb-settings-select"
-            value={draftReverbRoom}
-            onChange={(e) => setDraftReverbRoom(e.target.value as ReverbRoom)}
-          >
-            <option value="small-room">Small Room</option>
-            <option value="hall">Hall</option>
-            <option value="plate">Plate</option>
-            <option value="cathedral">Cathedral</option>
-          </select>
-        </div>
-
-        <div className="reverb-settings-field">
-          <span className="reverb-settings-label">Pre-delay</span>
-          <input
-            type="range"
-            min={0}
-            max={500}
-            step={10}
-            value={draftReverbPreDelay}
-            onChange={(e) => setDraftReverbPreDelay(Number(e.target.value))}
-          />
-          <span className="reverb-settings-value">{draftReverbPreDelay}ms</span>
-        </div>
-
-        <div className="reverb-settings-field">
-          <span className="reverb-settings-label">Damping</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={draftReverbDamping}
-            onChange={(e) => setDraftReverbDamping(Number(e.target.value))}
-          />
-          <span className="reverb-settings-value">{draftReverbDamping}%</span>
-        </div>
-
-        <div className="reverb-settings-field">
-          <span className="reverb-settings-label">Output</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={draftReverbOutput}
-            onChange={(e) => setDraftReverbOutput(Number(e.target.value))}
-          />
-          <span className="reverb-settings-value">{draftReverbOutput}%</span>
-        </div>
-
-        <div className="reverb-settings-field">
-          <span className="reverb-settings-label reverb-settings-label--mix">Mix</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={draftReverbMix}
-            onChange={(e) => setDraftReverbMix(Number(e.target.value))}
-          />
-          <span className="reverb-settings-value reverb-settings-value--mix">
-            {draftReverbMix}%
-          </span>
-        </div>
-
-        <div className="reverb-settings-actions">
-          <button className="reverb-settings-apply" onClick={onApply}>
-            Apply
-          </button>
-          <button className="reverb-settings-cancel" onClick={onCancel}>
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
+    <EffectDialog effect="reverb-settings" title="🎛️ Reverb" onApply={onApply} onCancel={onCancel}>
+      <SettingsField
+        kind="select"
+        effect="reverb-settings"
+        label="Room"
+        value={draftReverbRoom}
+        onChange={(value) => setDraftReverbRoom(value as ReverbRoom)}
+        options={[
+          { value: 'small-room', label: 'Small Room' },
+          { value: 'hall', label: 'Hall' },
+          { value: 'plate', label: 'Plate' },
+          { value: 'cathedral', label: 'Cathedral' },
+        ]}
+      />
+      <SettingsField
+        kind="slider"
+        effect="reverb-settings"
+        label="Pre-delay"
+        min={0}
+        max={500}
+        step={10}
+        value={draftReverbPreDelay}
+        onChange={setDraftReverbPreDelay}
+        format={(v) => `${v}ms`}
+      />
+      <SettingsField
+        kind="slider"
+        effect="reverb-settings"
+        label="Damping"
+        min={0}
+        max={100}
+        step={1}
+        value={draftReverbDamping}
+        onChange={setDraftReverbDamping}
+        format={(v) => `${v}%`}
+      />
+      <SettingsField
+        kind="slider"
+        effect="reverb-settings"
+        label="Output"
+        min={0}
+        max={100}
+        step={1}
+        value={draftReverbOutput}
+        onChange={setDraftReverbOutput}
+        format={(v) => `${v}%`}
+      />
+      <SettingsField
+        kind="slider"
+        effect="reverb-settings"
+        label="Mix"
+        min={0}
+        max={100}
+        step={1}
+        value={draftReverbMix}
+        onChange={setDraftReverbMix}
+        format={(v) => `${v}%`}
+        mix
+      />
+    </EffectDialog>
   );
 };

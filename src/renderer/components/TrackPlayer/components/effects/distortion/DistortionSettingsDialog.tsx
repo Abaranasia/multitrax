@@ -1,3 +1,6 @@
+import { EffectDialog } from '../../EffectDialog';
+import { SettingsField } from '../../SettingsField';
+
 import './DistortionSettingsDialog.css';
 
 interface DistortionSettingsDialogProps {
@@ -26,77 +29,57 @@ export const DistortionSettingsDialog = ({
   onCancel,
 }: DistortionSettingsDialogProps) => {
   return (
-    <div
-      className="distortion-settings-overlay"
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={onCancel}
+    <EffectDialog
+      effect="distortion-settings"
+      title="▲ Waveshape/Distortion"
+      onApply={onApply}
+      onCancel={onCancel}
     >
-      <div className="distortion-settings-panel" onClick={(e) => e.stopPropagation()}>
-        <div className="distortion-settings-title">▲ Waveshape/Distortion</div>
-
-        <div className="distortion-settings-field">
-          <span className="distortion-settings-label">Drive</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={draftDrive}
-            onChange={(e) => setDraftDrive(Number(e.target.value))}
-          />
-          <span className="distortion-settings-value">{draftDrive}%</span>
-        </div>
-
-        <div className="distortion-settings-field">
-          <span className="distortion-settings-label">Tone</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={draftTone}
-            onChange={(e) => setDraftTone(Number(e.target.value))}
-          />
-          <span className="distortion-settings-value">{draftTone}%</span>
-        </div>
-
-        <div className="distortion-settings-field">
-          <span className="distortion-settings-label">Output</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={draftOutput}
-            onChange={(e) => setDraftOutput(Number(e.target.value))}
-          />
-          <span className="distortion-settings-value">{draftOutput}%</span>
-        </div>
-
-        <div className="distortion-settings-field">
-          <span className="distortion-settings-label distortion-settings-label--mix">Mix</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={draftMix}
-            onChange={(e) => setDraftMix(Number(e.target.value))}
-          />
-          <span className="distortion-settings-value distortion-settings-value--mix">
-            {draftMix}%
-          </span>
-        </div>
-
-        <div className="distortion-settings-actions">
-          <button className="distortion-settings-apply" onClick={onApply}>
-            Apply
-          </button>
-          <button className="distortion-settings-cancel" onClick={onCancel}>
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
+      <SettingsField
+        kind="slider"
+        effect="distortion-settings"
+        label="Drive"
+        min={0}
+        max={100}
+        step={1}
+        value={draftDrive}
+        onChange={setDraftDrive}
+        format={(v) => `${v}%`}
+      />
+      <SettingsField
+        kind="slider"
+        effect="distortion-settings"
+        label="Tone"
+        min={0}
+        max={100}
+        step={1}
+        value={draftTone}
+        onChange={setDraftTone}
+        format={(v) => `${v}%`}
+      />
+      <SettingsField
+        kind="slider"
+        effect="distortion-settings"
+        label="Output"
+        min={0}
+        max={100}
+        step={1}
+        value={draftOutput}
+        onChange={setDraftOutput}
+        format={(v) => `${v}%`}
+      />
+      <SettingsField
+        kind="slider"
+        effect="distortion-settings"
+        label="Mix"
+        min={0}
+        max={100}
+        step={1}
+        value={draftMix}
+        onChange={setDraftMix}
+        format={(v) => `${v}%`}
+        mix
+      />
+    </EffectDialog>
   );
 };

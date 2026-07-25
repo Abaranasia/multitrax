@@ -1,4 +1,6 @@
 import { FilterType } from '../../../../../domain/TrackState';
+import { EffectDialog } from '../../EffectDialog';
+import { SettingsField } from '../../SettingsField';
 
 import './FilterSettingsDialog.css';
 
@@ -32,88 +34,64 @@ export const FilterSettingsDialog = ({
   onCancel,
 }: FilterSettingsDialogProps) => {
   return (
-    <div
-      className="filter-settings-overlay"
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={onCancel}
-    >
-      <div className="filter-settings-panel" onClick={(e) => e.stopPropagation()}>
-        <div className="filter-settings-title">◢ Filter</div>
-
-        <div className="filter-settings-field">
-          <span className="filter-settings-label">Type</span>
-          <select
-            className="filter-settings-select"
-            value={draftType}
-            onChange={(e) => setDraftType(e.target.value as FilterType)}
-          >
-            <option value="lowpass">Lowpass</option>
-            <option value="highpass">Highpass</option>
-            <option value="bandpass">Bandpass</option>
-          </select>
-        </div>
-
-        <div className="filter-settings-field">
-          <span className="filter-settings-label">Cutoff</span>
-          <input
-            type="range"
-            min={20}
-            max={20000}
-            step={10}
-            value={draftCutoff}
-            onChange={(e) => setDraftCutoff(Number(e.target.value))}
-          />
-          <span className="filter-settings-value">{draftCutoff}Hz</span>
-        </div>
-
-        <div className="filter-settings-field">
-          <span className="filter-settings-label">Resonance</span>
-          <input
-            type="range"
-            min={0.1}
-            max={20}
-            step={0.1}
-            value={draftResonance}
-            onChange={(e) => setDraftResonance(Number(e.target.value))}
-          />
-          <span className="filter-settings-value">{draftResonance.toFixed(1)}</span>
-        </div>
-
-        <div className="filter-settings-field">
-          <span className="filter-settings-label">Output</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={draftOutput}
-            onChange={(e) => setDraftOutput(Number(e.target.value))}
-          />
-          <span className="filter-settings-value">{draftOutput}%</span>
-        </div>
-
-        <div className="filter-settings-field">
-          <span className="filter-settings-label filter-settings-label--mix">Mix</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={draftMix}
-            onChange={(e) => setDraftMix(Number(e.target.value))}
-          />
-          <span className="filter-settings-value filter-settings-value--mix">{draftMix}%</span>
-        </div>
-
-        <div className="filter-settings-actions">
-          <button className="filter-settings-apply" onClick={onApply}>
-            Apply
-          </button>
-          <button className="filter-settings-cancel" onClick={onCancel}>
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
+    <EffectDialog effect="filter-settings" title="◢ Filter" onApply={onApply} onCancel={onCancel}>
+      <SettingsField
+        kind="select"
+        effect="filter-settings"
+        label="Type"
+        value={draftType}
+        onChange={(value) => setDraftType(value as FilterType)}
+        options={[
+          { value: 'lowpass', label: 'Lowpass' },
+          { value: 'highpass', label: 'Highpass' },
+          { value: 'bandpass', label: 'Bandpass' },
+        ]}
+      />
+      <SettingsField
+        kind="slider"
+        effect="filter-settings"
+        label="Cutoff"
+        min={20}
+        max={20000}
+        step={10}
+        value={draftCutoff}
+        onChange={setDraftCutoff}
+        format={(v) => `${v}Hz`}
+      />
+      <SettingsField
+        kind="slider"
+        effect="filter-settings"
+        label="Resonance"
+        min={0.1}
+        max={20}
+        step={0.1}
+        value={draftResonance}
+        onChange={setDraftResonance}
+        format={(v) => v.toFixed(1)}
+      />
+      <SettingsField
+        kind="slider"
+        effect="filter-settings"
+        label="Output"
+        min={0}
+        max={100}
+        step={1}
+        value={draftOutput}
+        onChange={setDraftOutput}
+        format={(v) => `${v}%`}
+      />
+      <SettingsField
+        kind="slider"
+        effect="filter-settings"
+        label="Mix"
+        min={0}
+        max={100}
+        step={1}
+        value={draftMix}
+        onChange={setDraftMix}
+        format={(v) => `${v}%`}
+        mix
+      />
+    </EffectDialog>
   );
 };

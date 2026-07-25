@@ -269,14 +269,14 @@ what's meant to stay a focused mixing/monitoring tool.
     setters (`setLoop`, `setFadeIn`, `setFadeOut`, `setSeekFade`,
     `setFadeDurations`, `getRecordingStream`) have zero test coverage.
 
-- [ ] **Standardize naming and extract magic numbers in the effects code.**
+- [x] **Standardize naming and extract magic numbers in the effects code.**
   Full detail in `doc/FUTURE-IMPROVEMENTS.md` § 3.
-  - Unify `outputLevel` (engine layer) vs. `output` (context layer) — same
-    field, two names.
-  - Make the `mix` parameter position consistent across all four effect
-    setter signatures.
-  - Name the repeated `0.01` ramp time-constant and the inline `500`/`10`
-    clamp bounds as constants, matching the existing `DELAY_TIME_MAX_MS` /
+  - Unified `outputLevel` (engine layer) to `output` (canonical across all layers).
+  - `mix` parameter position was already resolved by `reduce-effect-duplication`
+    (all four setters now have `mix` as 4th parameter) — out of scope here.
+  - Extracted the repeated `0.01` ramp time-constant as `PARAM_RAMP_TIME_CONSTANT_S`
+    and the `500`/`10` clamp bounds as `REVERB_PREDELAY_MAX_MS` and
+    `FADE_DURATION_MAX_S`, matching the existing `DELAY_TIME_MAX_MS` /
     `DAMPING_MIN_HZ` pattern.
 
 - [ ] **Split up oversized files and remove inline styles.** Full detail in

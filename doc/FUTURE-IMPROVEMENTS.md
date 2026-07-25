@@ -95,21 +95,30 @@ out of scope for this item and stay tracked separately.
 
 ## 3. Naming / consistency
 
-- **`outputLevel` vs. `output`** — the same field is named `outputLevel` in
-  `AudioEngine.ts` (all 4 effect interfaces/setters, e.g. lines 500, 528, 562,
-  599) but `output` in the context layer (`audioContextInstance.ts:38,46,54,61`
-  and `AudioContext.tsx:313,344,375,400`).
+**Status: `[x]` DONE** — implemented on `ref/standardize-naming`
+(`openspec/changes/standardize-naming/`); see `apply-progress.md` for full
+TDD evidence. All 15 tasks complete (15/15). Full suite passes (129/129 tests),
+typecheck clean (0 errors). All 3 ADDED spec requirements verified compliant
+with 6/6 scenarios passing.
 
-- **Non-parallel setter signatures** — the `mix` parameter's position varies
-  across the four effect setters: 4th for `setFilterSettings`, 3rd for
-  `setDistortionSettings`/`setDelaySettings`, 2nd for `setReverbSettings`. Easy
-  to miscall positionally when maintaining more than one effect at a time.
+The `mix` parameter position bullet was already resolved by
+`reduce-effect-duplication` (all four setters now have `mix` as the 4th
+parameter) and was correctly marked out of scope in the proposal; therefore
+it is not re-implemented here.
 
-- **Un-named magic numbers** — the `0.01` `setTargetAtTime` ramp time-constant
-  is repeated ~20 times with no named constant (unlike `DAMPING_MIN_HZ`/
-  `DAMPING_MAX_HZ`, which are already shared). Reverb's preDelay clamp
-  (`AudioEngine.ts:608`) and the fade-duration clamps (`:487-489`) use inline
-  `500`/`10` instead of named constants like the existing `DELAY_TIME_MAX_MS`.
+- ~~**`outputLevel` vs. `output`**~~ — renamed to canonical `output` across all
+  4 internal per-track node interfaces (FilterNodes, DistortionNodes,
+  DelayNodes, ReverbNodes) in `AudioEngine.ts`, matching the name already used
+  at every other layer.
+
+- ~~**Non-parallel setter signatures**~~ — the `mix` parameter position is
+  already consistent (4th parameter for all four effect setters) as a result of
+  `reduce-effect-duplication`.
+
+- ~~**Un-named magic numbers**~~ — extracted as `PARAM_RAMP_TIME_CONSTANT_S =
+  0.01` (22 call sites), `REVERB_PREDELAY_MAX_MS = 500`, and
+  `FADE_DURATION_MAX_S = 10`, following the existing `DELAY_TIME_MAX_MS` /
+  `DAMPING_MIN_HZ` pattern.
 
 ## 4. Structural
 

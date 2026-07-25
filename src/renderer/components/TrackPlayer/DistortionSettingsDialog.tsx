@@ -32,7 +32,7 @@ export const DistortionSettingsDialog = ({
       onClick={onCancel}
     >
       <div className="distortion-settings-panel" onClick={(e) => e.stopPropagation()}>
-        <div className="distortion-settings-title">▲ Distortion</div>
+        <div className="distortion-settings-title">▲ Waveshape/Distortion</div>
 
         <div className="distortion-settings-field">
           <span className="distortion-settings-label">Drive</span>

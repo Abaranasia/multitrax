@@ -35,10 +35,10 @@ Rationale: chain strategy already resolved (force-chained/stacked-to-main from p
 | 6(a/b) | setter consolidation | PR6(a/b) | `AudioEngine.test.ts`+`AudioContext.test.tsx`+`TrackPlayer.test.tsx` | manual: duplicate track w/ non-default effects | revert slice, last in chain |
 
 ## Slice 1: test-utils (PR 1)
-- [ ] 1.1 RED: import `test-utils/mockAudioEngine` in `TrackPlayer.test.tsx` (fails, missing)
-- [ ] 1.2 GREEN: create `mockAudioEngine.ts` — `createMockAudioEngine()` (verbatim stub, fresh `vi.fn()`s)
-- [ ] 1.3 GREEN: 8 test files import factory, drop inline stub
-- [ ] 1.4 Parity gate: full suite green
+- [x] 1.1 RED: import `test-utils/mockAudioEngine` in `TrackPlayer.test.tsx` (fails, missing)
+- [x] 1.2 GREEN: create `mockAudioEngine.ts` — `createMockAudioEngine()` (verbatim stub, fresh `vi.fn()`s)
+- [x] 1.3 GREEN: 8 test files import factory, drop inline stub
+- [x] 1.4 Parity gate: full suite green
 
 ## Slice 2: shared CSS (PR 2)
 - [ ] 2.1 RED: dialog test asserts shared class from `effect-dialog.css` (fails, missing)

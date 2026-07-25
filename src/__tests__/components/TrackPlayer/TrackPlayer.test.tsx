@@ -211,6 +211,308 @@ describe('TrackPlayer', () => {
     await waitFor(() => expect(mockAudioEngine.setSeekFade).toHaveBeenCalledWith('track-1', true));
   });
 
+  it('opens settings, updates draft values and applies them to engine', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const settingsBtn = screen.getByTitle('Configure fade durations');
+    fireEvent.click(settingsBtn);
+
+    // find range inputs inside overlay
+    const applyBtn = await screen.findByText('Apply');
+    const ranges = document.querySelectorAll('.fade-settings-panel input[type=range]');
+    expect(ranges.length).toBe(3);
+
+    // change fade in to 2.5
+    fireEvent.change(ranges[0], { target: { value: '2.5' } });
+    // change fade out to 3.5
+    fireEvent.change(ranges[1], { target: { value: '3.5' } });
+    // change seek fade to 1
+    fireEvent.change(ranges[2], { target: { value: '1' } });
+
+    fireEvent.click(applyBtn);
+
+    await waitFor(() =>
+      expect(mockAudioEngine.setFadeDurations).toHaveBeenCalledWith('track-1', 2.5, 3.5, 1),
+    );
+  });
+
+  it('opens filter settings, updates draft values and applies them to engine', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const filterBtn = screen.getByTitle('Filter settings');
+    fireEvent.click(filterBtn);
+
+    const applyBtn = await screen.findByText('Apply');
+    const select = document.querySelector('.filter-settings-select') as HTMLSelectElement;
+    const ranges = document.querySelectorAll('.filter-settings-panel input[type=range]');
+    expect(ranges.length).toBe(4);
+
+    fireEvent.change(select, { target: { value: 'highpass' } });
+    fireEvent.change(ranges[0], { target: { value: '500' } }); // cutoff
+    fireEvent.change(ranges[1], { target: { value: '4' } }); // resonance
+    fireEvent.change(ranges[2], { target: { value: '90' } }); // output
+    fireEvent.change(ranges[3], { target: { value: '70' } }); // mix (bottom field)
+
+    fireEvent.click(applyBtn);
+
+    await waitFor(() =>
+      expect(mockAudioEngine.setFilterSettings).toHaveBeenCalledWith(
+        'track-1',
+        'highpass',
+        500,
+        4,
+        70,
+        90,
+      ),
+    );
+
+    // Overlay closes after apply
+    expect(screen.queryByText('Apply')).toBeNull();
+  });
+
+  it('discards filter draft changes and does not call the engine when cancelled', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const filterBtn = screen.getByTitle('Filter settings');
+    fireEvent.click(filterBtn);
+
+    const ranges = document.querySelectorAll('.filter-settings-panel input[type=range]');
+    fireEvent.change(ranges[0], { target: { value: '5000' } });
+
+    fireEvent.click(screen.getByText('Cancel'));
+
+    expect(screen.queryByText('Apply')).toBeNull();
+    expect(mockAudioEngine.setFilterSettings).not.toHaveBeenCalled();
+  });
+
+  it('shows the filter button as active only when filterMix is above 0', () => {
+    const { rerender } = render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, filterMix: 0 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    expect(screen.getByTitle('Filter settings').className).not.toContain('btn-filter--active');
+
+    rerender(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, filterMix: 40 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    expect(screen.getByTitle('Filter settings').className).toContain('btn-filter--active');
+  });
+
+  it('opens delay settings, updates draft values and applies them to engine', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const delayBtn = screen.getByTitle('Delay settings');
+    fireEvent.click(delayBtn);
+
+    const applyBtn = await screen.findByText('Apply');
+    const ranges = document.querySelectorAll('.delay-settings-panel input[type=range]');
+    expect(ranges.length).toBe(5);
+
+    fireEvent.change(ranges[0], { target: { value: '450' } }); // time
+    fireEvent.change(ranges[1], { target: { value: '60' } }); // feedback
+    fireEvent.change(ranges[2], { target: { value: '30' } }); // tone
+    fireEvent.change(ranges[3], { target: { value: '90' } }); // output
+    fireEvent.change(ranges[4], { target: { value: '40' } }); // mix (bottom field)
+
+    fireEvent.click(applyBtn);
+
+    await waitFor(() =>
+      expect(mockAudioEngine.setDelaySettings).toHaveBeenCalledWith('track-1', 450, 60, 40, 30, 90),
+    );
+
+    // Overlay closes after apply
+    expect(screen.queryByText('Apply')).toBeNull();
+  });
+
+  it('discards delay draft changes and does not call the engine when cancelled', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const delayBtn = screen.getByTitle('Delay settings');
+    fireEvent.click(delayBtn);
+
+    const ranges = document.querySelectorAll('.delay-settings-panel input[type=range]');
+    fireEvent.change(ranges[0], { target: { value: '900' } });
+
+    fireEvent.click(screen.getByText('Cancel'));
+
+    expect(screen.queryByText('Apply')).toBeNull();
+    expect(mockAudioEngine.setDelaySettings).not.toHaveBeenCalled();
+  });
+
+  it('opens reverb settings, updates draft values and applies them to engine', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const reverbBtn = screen.getByTitle('Reverb settings');
+    fireEvent.click(reverbBtn);
+
+    const applyBtn = await screen.findByText('Apply');
+    const select = document.querySelector('.reverb-settings-select') as HTMLSelectElement;
+    const ranges = document.querySelectorAll('.reverb-settings-panel input[type=range]');
+    expect(ranges.length).toBe(4);
+
+    fireEvent.change(select, { target: { value: 'cathedral' } });
+    fireEvent.change(ranges[0], { target: { value: '100' } }); // pre-delay
+    fireEvent.change(ranges[1], { target: { value: '20' } }); // damping
+    fireEvent.change(ranges[2], { target: { value: '80' } }); // output
+    fireEvent.change(ranges[3], { target: { value: '60' } }); // mix (bottom field)
+
+    fireEvent.click(applyBtn);
+
+    await waitFor(() =>
+      expect(mockAudioEngine.setReverbSettings).toHaveBeenCalledWith(
+        'track-1',
+        'cathedral',
+        60,
+        100,
+        20,
+        80,
+      ),
+    );
+
+    // Overlay closes after apply
+    expect(screen.queryByText('Apply')).toBeNull();
+  });
+
+  it('discards reverb draft changes and does not call the engine when cancelled', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const reverbBtn = screen.getByTitle('Reverb settings');
+    fireEvent.click(reverbBtn);
+
+    const ranges = document.querySelectorAll('.reverb-settings-panel input[type=range]');
+    fireEvent.change(ranges[0], { target: { value: '75' } });
+
+    fireEvent.click(screen.getByText('Cancel'));
+
+    expect(screen.queryByText('Apply')).toBeNull();
+    expect(mockAudioEngine.setReverbSettings).not.toHaveBeenCalled();
+  });
+
+  it('shows the reverb button as active only when reverbMix is above 0', () => {
+    const { rerender } = render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, reverbMix: 0 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    expect(screen.getByTitle('Reverb settings').className).not.toContain('btn-reverb--active');
+
+    rerender(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, reverbMix: 40 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    expect(screen.getByTitle('Reverb settings').className).toContain('btn-reverb--active');
+  });
+
+  it('opens distortion settings, updates draft values and applies them to engine', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const distortionBtn = screen.getByTitle('Waveshape settings');
+    fireEvent.click(distortionBtn);
+
+    const applyBtn = await screen.findByText('Apply');
+    const ranges = document.querySelectorAll('.distortion-settings-panel input[type=range]');
+    expect(ranges.length).toBe(4);
+
+    fireEvent.change(ranges[0], { target: { value: '75' } }); // drive
+    fireEvent.change(ranges[1], { target: { value: '30' } }); // tone
+    fireEvent.change(ranges[2], { target: { value: '90' } }); // output
+    fireEvent.change(ranges[3], { target: { value: '60' } }); // mix (bottom field)
+
+    fireEvent.click(applyBtn);
+
+    await waitFor(() =>
+      expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith(
+        'track-1',
+        75,
+        30,
+        60,
+        90,
+      ),
+    );
+
+    // Overlay closes after apply
+    expect(screen.queryByText('Apply')).toBeNull();
+  });
+
+  it('discards distortion draft changes and does not call the engine when cancelled', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const distortionBtn = screen.getByTitle('Waveshape settings');
+    fireEvent.click(distortionBtn);
+
+    const ranges = document.querySelectorAll('.distortion-settings-panel input[type=range]');
+    fireEvent.change(ranges[0], { target: { value: '95' } });
+
+    fireEvent.click(screen.getByText('Cancel'));
+
+    expect(screen.queryByText('Apply')).toBeNull();
+    expect(mockAudioEngine.setDistortionSettings).not.toHaveBeenCalled();
+  });
+
+  it('shows the distortion button as active only when distortionMix is above 0', () => {
+    const { rerender } = render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, distortionMix: 0 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    expect(screen.getByTitle('Waveshape settings').className).not.toContain(
+      'btn-distortion--active',
+    );
+
+    rerender(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, distortionMix: 40 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    expect(screen.getByTitle('Waveshape settings').className).toContain('btn-distortion--active');
+  });
+
   it('opens a context menu on right-click and duplicates the track', async () => {
     render(
       <AudioProvider>

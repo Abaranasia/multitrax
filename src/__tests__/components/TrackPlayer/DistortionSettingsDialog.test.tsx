@@ -152,14 +152,14 @@ describe('DistortionSettingsDialog', () => {
     });
     afterEach(() => cleanup());
 
-    it('opens distortion settings, updates draft values and applies them to engine', async () => {
+    it('opens Waveshape settings, updates draft values and applies them to engine', async () => {
       render(
         <AudioProvider>
           <TrackPlayer state={{ ...baseState }} x={10} y={20} />
         </AudioProvider>,
       );
 
-      const distortionBtn = screen.getByTitle('Distortion settings');
+      const distortionBtn = screen.getByTitle('Waveshape settings');
       fireEvent.click(distortionBtn);
 
       const applyBtn = await screen.findByText('Apply');
@@ -194,7 +194,7 @@ describe('DistortionSettingsDialog', () => {
         </AudioProvider>,
       );
 
-      const distortionBtn = screen.getByTitle('Distortion settings');
+      const distortionBtn = screen.getByTitle('Waveshape settings');
       fireEvent.click(distortionBtn);
 
       const ranges = document.querySelectorAll('.distortion-settings-panel input[type=range]');
@@ -213,7 +213,7 @@ describe('DistortionSettingsDialog', () => {
         </AudioProvider>,
       );
 
-      expect(screen.getByTitle('Distortion settings').className).not.toContain(
+      expect(screen.getByTitle('Waveshape settings').className).not.toContain(
         'btn-distortion--active',
       );
 
@@ -223,7 +223,7 @@ describe('DistortionSettingsDialog', () => {
         </AudioProvider>,
       );
 
-      expect(screen.getByTitle('Distortion settings').className).toContain(
+      expect(screen.getByTitle('Waveshape settings').className).toContain(
         'btn-distortion--active',
       );
     });

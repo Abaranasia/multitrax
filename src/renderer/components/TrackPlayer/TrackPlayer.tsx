@@ -143,7 +143,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
           <button
             className={`btn-distortion${state.distortionMix > 0 ? ' btn-distortion--active' : ''}`}
             onClick={distortionDialog.open}
-            title="Distortion settings"
+            title="Waveshape settings"
           >
             W
           </button>

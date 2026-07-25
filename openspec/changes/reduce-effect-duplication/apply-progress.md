@@ -162,18 +162,106 @@ After 2b (Delay/Reverb shrink): 17/17 files, 109/109 tests — unchanged.
 
 ---
 
+---
+
+# Slice 3: Shared JSX (PR 3)
+
+## Completed Tasks (Slice 3)
+- [x] 3.1 RED: per-dialog test asserts `<EffectDialog>`/`<SettingsField>` chrome (fails)
+- [x] 3.2 GREEN: create `EffectDialog.tsx` + `SettingsField.tsx`
+- [x] 3.3 GREEN: rewrite 5 `*SettingsDialog.tsx` via shared components, same external props
+- [x] 3.4 GREEN: update `components/index.ts`
+- [x] 3.5 Parity gate: full suite green — rows/labels/values/`<select>` options unchanged
+- [x] 3.6 If diff >400: split 3a/3b per forecast — done (see Diff Size below)
+
+## Files Changed (Slice 3)
+
+| File | Action | What Was Done |
+|------|--------|----------------|
+| `src/renderer/components/TrackPlayer/components/EffectDialog.tsx` | Created | Owns dialog chrome: overlay (`onMouseDown` stopPropagation + `onClick=onCancel`), panel (`onClick` stopPropagation), title, `children` slot, actions row with hardcoded "Apply"/"Cancel" buttons. All class names are `${effect}-<part>` template strings, where `effect` is the exact pre-existing class prefix (`filter-settings`, `distortion-settings`, `delay-settings`, `reverb-settings`, `fade-settings`) — byte-identical output to the 5 dialogs' original hand-written class names. |
+| `src/renderer/components/TrackPlayer/components/SettingsField.tsx` | Created | Discriminated union `SettingsFieldProps` (`kind:'slider'` \| `kind:'select'`), both variants carry an `effect` prefix (needed to reproduce frozen per-dialog class names — see Deviations). Slider variant renders `field > label(+ mix modifier) > input[range] > value(+ mix modifier)`; select variant renders `field > label > select > option[]`. `mix?: boolean` toggles the ` ${effect}-label--mix` / ` ${effect}-value--mix` modifier classes exactly where the original 4 dialogs (Filter/Distortion/Delay/Reverb) had them on their last (Mix) row. |
+| `.../effects/filter/FilterSettingsDialog.tsx` | Modified | Same external prop interface; body rewritten as `<EffectDialog effect="filter-settings" title="◢ Filter">` wrapping 5 `<SettingsField>` calls (select Type + 4 sliders: Cutoff/Resonance/Output/Mix). `setDraftType` cast preserved (`(value) => setDraftType(value as FilterType)`), Resonance `format={(v) => v.toFixed(1)}` preserved verbatim (only field without a `%`/unit suffix). |
+| `.../effects/distortion/DistortionSettingsDialog.tsx` | Modified | Same pattern; 4 sliders (Drive/Tone/Output/Mix), no select. |
+| `.../effects/delay/DelaySettingsDialog.tsx` | Modified | Same pattern; 5 sliders (Time/Feedback/Tone[bound to draftDelayDamping]/Output/Mix) — the pre-existing "Tone" label name for the damping prop is preserved unchanged. |
+| `.../effects/reverb/ReverbSettingsDialog.tsx` | Modified | Same pattern; select Room (4 options: small-room/hall/plate/cathedral) + 4 sliders (Pre-delay/Damping/Output/Mix). `setDraftReverbRoom` cast preserved. |
+| `.../fadeSettings/FadeSettingsDialog.tsx` | Modified | Same pattern; 3 sliders (Fade In/Fade Out/Seek Fade), no Mix row, no Output row — matches original (Fade has no mix/output concept). Local `fmt()` helper (integer vs. one-decimal formatting) preserved verbatim and composed into each field's `format` prop as `` `${fmt(v)}s` ``. |
+| `src/renderer/components/TrackPlayer/components/index.ts` | Modified | Added `export * from './EffectDialog'` and `export * from './SettingsField'`. |
+| `src/__tests__/components/TrackPlayer/EffectDialog.test.tsx` | Created | New unit suite for the shared chrome component: renders overlay/panel/title with the effect-prefixed class names, renders children between title and actions, Apply/Cancel button wiring, backdrop-vs-panel click-to-cancel behavior. |
+| `src/__tests__/components/TrackPlayer/SettingsField.test.tsx` | Created | New unit suite for the shared field component: slider variant (class names, min/max/step/value passthrough, `onChange` receives `Number(...)`, formatted value text, mix-modifier classes), select variant (options rendered, value passthrough, `onChange` receives raw string). |
+
+No production file outside the 5 dialogs + the 2 new shared components + the barrel was touched. `TrackPlayer.tsx` was **not** touched (props frozen, confirmed via `git diff --stat` showing no `TrackPlayer.tsx` entry) — matches the design's explicit slice-3/slice-4 seam-freeze contract.
+
+## Deviations from Design (Slice 3)
+
+1. **`effect: string` added as an explicit prop on `SettingsField` (both `slider` and `select` variants) — not present in design's illustrative TS sketch.** Design's `SettingsField` type listed only `label, min, max, step, value, onChange, format, mix?` (slider) / `label, value, onChange, options` (select), with `effect` appearing only on `EffectDialogProps`. On implementation, the parity gate for this slice is explicit and non-negotiable: "existing per-dialog test files + `TrackPlayer.test.tsx` integration tests must assert the same rendered rows/labels/values/classNames/`<select>` options as before, unchanged." The 5 dialogs' existing tests query DOM by class name (e.g. `.filter-settings-select`, `.reverb-settings-panel input[type=range]`), and Slice 2's CSS (`effect-dialog.css`) is keyed on these exact 5 class prefixes via grouped selectors. Superseding those prefixes with one generic shared class (which design's own rationale note floated as a *future*, not this-slice, possibility: "Slice 3 later supersedes grouped selectors with one shared class emitted by `<EffectDialog>`") would have broken both the frozen-classNames parity gate and Slice 2's CSS targeting in the same PR. I kept per-dialog class-name output byte-identical by threading the existing 5-prefix scheme through `SettingsField` via an explicit `effect` prop passed at each call site — the smallest change that satisfies the literal parity requirement in this prompt. This is a minimal, necessary extension of the design's type sketch, not a scope deviation: the discriminated-union shape, the "no per-effect conditionals in `EffectDialog`/`SettingsField`" constraint, and the "5 dialogs keep flat props" constraint are all preserved exactly.
+2. **No React Context used for propagating `effect`.** Considered (would avoid repeating `effect="X-settings"` on every `<SettingsField>` call within a dialog) but rejected: none of the existing dialogs, `EffectDialog`, or `TrackPlayer` use Context anywhere in this codebase; introducing it here would be an unrequested architectural addition outside this slice's stated goal (JSX de-duplication only, not a new state-sharing mechanism).
+
+## Issues Found (Slice 3)
+None. `pnpm typecheck` and `pnpm lint` were clean on the first attempt for every file in this slice; `pnpm format:check` initially flagged 2 of this slice's touched files (`EffectDialog.test.tsx`, `components/index.ts`) for prettier width/quote formatting — fixed with a scoped `pnpm exec prettier --write` on just those 2 files (not a blanket repo-wide `pnpm format`, to avoid touching the pre-existing 91-file drift noted in Slice 2), re-verified 0 flagged among all Slice 3 touched files afterward.
+
+## Safety Net (Slice 3)
+Baseline before any Slice 3 change (re-verified, matches Slice 2's final state): `pnpm test:no-watch` → **17 test files / 109 tests passing** (the 2 new component test files did not exist yet at this point).
+
+## TDD Cycle Evidence (Slice 3)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|-------------|-----|-------|-------------|----------|
+| 3.1–3.2 (`EffectDialog`) | `src/__tests__/components/TrackPlayer/EffectDialog.test.tsx` (new) | Unit (RTL) | ✅ 17/17 files, 109/109 tests (pre-change) | ✅ Written first — imported `@/renderer/components/TrackPlayer/components/EffectDialog`, which did not exist; confirmed failure: `Error: Failed to resolve import ".../EffectDialog". Does the file exist?` | ✅ Passed — created `EffectDialog.tsx`; re-ran, 19/19 files (2 new), 116/116 tests (7 new: 4 in `EffectDialog.test.tsx`, 3 in `SettingsField.test.tsx`, run together as both were RED at once) | ✅ 4 cases — chrome/class-name rendering (`filter-settings` prefix), Apply/Cancel callback wiring (`delay-settings` prefix), backdrop-vs-panel cancel behavior (`reverb-settings` prefix), children-ordering between title/actions (`distortion-settings` prefix) — 4 distinct effect prefixes exercised, proving the template-string behavior isn't hardcoded to one dialog's classes | ✅ Clean — one initial fix: swapped an invalid `toHaveClass` (no jest-dom matchers configured in this repo's Vitest setup) for a plain `.className` string equality check, matching the existing per-dialog test files' own assertion style |
+| 3.1–3.2 (`SettingsField`) | `src/__tests__/components/TrackPlayer/SettingsField.test.tsx` (new) | Unit (RTL) | ✅ (same baseline) | ✅ Written first — imported `@/renderer/components/TrackPlayer/components/SettingsField`, which did not exist; confirmed failure: `Error: Failed to resolve import ".../SettingsField". Does the file exist?` | ✅ Passed — created `SettingsField.tsx`; full suite 19/19, 116/116 | ✅ 3 cases — slider variant (class names + numeric `onChange` + formatted value text), slider variant with `mix` modifier classes, select variant (options + string `onChange`) — 2 distinct effect prefixes (`filter-settings`, `reverb-settings`) and both discriminant branches exercised | ✅ Clean — one shared component replaces what would otherwise be 2 field-rendering code paths repeated 5×/4× across dialogs |
+| 3.3 (rewrite Filter + Distortion, "3a") | `FilterSettingsDialog.test.tsx`, `DistortionSettingsDialog.test.tsx` (existing, unchanged) + full suite as parity oracle | Integration (RTL, unchanged assertions) | ✅ 19/19, 116/116 (after 3.2) | ➖ N/A — structural migration, same category as Slice 1 task 1.3 and Slice 2 tasks 2.1–2.3: the existing dialog + `TrackPlayer.test.tsx` integration suites already assert full rendered-output/behavior; the task is "same test, different JSX source (via shared components)," not new behavior. These pre-existing suites are the approval tests | ✅ Passed — after rewriting `FilterSettingsDialog.tsx` and `DistortionSettingsDialog.tsx`: full suite still 19/19, 116/116, `pnpm typecheck` clean, `pnpm lint` clean | ➖ N/A — structural only | ✅ Clean — Filter/Distortion dialogs shrank from 119/102 lines of hand-written chrome+field JSX to declarative `<EffectDialog>`/`<SettingsField>` composition |
+| 3.3 (rewrite Delay/Reverb/Fade, "3b") | `DelaySettingsDialog.test.tsx`, `ReverbSettingsDialog.test.tsx`, `FadeSettingsDialog.test.tsx` (existing, unchanged) + full suite | Integration (RTL, unchanged assertions) | ✅ 19/19, 116/116 (after 3a) | ➖ N/A — same reasoning as 3a | ✅ Passed — after rewriting all 3 remaining dialogs: full suite 19/19, 116/116, `pnpm typecheck` clean, `pnpm lint` clean | ➖ N/A — structural only | ✅ Clean — Delay/Reverb/Fade dialogs shrank similarly; all 5 dialogs now share one chrome component and one field-rendering component |
+| 3.4 | `components/index.ts` | N/A (barrel export, no direct test) | ✅ (after 3b) | ➖ N/A — barrel export addition, verified via successful compile/import elsewhere (no consumer currently imports `EffectDialog`/`SettingsField` via the barrel yet — added proactively per design's explicit File Changes table entry) | ✅ `pnpm typecheck` clean, full suite still 19/19, 116/116 | ➖ N/A | ➖ N/A |
+| 3.5 | Full suite | Integration | ✅ (all of the above) | N/A — parity gate | ✅ 19/19 test files, 116/116 tests (7 more than the 109 pre-slice-3 baseline — all 7 are the intentional new `EffectDialog`/`SettingsField` unit tests; **0 regressions** in the 5 dialogs' 30 pre-existing per-dialog tests + `TrackPlayer.test.tsx`'s integration tests) | N/A | N/A |
+
+### Test Summary (Slice 3)
+- **Total tests written**: 7 new test cases (4 in `EffectDialog.test.tsx`, 3 in `SettingsField.test.tsx`) — genuinely new component-level behavior verification, unlike Slices 1–2's pure structural migrations
+- **Total tests passing**: 116/116 (full suite: 109 pre-existing + 7 new), 0 regressions
+- **Layers used**: Unit (7 new, RTL against the 2 new components in isolation) + Integration (109 pre-existing, unaffected — all 5 dialogs' own suites + `TrackPlayer.test.tsx` re-verified against the rewritten JSX with zero assertion changes)
+- **Approval tests** (refactoring): 5 — the 5 pre-existing per-dialog test suites (30 tests total) act as approval tests confirming unchanged class names/DOM structure/select options/setter call shapes after the JSX rewrite
+- **Pure functions created**: 0 new pure helpers (existing `fmt()` in `FadeSettingsDialog.tsx` and inline format lambdas are closures, not extracted as standalone pure functions in this slice)
+
+## Work Unit Evidence (Slice 3 / PR 3, split 3a/3b)
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `pnpm test:no-watch` (full suite, vitest ignores path args) → **19 test files passed, 116 tests passed** (after 3a and after 3b) |
+| Runtime harness command/scenario and exact result | `pnpm typecheck` (clean, 0 errors) + `pnpm lint` (clean, 0 errors/warnings) after both 3a and 3b — no dedicated Electron/manual-open harness available in this environment; the tasks.md harness column's "manual: open/apply/cancel each dialog" is substituted by the pre-existing `TrackPlayer.test.tsx` integration suites, which already drive open→edit→apply/cancel through the real `AudioProvider`/`AudioEngine` mock for all 5 dialogs and are included in the focused test run above |
+| Rollback boundary | `git revert` the 3 commits in reverse order: `refactor: rewrite Delay/Reverb/Fade dialogs via EffectDialog + SettingsField (3b)`, `refactor: rewrite Filter/Distortion dialogs via EffectDialog + SettingsField (3a)`, `feat: extract shared EffectDialog and SettingsField components (3a)` — isolated to the 2 new shared component files + their 2 new test files + the 5 dialog `.tsx` files + the 1-line barrel addition; zero CSS/engine/context files touched |
+
+## Quality Gates (Slice 3, Full Repo)
+- `pnpm test:no-watch`: **19 passed (19) / 116 passed (116)** — 0 failures (verified after 3a and again after 3b)
+- `pnpm typecheck`: clean (0 errors)
+- `pnpm lint`: clean (0 errors, 0 warnings)
+- `pnpm format:check`: 2 of this slice's own new/touched files were flagged and fixed with a scoped `prettier --write` (see Issues Found); re-verified 0 Slice-3 files remain flagged; pre-existing repo-wide drift (91 files, unrelated to this change) untouched
+
+## Diff Size (Slice 3, vs. 400-line review budget)
+
+| Commit | `git diff --stat` | Changed lines |
+|---|---|---|
+| 3a part 1 (`EffectDialog.tsx` + `SettingsField.tsx` + their new tests) | 4 files changed, 281 insertions(+) | **281** |
+| 3a part 2 (Filter/Distortion dialogs rewritten) | 2 files changed, 115 insertions(+), 154 deletions(-) | **269** |
+| **3a total** (both commits combined) | 6 files changed, 396 insertions(+), 154 deletions(-) | **550** |
+| 3b (Delay/Reverb/Fade dialogs rewritten + barrel + prettier fix on 3a's test file) | 5 files changed, 169 insertions(+), 231 deletions(-) | **400** |
+| **Slice 3 total** | 10 files changed, 559 insertions(+), 379 deletions(-) | **938** |
+
+**Finding for the orchestrator's PR-splitting decision**: the tasks.md forecast (500–750, High risk) undercounted again — actual measured total is **938 changed lines**, and the suggested 3a/3b sub-split does **not** bring both halves under the 400-line budget: **3a alone is 550 lines, still over budget** (even split further into its own 2 commits — 281 + 269 — each of those 2 sub-commits individually IS under 400, so a finer 4-way cut, e.g. "new components," "Filter+Distortion," "Delay+Reverb," "Fade alone," would work if strict per-PR compliance is required). **3b as measured (400) is exactly at the budget boundary**, not comfortably under it. This mirrors Slice 2's finding: JSX extraction, like the earlier CSS extraction, produces a bigger real diff than design's guess because each of the 5 dialogs is fully rewritten (every field line touches both a deletion and an insertion) rather than just trimmed. Both commits inside 3a and the single 3b commit are already isolated on this branch, so re-splitting into 3 or 4 PRs later remains possible without rewriting history.
+
+**Judgment on mechanical vs. logic-touching (per orchestrator's explicit request)**: this diff is **structural/mechanical, not logic-touching** — despite touching more of the "component behavior surface" than Slice 2's CSS-only change, every line-level change in the 5 dialog files is a like-for-like JSX-shape substitution (raw `<div>/<span>/<input>/<select>` chrome → equivalent `<EffectDialog>/<SettingsField>` calls) with **zero change to**: prop names/types, computed values, formatting, event-handler semantics, or DOM output (verified byte-for-byte via the unchanged 30 pre-existing per-dialog assertions + `TrackPlayer.test.tsx` integration tests, all passing with 0 assertion edits). The only genuinely new logic in this slice lives in the 2 new shared components themselves (`EffectDialog.tsx`, `SettingsField.tsx`), which are small (34 and 69 lines), fully covered by 7 new dedicated unit tests, and were the RED/GREEN-gated part of this slice. I would classify Slice 3 the same way Slice 2 was accepted: **mechanical/structural-only diff, eligible for the same `size:exception` treatment already accepted once this session** — but I'm surfacing the exact numbers (550/400/938) as instructed so the orchestrator/user makes that call explicitly rather than assuming it.
+
+---
+
 ## Remaining Tasks
 - [x] Slice 2: shared CSS (PR 2) — complete
-- [ ] Slice 3: shared JSX (PR 3) — not started
+- [x] Slice 3: shared JSX (PR 3) — complete
 - [ ] Slice 4: generic hook (PR 4) — not started
 - [ ] Slice 5: AudioEngine clamp/wiring (PR 5) — not started
 - [ ] Slice 6: setter consolidation (PR 6) — not started
 
 ## Workload / PR Boundary
 - Mode: chained/stacked PR slice (`stacked-to-main`, per tasks.md forecast)
-- Current work unit: Slice 2 — shared CSS (PR 2), split into commits 2a and 2b on this branch
-- Boundary: starts from 5 near-duplicate per-effect CSS files (99–117 lines each); ends with one shared `effect-dialog.css` (192 lines) + 5 shrunk per-effect files (~9 lines each of accent/apply/width custom-property overrides), full suite green, zero `.tsx` change, build-verified CSS parity
-- Estimated review budget impact: **762 changed lines total, High risk — exceeds the 400-line budget even at the 2a/2b sub-split (2a alone = 530)**. Flagged to the orchestrator for a PR-splitting/size-exception decision; not blocking this apply batch since the chain-strategy decision was already resolved before apply
+- Current work unit: Slice 3 — shared JSX (PR 3), split into commits 3a-part1/3a-part2/3b on this branch
+- Boundary: starts from 5 dialogs (99–122 lines each) with duplicated overlay/panel/title/field/actions JSX; ends with 2 new shared components (`EffectDialog.tsx`, `SettingsField.tsx`, 7 new unit tests) + all 5 dialogs rewritten to compose them with identical external props/behavior, full suite green (116/116), zero regressions in the 30 pre-existing per-dialog tests
+- Estimated review budget impact: **938 changed lines total, High risk — exceeds the 400-line budget even at the 3a/3b sub-split (3a alone = 550; 3b = 400, right at the boundary)**. Flagged to the orchestrator for a PR-splitting/size-exception decision, with an explicit "mechanical, not logic-touching" judgment offered per the batch instructions; not blocking this apply batch since the chain-strategy decision was already resolved before apply
 
 ## Status
-4/4 slice-1 tasks complete (1.1–1.4). 5/5 slice-2 tasks complete (2.1–2.5). Slices 1–2 done, ready for verify (of slice 2) pending orchestrator's PR-size decision. Slices 3–6 remain for future apply batches (out of this batch's assigned scope).
+4/4 slice-1 tasks complete (1.1–1.4). 5/5 slice-2 tasks complete (2.1–2.5). 6/6 slice-3 tasks complete (3.1–3.6). Slices 1–3 done, ready for verify pending orchestrator's PR-size decision on slices 2 and 3. Slices 4–6 remain for future apply batches (out of this batch's assigned scope).

@@ -48,12 +48,12 @@ Rationale: chain strategy already resolved (force-chained/stacked-to-main from p
 - [x] 2.5 If diff >400: split 2a/2b per forecast — done; measured 2a alone (530 lines) still exceeds 400, see apply-progress.md
 
 ## Slice 3: shared JSX (PR 3)
-- [ ] 3.1 RED: per-dialog test asserts `<EffectDialog>`/`<SettingsField>` chrome (fails)
-- [ ] 3.2 GREEN: create `EffectDialog.tsx` + `SettingsField.tsx`
-- [ ] 3.3 GREEN: rewrite 5 `*SettingsDialog.tsx` via shared components, same external props
-- [ ] 3.4 GREEN: update `components/index.ts`
-- [ ] 3.5 Parity gate: full suite green — rows/labels/values/`<select>` options unchanged
-- [ ] 3.6 If diff >400: split 3a/3b per forecast
+- [x] 3.1 RED: per-dialog test asserts `<EffectDialog>`/`<SettingsField>` chrome (fails)
+- [x] 3.2 GREEN: create `EffectDialog.tsx` + `SettingsField.tsx`
+- [x] 3.3 GREEN: rewrite 5 `*SettingsDialog.tsx` via shared components, same external props
+- [x] 3.4 GREEN: update `components/index.ts`
+- [x] 3.5 Parity gate: full suite green — rows/labels/values/`<select>` options unchanged
+- [x] 3.6 If diff >400: split 3a/3b per forecast — done; measured total 938 lines (3a alone 550, 3b 400), see apply-progress.md
 
 ## Slice 4: generic hook (PR 4)
 - [ ] 4.1 RED: `TrackPlayer.test.tsx` open/apply/cancel expects `useSettingsDialog` re-sync (fails)

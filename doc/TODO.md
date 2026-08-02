@@ -209,7 +209,7 @@ what's meant to stay a focused mixing/monitoring tool.
 
 ## Coding improvements
 
-- [ ] **Extract fake Web Audio classes from `AudioEngine.test.ts` into a
+- [x] **Extract fake Web Audio classes from `AudioEngine.test.ts` into a
   fixtures file.** `FakeGain`, `FakeSource`, `FakeMediaStreamDestination`, and
   `FakeAudioContext` currently live inline at the top of
   `src/__tests__/audio/AudioEngine.test.ts`. Move them to a shared fixtures

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -105,3 +105,29 @@ ipcMain.handle('fs:readAudioFile', (_event, filePath: string): Promise<ArrayBuff
     );
   }
 });
+
+// IPC: reveal a file in the OS file manager.
+//
+// Deliberately not gated on `grantedPaths`: that allowlist is replaced on every
+// open-file dialog, so a track loaded in an earlier batch could no longer be
+// revealed, and drag-and-drop paths never enter it at all. Revealing only opens
+// the OS file manager — it never reads or executes the file — so an
+// exists-and-is-a-file check is the proportionate gate here.
+//
+// Resolves with a result object rather than rejecting, matching
+// `dialog:saveRecording`, so the renderer never faces an unhandled rejection.
+ipcMain.handle(
+  'shell:revealFile',
+  (_event, filePath: string): { revealed: boolean; error?: string } => {
+    if (!path.isAbsolute(filePath)) return { revealed: false, error: 'Path is not absolute' };
+
+    try {
+      if (!fs.statSync(filePath).isFile()) return { revealed: false, error: 'Path is not a file' };
+    } catch (error) {
+      return { revealed: false, error: (error as Error).message };
+    }
+
+    shell.showItemInFolder(filePath);
+    return { revealed: true };
+  },
+);

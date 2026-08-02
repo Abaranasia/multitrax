@@ -25,11 +25,12 @@ import './TrackPlayer.css';
 
 interface TrackPlayerProps {
   state: TrackState;
+  filePath: string;
   x: number;
   y: number;
 }
 
-export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
+export const TrackPlayer = ({ state, filePath, x, y }: TrackPlayerProps) => {
   const {
     cardRef,
     fmt,
@@ -49,7 +50,9 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
     contextMenuPosition,
     onContextMenu,
     duplicate,
-  } = useTrackPlayer({ state, x, y });
+    reveal,
+    canReveal,
+  } = useTrackPlayer({ state, filePath, x, y });
 
   const waveformCanvasRef = useWaveformCanvas(state.waveform, progress);
   const volumeControl = useVolumeControl(state, setVolume);
@@ -134,6 +137,8 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
           x={contextMenuPosition.x}
           y={contextMenuPosition.y}
           onDuplicate={duplicate}
+          onReveal={reveal}
+          revealDisabled={!canReveal}
         />
       )}
     </div>

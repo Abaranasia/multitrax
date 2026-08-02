@@ -5,11 +5,16 @@ import { useTrackContextMenu } from './components/contextMenu/useTrackContextMen
 
 interface UseTrackPlayerProps {
   state: TrackState;
+  filePath: string;
   x: number;
   y: number;
 }
 
-export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
+/** POSIX (`/music/song.wav`) or Windows (`C:\music\song.wav`) absolute path. */
+const isAbsolutePath = (filePath: string) =>
+  filePath.startsWith('/') || /^[A-Za-z]:[\\/]/.test(filePath);
+
+export const useTrackPlayer = ({ state, filePath, x, y }: UseTrackPlayerProps) => {
   const {
     play,
     pause,
@@ -47,6 +52,18 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     duplicateTrack(state.id);
     closeContextMenu();
   }, [duplicateTrack, state.id, closeContextMenu]);
+
+  // Revealing is a pure OS side effect with no track state to mutate, so it
+  // goes straight to the preload bridge rather than through AudioContext —
+  // same treatment as `saveRecording` in useRecorder.
+  const canReveal = Boolean(window.electronAPI) && isAbsolutePath(filePath);
+
+  const reveal = useCallback(() => {
+    closeContextMenu();
+    void window.electronAPI.revealFile(filePath).then((result) => {
+      if (!result.revealed) console.error('Failed to reveal file', filePath, result.error);
+    });
+  }, [filePath, closeContextMenu]);
 
   const fmt = useCallback((v: number) => (v % 1 === 0 ? `${v}` : v.toFixed(1)), []);
 
@@ -106,5 +123,7 @@ export const useTrackPlayer = ({ state, x, y }: UseTrackPlayerProps) => {
     onContextMenu,
     closeContextMenu,
     duplicate,
+    reveal,
+    canReveal,
   };
 };

@@ -4,7 +4,7 @@ export interface ElectronAPI {
   saveRecording: (
     buffer: ArrayBuffer,
     suggestedName: string,
-  ) => Promise<{ saved: boolean; filePath?: string }>;
+  ) => Promise<{ saved: boolean; filePath?: string; error?: string }>;
 }
 
 declare global {

@@ -3,7 +3,7 @@ import { useRecorder } from './useRecorder';
 import './RecorderBar.css';
 
 export const RecorderBar = () => {
-  const { elapsed, isRecording, isSaving, start, stop, formatTime } = useRecorder();
+  const { elapsed, isRecording, isSaving, isError, start, stop, formatTime } = useRecorder();
 
   return (
     <div
@@ -22,6 +22,8 @@ export const RecorderBar = () => {
           </>
         ) : isSaving ? (
           'Saving…'
+        ) : isError ? (
+          'Save failed'
         ) : (
           <>
             <span className="recorder-dot recorder-dot--idle" />

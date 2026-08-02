@@ -24,72 +24,79 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const newEntries: TrackEntry[] = [];
 
       for (const file of files) {
-        const id = crypto.randomUUID();
-        const audioBuffer = await engine.audioContext.decodeAudioData(file.buffer.slice(0));
+        try {
+          const id = crypto.randomUUID();
+          const audioBuffer = await engine.audioContext.decodeAudioData(file.buffer.slice(0));
 
-        engine.addTrack(id, audioBuffer);
+          engine.addTrack(id, audioBuffer);
 
-        const waveform = Array.from({ length: 48 }, (_, index) => {
-          const sliceStart = (index / 48) * (audioBuffer.length ?? 0);
-          const sliceEnd = ((index + 1) / 48) * (audioBuffer.length ?? 0);
-          const channelData =
-            typeof audioBuffer.getChannelData === 'function' ? audioBuffer.getChannelData(0) : null;
-          let peak = 0;
-          for (let i = sliceStart; i < sliceEnd; i += 1) {
-            const value = channelData ? Math.abs(channelData[Math.floor(i)] ?? 0) : 0;
-            if (value > peak) peak = value;
-          }
-          return Math.min(1, peak * 1.4);
-        });
+          const waveform = Array.from({ length: 48 }, (_, index) => {
+            const sliceStart = (index / 48) * (audioBuffer.length ?? 0);
+            const sliceEnd = ((index + 1) / 48) * (audioBuffer.length ?? 0);
+            const channelData =
+              typeof audioBuffer.getChannelData === 'function'
+                ? audioBuffer.getChannelData(0)
+                : null;
+            let peak = 0;
+            for (let i = sliceStart; i < sliceEnd; i += 1) {
+              const value = channelData ? Math.abs(channelData[Math.floor(i)] ?? 0) : 0;
+              if (value > peak) peak = value;
+            }
+            return Math.min(1, peak * 1.4);
+          });
 
-        const state: TrackState = {
-          id,
-          title: file.name,
-          duration: audioBuffer.duration,
-          currentTime: 0,
-          volume: 1,
-          pan: 0,
-          loop: true,
-          playing: false,
-          fadeIn: false,
-          fadeOut: false,
-          seekFade: false,
-          fadeInDuration: 5,
-          fadeOutDuration: 5,
-          seekFadeDuration: 2,
-          filterType: 'lowpass',
-          filterCutoff: 1000,
-          filterResonance: 1,
-          filterMix: 0,
-          filterOutput: 100,
-          delayTime: 300,
-          delayFeedback: 35,
-          delayMix: 0,
-          delayDamping: 50,
-          delayOutput: 100,
-          reverbRoom: 'hall',
-          reverbMix: 0,
-          reverbPreDelay: 20,
-          reverbDamping: 50,
-          reverbOutput: 100,
-          distortionDrive: 0,
-          distortionTone: 100,
-          distortionMix: 0,
-          distortionOutput: 100,
-          waveform,
-        };
+          const state: TrackState = {
+            id,
+            title: file.name,
+            duration: audioBuffer.duration,
+            currentTime: 0,
+            volume: 1,
+            pan: 0,
+            loop: true,
+            playing: false,
+            fadeIn: false,
+            fadeOut: false,
+            seekFade: false,
+            fadeInDuration: 5,
+            fadeOutDuration: 5,
+            seekFadeDuration: 2,
+            filterType: 'lowpass',
+            filterCutoff: 1000,
+            filterResonance: 1,
+            filterMix: 0,
+            filterOutput: 100,
+            delayTime: 300,
+            delayFeedback: 35,
+            delayMix: 0,
+            delayDamping: 50,
+            delayOutput: 100,
+            reverbRoom: 'hall',
+            reverbMix: 0,
+            reverbPreDelay: 20,
+            reverbDamping: 50,
+            reverbOutput: 100,
+            distortionDrive: 0,
+            distortionTone: 100,
+            distortionMix: 0,
+            distortionOutput: 100,
+            waveform,
+          };
 
-        newEntries.push({
-          state,
-          filePath: file.path,
-          x: nextPos.current.x,
-          y: nextPos.current.y,
-        });
+          newEntries.push({
+            state,
+            filePath: file.path,
+            x: nextPos.current.x,
+            y: nextPos.current.y,
+          });
 
-        nextPos.current = {
-          x: nextPos.current.x + 20,
-          y: nextPos.current.y + 20,
-        };
+          nextPos.current = {
+            x: nextPos.current.x + 20,
+            y: nextPos.current.y + 20,
+          };
+        } catch (err) {
+          console.error(file.name, err);
+          continue;
+        }
       }
 
       setTracks((prev) => [...prev, ...newEntries]);

@@ -3,7 +3,7 @@ import { useAudio } from '../../context/useAudio';
 import { encodeWav } from '../../utils/encodeWav';
 import { formatTime } from '../../utils/formatTime';
 
-type RecorderStatus = 'idle' | 'recording' | 'saving';
+type RecorderStatus = 'idle' | 'recording' | 'saving' | 'error';
 
 export const useRecorder = () => {
   const { engine } = useAudio();
@@ -48,7 +48,12 @@ export const useRecorder = () => {
       const stamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
       const suggestedName = `session-${stamp}.wav`;
 
-      await window.electronAPI.saveRecording(wavBuffer, suggestedName);
+      const result = await window.electronAPI.saveRecording(wavBuffer, suggestedName);
+      if (!result.saved) {
+        console.error('Failed to save recording', result.error);
+        setStatus('error');
+        return;
+      }
       setStatus('idle');
     };
 
@@ -77,6 +82,7 @@ export const useRecorder = () => {
     elapsed,
     isRecording: status === 'recording',
     isSaving: status === 'saving',
+    isError: status === 'error',
     start,
     stop,
     formatTime,

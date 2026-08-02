@@ -81,6 +81,46 @@ describe('AudioContext', () => {
     expect(screen.getByTestId('track-title').textContent).toBe('Test file');
   });
 
+  it('keeps already-decoded files in the batch when an earlier file fails to decode', async () => {
+    const decodeError = new Error('corrupt audio data');
+    mockAudioEngine.audioContext.decodeAudioData.mockImplementationOnce(() =>
+      Promise.reject(decodeError),
+    );
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              void audio.addTracks([
+                { path: '/corrupt.mp3', name: 'Corrupt file', buffer: new ArrayBuffer(4) },
+                { path: '/good.mp3', name: 'Good file', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
+            Add Tracks
+          </button>
+          <div data-testid="track-count">{audio.tracks.length}</div>
+          <div data-testid="track-title">{audio.tracks[0]?.state.title ?? ''}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add Tracks'));
+
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('1'));
+    expect(screen.getByTestId('track-title').textContent).toBe('Good file');
+    expect(errorSpy).toHaveBeenCalledWith('Corrupt file', decodeError);
+  });
+
   it('gives a new track default distortion settings', async () => {
     const Consumer = () => {
       const audio = useAudio();

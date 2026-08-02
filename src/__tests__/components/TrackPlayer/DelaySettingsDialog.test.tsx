@@ -132,7 +132,7 @@ describe('DelaySettingsDialog', () => {
     it('opens delay settings, updates draft values and applies them to engine', async () => {
       render(
         <AudioProvider>
-          <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+          <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
         </AudioProvider>,
       );
 
@@ -168,7 +168,7 @@ describe('DelaySettingsDialog', () => {
     it('discards delay draft changes and does not call the engine when cancelled', async () => {
       render(
         <AudioProvider>
-          <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+          <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
         </AudioProvider>,
       );
 

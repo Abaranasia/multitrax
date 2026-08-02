@@ -129,7 +129,7 @@ describe('DistortionSettingsDialog', () => {
     it('opens Waveshape settings, updates draft values and applies them to engine', async () => {
       render(
         <AudioProvider>
-          <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+          <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
         </AudioProvider>,
       );
 
@@ -163,7 +163,7 @@ describe('DistortionSettingsDialog', () => {
     it('discards distortion draft changes and does not call the engine when cancelled', async () => {
       render(
         <AudioProvider>
-          <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+          <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
         </AudioProvider>,
       );
 
@@ -182,7 +182,7 @@ describe('DistortionSettingsDialog', () => {
     it('shows the distortion button as active only when distortionMix is above 0', () => {
       const { rerender } = render(
         <AudioProvider>
-          <TrackPlayer state={{ ...baseState, distortionMix: 0 }} x={10} y={20} />
+          <TrackPlayer filePath="/sample.wav" state={{ ...baseState, distortionMix: 0 }} x={10} y={20} />
         </AudioProvider>,
       );
 
@@ -192,7 +192,7 @@ describe('DistortionSettingsDialog', () => {
 
       rerender(
         <AudioProvider>
-          <TrackPlayer state={{ ...baseState, distortionMix: 40 }} x={10} y={20} />
+          <TrackPlayer filePath="/sample.wav" state={{ ...baseState, distortionMix: 40 }} x={10} y={20} />
         </AudioProvider>,
       );
 

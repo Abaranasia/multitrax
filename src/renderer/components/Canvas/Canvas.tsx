@@ -30,7 +30,7 @@ export const Canvas = () => {
       )}
 
       {tracks.map((t) => (
-        <TrackPlayer key={t.state.id} state={t.state} x={t.x} y={t.y} />
+        <TrackPlayer key={t.state.id} state={t.state} filePath={t.filePath} x={t.x} y={t.y} />
       ))}
 
       <div className="controls-bar" role="group" aria-label="Playback controls">

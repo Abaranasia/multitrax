@@ -1,18 +1,15 @@
-import { useEffect, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import { TrackState } from '../../domain/TrackState';
 import { formatTime } from '../../utils/formatTime';
 import { useTrackPlayer } from './useTrackPlayer';
+import { useWaveformCanvas } from './useWaveformCanvas';
 import {
   TrackContextMenu,
-  FilterSettingsDialog,
+  EffectDialogs,
   useFilterSettingsDialog,
-  DistortionSettingsDialog,
   useDistortionSettingsDialog,
-  FadeSettingsDialog,
   useFadeSettingsDialog,
-  DelaySettingsDialog,
   useDelaySettingsDialog,
-  ReverbSettingsDialog,
   useReverbSettingsDialog,
 } from './components';
 
@@ -25,8 +22,6 @@ interface TrackPlayerProps {
 }
 
 export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
-  const waveformCanvasRef = useRef<HTMLCanvasElement | null>(null);
-
   const {
     cardRef,
     fmt,
@@ -48,66 +43,7 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
     duplicate,
   } = useTrackPlayer({ state, x, y });
 
-  useEffect(() => {
-    const canvas = waveformCanvasRef.current;
-    if (!canvas) return;
-
-    const waveform = state.waveform ?? [];
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    const width = rect.width || canvas.clientWidth || 280;
-    const height = rect.height || canvas.clientHeight || 65;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const padding = 6 * dpr;
-    const availableWidth = Math.max(0, canvas.width - padding * 2);
-    const barWidth = Math.max(dpr, Math.min(1.4 * dpr, 2 * dpr));
-    const count = Math.max(waveform.length, Math.floor(availableWidth / (barWidth * 1.1)));
-    const step = availableWidth / Math.max(count, 1);
-    const centerY = canvas.height / 2;
-    const maxBarHeight = canvas.height * 0.78;
-
-    const drawWaveform = (fillStyle: CanvasGradient | string, alpha: number) => {
-      ctx.fillStyle = fillStyle;
-      ctx.globalAlpha = alpha;
-
-      for (let i = 0; i < count; i += 1) {
-        const idx = Math.floor((i / Math.max(count - 1, 1)) * Math.max(waveform.length - 1, 0));
-        const value = waveform[idx] ?? 0.25;
-        const normalized = 0.3 + value * 0.7;
-        const height = Math.max(canvas.height * 0.25, normalized * maxBarHeight);
-        const x = padding + i * step + (step - barWidth) / 2;
-        const y = centerY - height / 2;
-        ctx.fillRect(x, y, barWidth, height);
-      }
-    };
-
-    const baseGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    baseGradient.addColorStop(0, 'rgba(125, 211, 252, 0.28)');
-    baseGradient.addColorStop(1, 'rgba(192, 132, 252, 0.28)');
-    drawWaveform(baseGradient, 0.72);
-
-    if (progress > 0) {
-      const playedWidth = (canvas.width * progress) / 100;
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(0, 0, playedWidth, canvas.height);
-      ctx.clip();
-
-      const activeGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      activeGradient.addColorStop(0, '#7dd3fc');
-      activeGradient.addColorStop(1, '#c084fc');
-      drawWaveform(activeGradient, 0.94);
-
-      ctx.restore();
-    }
-  }, [state.waveform, progress]);
+  const waveformCanvasRef = useWaveformCanvas(state.waveform, progress);
   const filterDialog = useFilterSettingsDialog(state);
   const distortionDialog = useDistortionSettingsDialog(state);
   const fadeDialog = useFadeSettingsDialog(state);
@@ -291,14 +227,14 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
                   ? `${Math.round(-state.pan * 100)}% Left`
                   : `${Math.round(state.pan * 100)}% Right`
             }`}
-            style={{
-              background:
-                state.pan === 0
-                  ? '#0f3460'
-                  : state.pan < 0
-                    ? `linear-gradient(90deg, #239989 0%, #abc5c2 ${Math.round((state.pan + 1) * 50)}%, #0f3460 ${Math.round((state.pan + 1) * 50)}%, #0f3460 100%)`
-                    : `linear-gradient(90deg, #0f3460 0%, #0f3460 ${Math.round(state.pan * 50 + 50)}%, #abc5c2 ${Math.round(state.pan * 50 + 50)}%, #239989 100%)`,
-            }}
+            className={
+              state.pan < 0
+                ? 'pan-input pan-input--left'
+                : state.pan > 0
+                  ? 'pan-input pan-input--right'
+                  : 'pan-input'
+            }
+            style={{ '--pan-fill': `${Math.round((state.pan + 1) * 50)}%` } as CSSProperties}
           />
           <span className="pan-label">R</span>
         </div>
@@ -314,97 +250,19 @@ export const TrackPlayer = ({ state, x, y }: TrackPlayerProps) => {
             value={state.volume}
             onChange={(e) => setVolume(state.id, parseFloat(e.target.value))}
             title={`Volume: ${Math.round(state.volume * 100)}%`}
-            style={{
-              background: `linear-gradient(90deg, #abc5c2 0%, #239989 ${Math.round(state.volume * 100)}%, #0f3460 ${Math.round(state.volume * 100)}%, #0f3460 100%)`,
-            }}
+            style={{ '--volume-fill': `${Math.round(state.volume * 100)}%` } as CSSProperties}
           />
           <span className="volume-value">{Math.round(state.volume * 100)}%</span>
         </div>
       </div>
 
-      {/* ── Filter settings overlay ──────────────────────────────────────── */}
-      {filterDialog.isOpen && (
-        <FilterSettingsDialog
-          draftType={filterDialog.draftType}
-          setDraftType={filterDialog.setDraftType}
-          draftCutoff={filterDialog.draftCutoff}
-          setDraftCutoff={filterDialog.setDraftCutoff}
-          draftResonance={filterDialog.draftResonance}
-          setDraftResonance={filterDialog.setDraftResonance}
-          draftMix={filterDialog.draftMix}
-          setDraftMix={filterDialog.setDraftMix}
-          draftOutput={filterDialog.draftOutput}
-          setDraftOutput={filterDialog.setDraftOutput}
-          onApply={filterDialog.apply}
-          onCancel={filterDialog.close}
-        />
-      )}
-
-      {/* ── Distortion settings overlay ──────────────────────────────────── */}
-      {distortionDialog.isOpen && (
-        <DistortionSettingsDialog
-          draftDrive={distortionDialog.draftDrive}
-          setDraftDrive={distortionDialog.setDraftDrive}
-          draftTone={distortionDialog.draftTone}
-          setDraftTone={distortionDialog.setDraftTone}
-          draftMix={distortionDialog.draftMix}
-          setDraftMix={distortionDialog.setDraftMix}
-          draftOutput={distortionDialog.draftOutput}
-          setDraftOutput={distortionDialog.setDraftOutput}
-          onApply={distortionDialog.apply}
-          onCancel={distortionDialog.close}
-        />
-      )}
-
-      {/* ── Fade settings overlay ──────────────────────────────────────────── */}
-      {fadeDialog.isOpen && (
-        <FadeSettingsDialog
-          draftFadeIn={fadeDialog.draftFadeIn}
-          setDraftFadeIn={fadeDialog.setDraftFadeIn}
-          draftFadeOut={fadeDialog.draftFadeOut}
-          setDraftFadeOut={fadeDialog.setDraftFadeOut}
-          draftSeekFade={fadeDialog.draftSeekFade}
-          setDraftSeekFade={fadeDialog.setDraftSeekFade}
-          onApply={fadeDialog.apply}
-          onCancel={fadeDialog.close}
-        />
-      )}
-
-      {/* ── Delay settings overlay ───────────────────────────────────────── */}
-      {delayDialog.isOpen && (
-        <DelaySettingsDialog
-          draftDelayTime={delayDialog.draftDelayTime}
-          setDraftDelayTime={delayDialog.setDraftDelayTime}
-          draftDelayFeedback={delayDialog.draftDelayFeedback}
-          setDraftDelayFeedback={delayDialog.setDraftDelayFeedback}
-          draftDelayDamping={delayDialog.draftDelayDamping}
-          setDraftDelayDamping={delayDialog.setDraftDelayDamping}
-          draftDelayOutput={delayDialog.draftDelayOutput}
-          setDraftDelayOutput={delayDialog.setDraftDelayOutput}
-          draftDelayMix={delayDialog.draftDelayMix}
-          setDraftDelayMix={delayDialog.setDraftDelayMix}
-          onApply={delayDialog.apply}
-          onCancel={delayDialog.close}
-        />
-      )}
-
-      {/* ── Reverb settings overlay ──────────────────────────────────────── */}
-      {reverbDialog.isOpen && (
-        <ReverbSettingsDialog
-          draftReverbRoom={reverbDialog.draftReverbRoom}
-          setDraftReverbRoom={reverbDialog.setDraftReverbRoom}
-          draftReverbMix={reverbDialog.draftReverbMix}
-          setDraftReverbMix={reverbDialog.setDraftReverbMix}
-          draftReverbPreDelay={reverbDialog.draftReverbPreDelay}
-          setDraftReverbPreDelay={reverbDialog.setDraftReverbPreDelay}
-          draftReverbDamping={reverbDialog.draftReverbDamping}
-          setDraftReverbDamping={reverbDialog.setDraftReverbDamping}
-          draftReverbOutput={reverbDialog.draftReverbOutput}
-          setDraftReverbOutput={reverbDialog.setDraftReverbOutput}
-          onApply={reverbDialog.apply}
-          onCancel={reverbDialog.close}
-        />
-      )}
+      <EffectDialogs
+        filterDialog={filterDialog}
+        distortionDialog={distortionDialog}
+        fadeDialog={fadeDialog}
+        delayDialog={delayDialog}
+        reverbDialog={reverbDialog}
+      />
 
       {/* ── Right-click context menu ─────────────────────────────────────── */}
       {contextMenuPosition && (

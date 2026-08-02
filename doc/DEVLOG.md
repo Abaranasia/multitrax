@@ -584,3 +584,44 @@ The project already existed with the following features before the logged sessio
   more intentional and consistent with the rest of the TrackPlayer UI rework.
 - Added regression coverage to ensure the pan slider exposes the new gradient
   background styling when it is moved away from the center position.
+---
+
+## [2026-08-02] — Reveal a track's source file in the OS file manager
+
+**Files:** `src/main/main.ts`, `src/main/preload.ts`,
+`src/renderer/types/electron.d.ts`,
+`src/renderer/components/Canvas/useCanvas.ts`,
+`src/renderer/components/Canvas/Canvas.tsx`,
+`src/renderer/components/TrackPlayer/TrackPlayer.tsx`,
+`src/renderer/components/TrackPlayer/useTrackPlayer.ts`,
+`src/renderer/components/TrackPlayer/components/contextMenu/TrackContextMenu.tsx`,
+`src/renderer/components/TrackPlayer/components/contextMenu/TrackContextMenu.css`,
+`src/__tests__/test-utils/mockElectronAPI.ts` (new), plus the main, preload,
+Canvas, TrackContextMenu and TrackPlayer test suites
+
+- Added a **Show in Folder** item to the track right-click menu, next to
+  Duplicate. It opens the OS file manager with the track's source file selected,
+  via a new `shell:revealFile` IPC handler backed by `shell.showItemInFolder`.
+- The handler validates that the path is absolute, exists, and is a file, then
+  resolves `{ revealed, error? }` instead of rejecting — same contract as
+  `dialog:saveRecording`, so the renderer can never hit an unhandled rejection.
+- It deliberately does **not** reuse the `grantedPaths` allowlist that guards
+  `fs:readAudioFile`. That set is cleared and replaced on every open-file dialog,
+  so tracks loaded in an earlier batch would stop being revealable, and dropped
+  files never enter it at all. Revealing never reads or executes the file, so the
+  exists/is-a-file check is the proportionate gate.
+- **Fixed a latent path bug found while implementing this.** `useCanvas.onDrop`
+  read `(file as File & { path?: string }).path ?? file.name`, but Electron
+  removed `File.path` in v32 and this project runs 42.x — every drag-and-dropped
+  track was therefore storing a bare filename instead of a path. Drops now
+  resolve the real location through a new `getPathForFile` preload method
+  (`webUtils.getPathForFile`), keeping the `file.name` fallback for non-Electron
+  hosts. This also unblocks the planned Save / Load session feature, which
+  persists file paths.
+- `TrackEntry.filePath` is threaded from `Canvas` into `TrackPlayer` as a prop,
+  following the precedent already set by `x`/`y`. `useTrackPlayer` exposes
+  `reveal` alongside `duplicate`, plus a `canReveal` guard that disables the menu
+  item (with an explanatory tooltip) when the track has no usable path.
+- Extracted `createMockElectronAPI()` into `src/__tests__/test-utils/`, mirroring
+  the existing `createMockAudioEngine()`, so `window.electronAPI` stubs stay
+  type-complete as the bridge grows.

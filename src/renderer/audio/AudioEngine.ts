@@ -52,6 +52,16 @@ const FILTER_RESONANCE_MAX = 20;
 // drive% (0–100) is scaled linearly onto this range.
 const DISTORTION_MAX_K = 100;
 
+// setTargetAtTime smoothing time-constant (seconds) shared by every
+// gain/parameter ramp in this file.
+const PARAM_RAMP_TIME_CONSTANT_S = 0.01;
+// Reverb pre-delay clamp ceiling (ms). Distinct from DAMPING_MIN_HZ above —
+// same literal value, unrelated semantics.
+const REVERB_PREDELAY_MAX_MS = 500;
+// User-settable fade-duration clamp ceiling (seconds). Distinct from
+// FADE_DURATION above, which is the default play/stop fade length.
+const FADE_DURATION_MAX_S = 10;
+
 /** Clamps `v` into the inclusive `[min, max]` range. */
 const clamp = (v: number, min: number, max: number): number => Math.max(min, Math.min(max, v));
 
@@ -70,7 +80,7 @@ interface FilterNodes {
   cutoff: number; // 20–20000 (Hz)
   resonance: number; // 0.1–20 (Q)
   mix: number; // 0–100 (%)
-  outputLevel: number; // 0–100 (%)
+  output: number; // 0–100 (%)
 }
 
 /**
@@ -89,7 +99,7 @@ interface DistortionNodes {
   drive: number; // 0–100 (%)
   tone: number; // 0–100 (%)
   mix: number; // 0–100 (%)
-  outputLevel: number; // 0–100 (%)
+  output: number; // 0–100 (%)
 }
 
 /**
@@ -109,7 +119,7 @@ interface DelayNodes {
   feedback: number; // 0–90 (%)
   mix: number; // 0–100 (%)
   dampingAmount: number; // 0–100 (%)
-  outputLevel: number; // 0–100 (%)
+  output: number; // 0–100 (%)
 }
 
 /** Per-track reverb insert: GainNode → [dry/wet split] → outputGain → pannerNode. */
@@ -124,7 +134,7 @@ interface ReverbNodes {
   mix: number; // 0–100 (%)
   preDelayMs: number; // 0–500 (ms)
   dampingAmount: number; // 0–100 (%)
-  outputLevel: number; // 0–100 (%)
+  output: number; // 0–100 (%)
 }
 
 interface TrackNodes {
@@ -447,7 +457,7 @@ export class AudioEngine {
     track.volume = clamp(value, 0, 1);
     // Cancel any ongoing fade ramp and jump to the new volume immediately
     track.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
-    track.gainNode.gain.setTargetAtTime(track.volume, this.ctx.currentTime, 0.01);
+    track.gainNode.gain.setTargetAtTime(track.volume, this.ctx.currentTime, PARAM_RAMP_TIME_CONSTANT_S);
   }
 
   // ── Pan ────────────────────────────────────────────────────────────────────
@@ -456,7 +466,7 @@ export class AudioEngine {
     const track = this.tracks.get(id);
     if (!track) return;
     track.pan = clamp(value, -1, 1);
-    track.pannerNode.pan.setTargetAtTime(track.pan, this.ctx.currentTime, 0.01);
+    track.pannerNode.pan.setTargetAtTime(track.pan, this.ctx.currentTime, PARAM_RAMP_TIME_CONSTANT_S);
   }
 
   // ── Loop ───────────────────────────────────────────────────────────────────
@@ -493,9 +503,9 @@ export class AudioEngine {
   ): void {
     const track = this.tracks.get(id);
     if (!track) return;
-    track.fadeInDuration = clamp(fadeInDuration, 0, 10);
-    track.fadeOutDuration = clamp(fadeOutDuration, 0, 10);
-    track.seekFadeDuration = clamp(seekFadeDuration, 0, 10);
+    track.fadeInDuration = clamp(fadeInDuration, 0, FADE_DURATION_MAX_S);
+    track.fadeOutDuration = clamp(fadeOutDuration, 0, FADE_DURATION_MAX_S);
+    track.seekFadeDuration = clamp(seekFadeDuration, 0, FADE_DURATION_MAX_S);
   }
 
   // ── Filter (insert effect) ──────────────────────────────────────────────────
@@ -511,19 +521,19 @@ export class AudioEngine {
     filter.cutoff = clamp(cutoff, FILTER_CUTOFF_MIN_HZ, FILTER_CUTOFF_MAX_HZ);
     filter.resonance = clamp(resonance, FILTER_RESONANCE_MIN, FILTER_RESONANCE_MAX);
     filter.mix = clamp(mix, 0, 100);
-    filter.outputLevel = clamp(output, 0, 100);
+    filter.output = clamp(output, 0, 100);
 
     // `type` is not an AudioParam, so it switches instantly — same as
     // reverb's instant `convolver.buffer` swap on room change.
     filter.biquadFilter.type = filter.type;
-    filter.biquadFilter.frequency.setTargetAtTime(filter.cutoff, now, 0.01);
-    filter.biquadFilter.Q.setTargetAtTime(filter.resonance, now, 0.01);
+    filter.biquadFilter.frequency.setTargetAtTime(filter.cutoff, now, PARAM_RAMP_TIME_CONSTANT_S);
+    filter.biquadFilter.Q.setTargetAtTime(filter.resonance, now, PARAM_RAMP_TIME_CONSTANT_S);
 
     const wet = filter.mix / 100;
-    filter.dryGain.gain.setTargetAtTime(1 - wet, now, 0.01);
-    filter.wetGain.gain.setTargetAtTime(wet, now, 0.01);
+    filter.dryGain.gain.setTargetAtTime(1 - wet, now, PARAM_RAMP_TIME_CONSTANT_S);
+    filter.wetGain.gain.setTargetAtTime(wet, now, PARAM_RAMP_TIME_CONSTANT_S);
 
-    filter.outputGain.gain.setTargetAtTime(filter.outputLevel / 100, now, 0.01);
+    filter.outputGain.gain.setTargetAtTime(filter.output / 100, now, PARAM_RAMP_TIME_CONSTANT_S);
   }
 
   // ── Distortion (insert effect) ──────────────────────────────────────────────
@@ -538,7 +548,7 @@ export class AudioEngine {
     distortion.drive = clamp(drive, 0, 100);
     distortion.tone = clamp(tone, 0, 100);
     distortion.mix = clamp(mix, 0, 100);
-    distortion.outputLevel = clamp(output, 0, 100);
+    distortion.output = clamp(output, 0, 100);
 
     // `curve` is not an AudioParam, so it rebuilds/swaps instantly — same
     // instant-swap idiom as reverb's `convolver.buffer` / filter's biquad type.
@@ -546,13 +556,13 @@ export class AudioEngine {
 
     const toneFrequency =
       DAMPING_MIN_HZ + (distortion.tone / 100) * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
-    distortion.toneFilter.frequency.setTargetAtTime(toneFrequency, now, 0.01);
+    distortion.toneFilter.frequency.setTargetAtTime(toneFrequency, now, PARAM_RAMP_TIME_CONSTANT_S);
 
     const wet = distortion.mix / 100;
-    distortion.dryGain.gain.setTargetAtTime(1 - wet, now, 0.01);
-    distortion.wetGain.gain.setTargetAtTime(wet, now, 0.01);
+    distortion.dryGain.gain.setTargetAtTime(1 - wet, now, PARAM_RAMP_TIME_CONSTANT_S);
+    distortion.wetGain.gain.setTargetAtTime(wet, now, PARAM_RAMP_TIME_CONSTANT_S);
 
-    distortion.outputGain.gain.setTargetAtTime(distortion.outputLevel / 100, now, 0.01);
+    distortion.outputGain.gain.setTargetAtTime(distortion.output / 100, now, PARAM_RAMP_TIME_CONSTANT_S);
   }
 
   // ── Delay (insert effect) ───────────────────────────────────────────────────
@@ -570,20 +580,20 @@ export class AudioEngine {
     delay.feedback = clamp(feedback, 0, DELAY_FEEDBACK_MAX);
     delay.mix = clamp(mix, 0, 100);
     delay.dampingAmount = clamp(damping, 0, 100);
-    delay.outputLevel = clamp(output, 0, 100);
+    delay.output = clamp(output, 0, 100);
 
-    delay.delayNode.delayTime.setTargetAtTime(delay.delayTimeMs / 1000, now, 0.01);
-    delay.feedbackGain.gain.setTargetAtTime(delay.feedback / 100, now, 0.01);
+    delay.delayNode.delayTime.setTargetAtTime(delay.delayTimeMs / 1000, now, PARAM_RAMP_TIME_CONSTANT_S);
+    delay.feedbackGain.gain.setTargetAtTime(delay.feedback / 100, now, PARAM_RAMP_TIME_CONSTANT_S);
 
     const wet = delay.mix / 100;
-    delay.dryGain.gain.setTargetAtTime(1 - wet, now, 0.01);
-    delay.wetGain.gain.setTargetAtTime(wet, now, 0.01);
+    delay.dryGain.gain.setTargetAtTime(1 - wet, now, PARAM_RAMP_TIME_CONSTANT_S);
+    delay.wetGain.gain.setTargetAtTime(wet, now, PARAM_RAMP_TIME_CONSTANT_S);
 
     const dampingRatio = delay.dampingAmount / 100;
     const frequency = DAMPING_MAX_HZ - dampingRatio * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
-    delay.damping.frequency.setTargetAtTime(frequency, now, 0.01);
+    delay.damping.frequency.setTargetAtTime(frequency, now, PARAM_RAMP_TIME_CONSTANT_S);
 
-    delay.outputGain.gain.setTargetAtTime(delay.outputLevel / 100, now, 0.01);
+    delay.outputGain.gain.setTargetAtTime(delay.output / 100, now, PARAM_RAMP_TIME_CONSTANT_S);
   }
 
   // ── Reverb (insert effect) ──────────────────────────────────────────────────
@@ -597,23 +607,23 @@ export class AudioEngine {
 
     reverb.room = room;
     reverb.mix = clamp(mix, 0, 100);
-    reverb.preDelayMs = clamp(preDelay, 0, 500);
+    reverb.preDelayMs = clamp(preDelay, 0, REVERB_PREDELAY_MAX_MS);
     reverb.dampingAmount = clamp(damping, 0, 100);
-    reverb.outputLevel = clamp(output, 0, 100);
+    reverb.output = clamp(output, 0, 100);
 
     reverb.convolver.buffer = this._getImpulseResponse(reverb.room);
 
     const wet = reverb.mix / 100;
-    reverb.dryGain.gain.setTargetAtTime(1 - wet, now, 0.01);
-    reverb.wetGain.gain.setTargetAtTime(wet, now, 0.01);
+    reverb.dryGain.gain.setTargetAtTime(1 - wet, now, PARAM_RAMP_TIME_CONSTANT_S);
+    reverb.wetGain.gain.setTargetAtTime(wet, now, PARAM_RAMP_TIME_CONSTANT_S);
 
-    reverb.preDelay.delayTime.setTargetAtTime(reverb.preDelayMs / 1000, now, 0.01);
+    reverb.preDelay.delayTime.setTargetAtTime(reverb.preDelayMs / 1000, now, PARAM_RAMP_TIME_CONSTANT_S);
 
     const dampingRatio = reverb.dampingAmount / 100;
     const frequency = DAMPING_MAX_HZ - dampingRatio * (DAMPING_MAX_HZ - DAMPING_MIN_HZ);
-    reverb.damping.frequency.setTargetAtTime(frequency, now, 0.01);
+    reverb.damping.frequency.setTargetAtTime(frequency, now, PARAM_RAMP_TIME_CONSTANT_S);
 
-    reverb.outputGain.gain.setTargetAtTime(reverb.outputLevel / 100, now, 0.01);
+    reverb.outputGain.gain.setTargetAtTime(reverb.output / 100, now, PARAM_RAMP_TIME_CONSTANT_S);
   }
 
   // ── State queries ──────────────────────────────────────────────────────────
@@ -706,7 +716,7 @@ export class AudioEngine {
       cutoff: 1000,
       resonance: 1,
       mix: 0,
-      outputLevel: 100,
+      output: 100,
     };
 
     // Initialise the filter to match the default (mix = 0 ⇒ fully dry).
@@ -747,7 +757,7 @@ export class AudioEngine {
       drive: 0,
       tone: 100,
       mix: 0,
-      outputLevel: 100,
+      output: 100,
     };
 
     // Initialise the filter/curve to match the default (mix = 0 ⇒ fully dry).
@@ -820,7 +830,7 @@ export class AudioEngine {
       feedback: 35,
       mix: 0,
       dampingAmount: 50,
-      outputLevel: 100,
+      output: 100,
     };
 
     // Initialise the delay/filter to match the default (mix = 0 ⇒ fully dry).
@@ -867,7 +877,7 @@ export class AudioEngine {
       mix: 0,
       preDelayMs: 20,
       dampingAmount: 50,
-      outputLevel: 100,
+      output: 100,
     };
 
     // Initialise the reverb/filter to match the default (mix = 0 ⇒ fully dry).

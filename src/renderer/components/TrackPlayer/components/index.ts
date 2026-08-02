@@ -1,6 +1,7 @@
 export * from './contextMenu/TrackContextMenu';
 export * from './contextMenu/useTrackContextMenu';
 export * from './EffectDialog';
+export * from './EffectDialogs';
 export * from './SettingsField';
 export * from './fadeSettings/FadeSettingsDialog';
 export * from './fadeSettings/useFadeSettingsDialog';

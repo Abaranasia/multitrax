@@ -1,11 +1,30 @@
 import { useCanvas } from './useCanvas';
+import { useSessionMenu } from '../SessionMenu/useSessionMenu';
+import { SessionMenu } from '../SessionMenu/SessionMenu';
 
 import './Canvas.css';
 import { TrackPlayer } from '../TrackPlayer/TrackPlayer';
 import { RecorderBar } from '../Recorder/RecorderBar';
 
 export const Canvas = () => {
-  const { tracks, onDragOver, onDrop, onOpenFiles, isOpeningFiles, stopAll, playAll } = useCanvas();
+  const {
+    tracks,
+    onDragOver,
+    onDrop,
+    onOpenFiles,
+    isOpeningFiles,
+    stopAll,
+    playAll,
+    onSaveSession,
+    onSaveNewSession,
+    isSavingSession,
+    onLoadSession,
+    isLoadingSession,
+    onNewSession,
+  } = useCanvas();
+
+  const { isOpen: isSessionMenuOpen, toggle: toggleSessionMenu, close: closeSessionMenu } =
+    useSessionMenu();
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     void onDragOver(event);
@@ -17,6 +36,18 @@ export const Canvas = () => {
 
   const handleOpenFiles = () => {
     void onOpenFiles();
+  };
+
+  const handleSaveSession = () => {
+    void onSaveSession();
+  };
+
+  const handleSaveNewSession = () => {
+    void onSaveNewSession();
+  };
+
+  const handleLoadSession = () => {
+    void onLoadSession();
   };
 
   return (
@@ -32,6 +63,18 @@ export const Canvas = () => {
       {tracks.map((t) => (
         <TrackPlayer key={t.state.id} state={t.state} filePath={t.filePath} x={t.x} y={t.y} />
       ))}
+
+      <SessionMenu
+        isOpen={isSessionMenuOpen}
+        onToggle={toggleSessionMenu}
+        onClose={closeSessionMenu}
+        onLoadSession={handleLoadSession}
+        onSaveSession={handleSaveSession}
+        onSaveNewSession={handleSaveNewSession}
+        onNewSession={onNewSession}
+        saveDisabled={isSavingSession || tracks.length === 0}
+        loadDisabled={isLoadingSession}
+      />
 
       <div className="controls-bar" role="group" aria-label="Playback controls">
         <button

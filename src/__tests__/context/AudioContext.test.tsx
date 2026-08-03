@@ -4,8 +4,50 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, render, screen, waitFor, cleanup } from '@testing-library/react';
 
 import { createMockAudioEngine } from '@/__tests__/test-utils/mockAudioEngine';
+import { createMockElectronAPI } from '@/__tests__/test-utils/mockElectronAPI';
+import type { SessionTrackSnapshot } from '@/renderer/domain/SessionFile';
 
 const TRACK_ID = '00000000-0000-0000-0000-000000000000';
+
+function createSessionSnapshot(
+  overrides: Partial<SessionTrackSnapshot> = {},
+): SessionTrackSnapshot {
+  return {
+    filePath: '/session/track.wav',
+    title: 'Track',
+    x: 100,
+    y: 50,
+    volume: 0.6,
+    pan: -0.3,
+    loop: false,
+    fadeIn: true,
+    fadeOut: true,
+    seekFade: true,
+    fadeInDuration: 2,
+    fadeOutDuration: 3,
+    seekFadeDuration: 1,
+    filterType: 'highpass',
+    filterCutoff: 500,
+    filterResonance: 2,
+    filterMix: 40,
+    filterOutput: 90,
+    delayTime: 250,
+    delayFeedback: 20,
+    delayMix: 30,
+    delayDamping: 60,
+    delayOutput: 80,
+    reverbRoom: 'plate',
+    reverbMix: 25,
+    reverbPreDelay: 15,
+    reverbDamping: 45,
+    reverbOutput: 70,
+    distortionDrive: 10,
+    distortionTone: 50,
+    distortionMix: 15,
+    distortionOutput: 95,
+    ...overrides,
+  };
+}
 
 const mockAudioEngine = createMockAudioEngine({
   decodeAudioDataDuration: 12,
@@ -39,6 +81,7 @@ describe('AudioContext', () => {
 
   afterEach(() => {
     cleanup();
+    Reflect.deleteProperty(window, 'electronAPI');
   });
 
   it('throws when useAudio is used outside AudioProvider', () => {
@@ -372,5 +415,183 @@ describe('AudioContext', () => {
       output: 80,
     });
     expect(screen.getByTestId('clone-distortion-drive').textContent).toBe('40');
+  });
+
+  it('loadSession replaces existing tracks and applies every engine setting from the snapshot', async () => {
+    const OLD_ID = '11111111-1111-1111-1111-111111111111';
+    const NEW_ID = '22222222-2222-2222-2222-222222222222';
+    let call = 0;
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() =>
+      call++ === 0 ? OLD_ID : NEW_ID,
+    );
+
+    const readSessionAudioFile = vi.fn(() =>
+      Promise.resolve({ ok: true, buffer: new ArrayBuffer(4) }),
+    );
+    window.electronAPI = createMockElectronAPI({ readSessionAudioFile });
+
+    const snapshot = createSessionSnapshot({ filePath: '/session/guitar.wav', title: 'Guitar' });
+
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              audio.addTracks([{ path: '/old.mp3', name: 'Old', buffer: new ArrayBuffer(4) }])
+            }
+          >
+            Add Track
+          </button>
+          <button onClick={() => void audio.loadSession([snapshot])}>Load Session</button>
+          <div data-testid="track-count">{audio.tracks.length}</div>
+          <div data-testid="track-title">{audio.tracks[0]?.state.title ?? ''}</div>
+          <div data-testid="track-x">{audio.tracks[0]?.x ?? ''}</div>
+          <div data-testid="track-y">{audio.tracks[0]?.y ?? ''}</div>
+          <div data-testid="track-filepath">{audio.tracks[0]?.filePath ?? ''}</div>
+          <div data-testid="track-playing">{String(audio.tracks[0]?.state.playing ?? '')}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add Track'));
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('1'));
+
+    fireEvent.click(screen.getByText('Load Session'));
+    await waitFor(() => expect(screen.getByTestId('track-title').textContent).toBe('Guitar'));
+
+    expect(screen.getByTestId('track-count').textContent).toBe('1');
+    expect(screen.getByTestId('track-x').textContent).toBe('100');
+    expect(screen.getByTestId('track-y').textContent).toBe('50');
+    expect(screen.getByTestId('track-filepath').textContent).toBe('/session/guitar.wav');
+    expect(screen.getByTestId('track-playing').textContent).toBe('false');
+
+    expect(readSessionAudioFile).toHaveBeenCalledWith('/session/guitar.wav');
+    expect(mockAudioEngine.removeTrack).toHaveBeenCalledWith(OLD_ID);
+    expect(mockAudioEngine.addTrack).toHaveBeenCalledWith(NEW_ID, expect.anything());
+    expect(mockAudioEngine.setFilterSettings).toHaveBeenCalledWith(NEW_ID, {
+      type: 'highpass',
+      cutoff: 500,
+      resonance: 2,
+      mix: 40,
+      output: 90,
+    });
+    expect(mockAudioEngine.setDelaySettings).toHaveBeenCalledWith(NEW_ID, {
+      delayTime: 250,
+      feedback: 20,
+      mix: 30,
+      damping: 60,
+      output: 80,
+    });
+    expect(mockAudioEngine.setReverbSettings).toHaveBeenCalledWith(NEW_ID, {
+      room: 'plate',
+      mix: 25,
+      preDelay: 15,
+      damping: 45,
+      output: 70,
+    });
+    expect(mockAudioEngine.setDistortionSettings).toHaveBeenCalledWith(NEW_ID, {
+      drive: 10,
+      tone: 50,
+      mix: 15,
+      output: 95,
+    });
+    expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(NEW_ID, 0.6);
+    expect(mockAudioEngine.setPan).toHaveBeenCalledWith(NEW_ID, -0.3);
+    expect(mockAudioEngine.setLoop).toHaveBeenCalledWith(NEW_ID, false);
+  });
+
+  it('loadSession skips a missing/moved file, reports it in missing, and still loads the rest', async () => {
+    const ids: `${string}-${string}-${string}-${string}-${string}`[] = [
+      '33333333-3333-3333-3333-333333333333',
+      '44444444-4444-4444-4444-444444444444',
+    ];
+    let call = 0;
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => ids[call++]);
+
+    const readSessionAudioFile = vi.fn((filePath: string) =>
+      filePath === '/missing.wav'
+        ? Promise.resolve({ ok: false, error: 'ENOENT: no such file or directory' })
+        : Promise.resolve({ ok: true, buffer: new ArrayBuffer(4) }),
+    );
+    window.electronAPI = createMockElectronAPI({ readSessionAudioFile });
+
+    const missingSnapshot = createSessionSnapshot({ filePath: '/missing.wav', title: 'Missing' });
+    const goodSnapshot = createSessionSnapshot({ filePath: '/good.wav', title: 'Good' });
+
+    const Consumer = () => {
+      const audio = useAudio();
+      const [result, setResult] = React.useState<{ loaded: number; missing: string[] } | null>(
+        null,
+      );
+      return (
+        <>
+          <button
+            onClick={() =>
+              void audio.loadSession([missingSnapshot, goodSnapshot]).then(setResult)
+            }
+          >
+            Load Session
+          </button>
+          <div data-testid="track-count">{audio.tracks.length}</div>
+          <div data-testid="track-title">{audio.tracks[0]?.state.title ?? ''}</div>
+          <div data-testid="loaded">{result?.loaded ?? ''}</div>
+          <div data-testid="missing">{result?.missing.join(',') ?? ''}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Load Session'));
+
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('1'));
+    expect(screen.getByTestId('track-title').textContent).toBe('Good');
+    expect(screen.getByTestId('loaded').textContent).toBe('1');
+    expect(screen.getByTestId('missing').textContent).toBe('/missing.wav');
+  });
+
+  it('newSession removes every track from the engine and clears state', async () => {
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              audio.addTracks([
+                { path: '/test.mp3', name: 'Test file', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
+            Add Track
+          </button>
+          <button onClick={() => audio.newSession()}>New Session</button>
+          <div data-testid="track-count">{audio.tracks.length}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add Track'));
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('1'));
+
+    fireEvent.click(screen.getByText('New Session'));
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('0'));
+    expect(mockAudioEngine.removeTrack).toHaveBeenCalledWith(TRACK_ID);
   });
 });

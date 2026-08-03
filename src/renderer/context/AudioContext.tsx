@@ -8,6 +8,8 @@ import {
   ReverbSettings,
 } from '../audio/effectSettings';
 import { Ctx, TrackEntry } from './audioContextInstance';
+import { computeWaveformPeaks } from '../audio/waveform';
+import { SessionTrackSnapshot } from '../domain/SessionFile';
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Initialize the engine once per provider mount, without touching refs during render.
@@ -30,20 +32,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
           engine.addTrack(id, audioBuffer);
 
-          const waveform = Array.from({ length: 48 }, (_, index) => {
-            const sliceStart = (index / 48) * (audioBuffer.length ?? 0);
-            const sliceEnd = ((index + 1) / 48) * (audioBuffer.length ?? 0);
-            const channelData =
-              typeof audioBuffer.getChannelData === 'function'
-                ? audioBuffer.getChannelData(0)
-                : null;
-            let peak = 0;
-            for (let i = sliceStart; i < sliceEnd; i += 1) {
-              const value = channelData ? Math.abs(channelData[Math.floor(i)] ?? 0) : 0;
-              if (value > peak) peak = value;
-            }
-            return Math.min(1, peak * 1.4);
-          });
+          const waveform = computeWaveformPeaks(audioBuffer);
 
           const state: TrackState = {
             id,
@@ -407,6 +396,119 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [engine],
   );
 
+  const loadSession = useCallback(
+    async (snapshots: SessionTrackSnapshot[]): Promise<{ loaded: number; missing: string[] }> => {
+      // Design decision: Load Session REPLACES the canvas rather than merging
+      // with it. Remove every currently-loaded engine track up front; `tracks`
+      // itself is overwritten wholesale below via a single `setTracks` call.
+      for (const entry of tracks) {
+        engine.removeTrack(entry.state.id);
+      }
+
+      const newEntries: TrackEntry[] = [];
+      const missing: string[] = [];
+
+      for (const snapshot of snapshots) {
+        const result = await window.electronAPI.readSessionAudioFile(snapshot.filePath);
+        if (!result.ok || !result.buffer) {
+          missing.push(snapshot.filePath);
+          continue;
+        }
+
+        const id = crypto.randomUUID();
+        const audioBuffer = await engine.audioContext.decodeAudioData(result.buffer.slice(0));
+
+        engine.addTrack(id, audioBuffer);
+        engine.setFilterSettings(id, {
+          type: snapshot.filterType,
+          cutoff: snapshot.filterCutoff,
+          resonance: snapshot.filterResonance,
+          mix: snapshot.filterMix,
+          output: snapshot.filterOutput,
+        });
+        engine.setDelaySettings(id, {
+          delayTime: snapshot.delayTime,
+          feedback: snapshot.delayFeedback,
+          mix: snapshot.delayMix,
+          damping: snapshot.delayDamping,
+          output: snapshot.delayOutput,
+        });
+        engine.setReverbSettings(id, {
+          room: snapshot.reverbRoom,
+          mix: snapshot.reverbMix,
+          preDelay: snapshot.reverbPreDelay,
+          damping: snapshot.reverbDamping,
+          output: snapshot.reverbOutput,
+        });
+        engine.setDistortionSettings(id, {
+          drive: snapshot.distortionDrive,
+          tone: snapshot.distortionTone,
+          mix: snapshot.distortionMix,
+          output: snapshot.distortionOutput,
+        });
+        engine.setVolume(id, snapshot.volume);
+        engine.setPan(id, snapshot.pan);
+        engine.setLoop(id, snapshot.loop);
+
+        const state: TrackState = {
+          id,
+          title: snapshot.title,
+          duration: audioBuffer.duration,
+          currentTime: 0,
+          volume: snapshot.volume,
+          pan: snapshot.pan,
+          loop: snapshot.loop,
+          playing: false,
+          fadeIn: snapshot.fadeIn,
+          fadeOut: snapshot.fadeOut,
+          seekFade: snapshot.seekFade,
+          fadeInDuration: snapshot.fadeInDuration,
+          fadeOutDuration: snapshot.fadeOutDuration,
+          seekFadeDuration: snapshot.seekFadeDuration,
+          filterType: snapshot.filterType,
+          filterCutoff: snapshot.filterCutoff,
+          filterResonance: snapshot.filterResonance,
+          filterMix: snapshot.filterMix,
+          filterOutput: snapshot.filterOutput,
+          delayTime: snapshot.delayTime,
+          delayFeedback: snapshot.delayFeedback,
+          delayMix: snapshot.delayMix,
+          delayDamping: snapshot.delayDamping,
+          delayOutput: snapshot.delayOutput,
+          reverbRoom: snapshot.reverbRoom,
+          reverbMix: snapshot.reverbMix,
+          reverbPreDelay: snapshot.reverbPreDelay,
+          reverbDamping: snapshot.reverbDamping,
+          reverbOutput: snapshot.reverbOutput,
+          distortionDrive: snapshot.distortionDrive,
+          distortionTone: snapshot.distortionTone,
+          distortionMix: snapshot.distortionMix,
+          distortionOutput: snapshot.distortionOutput,
+          waveform: computeWaveformPeaks(audioBuffer),
+        };
+
+        newEntries.push({
+          state,
+          filePath: snapshot.filePath,
+          x: snapshot.x,
+          y: snapshot.y,
+        });
+      }
+
+      setTracks(newEntries);
+
+      return { loaded: newEntries.length, missing };
+    },
+    [engine, tracks],
+  );
+
+  const newSession = useCallback(() => {
+    for (const entry of tracks) {
+      engine.removeTrack(entry.state.id);
+    }
+    setTracks([]);
+  }, [engine, tracks]);
+
   const updatePosition = useCallback((id: string, x: number, y: number) => {
     setTracks((prev) => prev.map((t) => (t.state.id === id ? { ...t, x, y } : t)));
   }, []);
@@ -452,6 +554,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setDistortionSettings,
         updatePosition,
         tickCurrentTimes,
+        loadSession,
+        newSession,
       }}
     >
       {children}

@@ -199,18 +199,44 @@ what's meant to stay a focused mixing/monitoring tool.
   is now a real `<button>` (was a `<span>`) for keyboard/AT accessibility,
   swapping between 🔊/🔇 with a "Mute"/"Unmute" title.
 
-- [ ] **Save / Load session** — persist the current set of tracks to an
-  external file so the whole setup (which files are loaded, their canvas
-  position, and their per-track settings) can be restored later. Would need a
-  serialisable snapshot of each `TrackEntry`/`TrackState` — file path (not the
-  raw audio, so the session file stays small), volume, loop, fade in/out/seek
-  settings and durations, plus reverb/delay parameters — written as JSON via a
-  new IPC save/open-dialog pair in `main.ts` (mirroring the existing
-  open-audio-files / save-recording handlers). Loading would re-resolve each
-  stored file path, re-decode it through `addTracks`, then re-apply the saved
-  settings via the existing per-track setters. Missing/moved source files
-  would need a clear "file not found" fallback per track rather than failing
-  the whole load.
+- [x] **Save / Load session** — persist the current set of tracks (file path,
+  canvas position, and every per-track setting) to a JSON file, then restore
+  that exact setup later.
+  **Implemented** via `SessionFile`/`SessionTrackSnapshot`
+  (`domain/SessionFile.ts`), 3 new IPC handlers in `main.ts`
+  (`dialog:saveSession`, `dialog:openSession`, `fs:readSessionAudioFile` —
+  the latter gated the same way as `shell:revealFile`, not `grantedPaths`,
+  since session file paths come from a previously saved session) exposed
+  through `preload.ts`/`electron.d.ts`, and `AudioContext.tsx`'s
+  `loadSession`. Load Session **replaces** the canvas (`engine.removeTrack`
+  for every existing track, then a single `setTracks` with the newly built
+  entries) rather than merging. The waveform-peak computation used by both
+  `addTracks` and `loadSession` was extracted into
+  `audio/waveform.ts#computeWaveformPeaks`. Missing/moved files are skipped
+  individually and reported back as `{ missing: string[] }`; `useCanvas.ts`'s
+  `onLoadSession` surfaces that list via `window.alert` (no toast system
+  exists yet, so this is the proportionate fallback). UI lives in a top-left
+  `SessionMenu` dropdown (`components/SessionMenu/`, opened via a `☰ Session`
+  toggle button, closes on outside click/Escape like `TrackContextMenu`) with
+  "Load Session" / "Save Session" / "Save New Session" items, each guarded
+  against concurrent clicks the same way `onOpenFiles` is. "Save Session" is
+  now a quick save: `useCanvas.ts` tracks `currentSessionPath` (set on a
+  successful save-as or load) and, when known, writes straight to it via the
+  new `fs:writeSessionFile` IPC handler — no dialog. "Save New Session" is the
+  save-as path, always opening the save dialog via `dialog:saveSession` (now
+  suggesting a date-and-time-based `session-YYYY-MM-DD_HH-mm.json` name, so
+  same-day saves don't collide) and updating `currentSessionPath` on success.
+
+- [x] **New Session** — clear the canvas and release every track's audio
+  resources in one action, for starting over without restarting the app.
+  **Implemented** via `AudioContext.tsx`'s `newSession()`, following the same
+  teardown precedent as `loadSession`: loop `engine.removeTrack(id)` over
+  every existing track (disposing all Web Audio nodes) before wiping state
+  with `setTracks([])` — a bare `setTracks([])` alone would leak the engine's
+  internal node map. `useCanvas.ts`'s `onNewSession` guards it behind
+  `window.confirm` (only shown when there are tracks to lose) and resets
+  `currentSessionPath` to null. Added as a "New Session" item in the
+  `SessionMenu` dropdown, alongside Load/Save Session.
 
 - [ ] **Dashboard track-view reorganization** — add a dashboard-level action to
   reorganize the visible track views in a consistent layout, such as aligning

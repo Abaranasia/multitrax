@@ -106,6 +106,87 @@ ipcMain.handle('fs:readAudioFile', (_event, filePath: string): Promise<ArrayBuff
   }
 });
 
+// IPC: save the current session (tracks + settings) as JSON via save dialog
+ipcMain.handle(
+  'dialog:saveSession',
+  async (_event, json: string, suggestedName: string) => {
+    const result = await dialog.showSaveDialog({
+      title: 'Save Session',
+      defaultPath: suggestedName,
+      filters: [{ name: 'Session', extensions: ['json'] }],
+    });
+
+    if (result.canceled || !result.filePath) return { saved: false };
+
+    try {
+      fs.writeFileSync(result.filePath, json, 'utf-8');
+      return { saved: true, filePath: result.filePath };
+    } catch (error) {
+      return { saved: false, error: (error as Error).message };
+    }
+  },
+);
+
+// IPC: quick-save the current session straight to a known path, no dialog
+ipcMain.handle(
+  'fs:writeSessionFile',
+  (_event, filePath: string, json: string): { saved: boolean; error?: string } => {
+    try {
+      fs.writeFileSync(filePath, json, 'utf-8');
+      return { saved: true };
+    } catch (error) {
+      return { saved: false, error: (error as Error).message };
+    }
+  },
+);
+
+// IPC: open a session file via open dialog and return its raw JSON contents
+ipcMain.handle('dialog:openSession', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Open Session',
+    filters: [{ name: 'Session', extensions: ['json'] }],
+    properties: ['openFile'],
+  });
+
+  if (result.canceled || !result.filePaths.length) return { opened: false };
+
+  const filePath = result.filePaths[0];
+  try {
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return { opened: true, data, filePath };
+  } catch (error) {
+    return { opened: false, error: (error as Error).message };
+  }
+});
+
+// IPC: read an audio file referenced by a loaded session, as an ArrayBuffer.
+//
+// Deliberately not gated on `grantedPaths` — session file paths come from a
+// previously saved session, not the current open-file dialog grant, so the
+// same absolute-path + exists-and-is-a-file gate as `shell:revealFile` is
+// used instead. Resolves with a result object rather than rejecting, so a
+// missing/moved file can be skipped per track instead of failing the whole
+// session load.
+ipcMain.handle(
+  'fs:readSessionAudioFile',
+  (_event, filePath: string): { ok: boolean; buffer?: ArrayBuffer; error?: string } => {
+    if (!path.isAbsolute(filePath)) return { ok: false, error: 'Path is not absolute' };
+
+    try {
+      if (!fs.statSync(filePath).isFile()) return { ok: false, error: 'Path is not a file' };
+    } catch (error) {
+      return { ok: false, error: (error as Error).message };
+    }
+
+    try {
+      const data = fs.readFileSync(filePath);
+      return { ok: true, buffer: data.buffer };
+    } catch (error) {
+      return { ok: false, error: (error as Error).message };
+    }
+  },
+);
+
 // IPC: reveal a file in the OS file manager.
 //
 // Deliberately not gated on `grantedPaths`: that allowlist is replaced on every

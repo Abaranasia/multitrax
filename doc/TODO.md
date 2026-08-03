@@ -297,7 +297,7 @@ what's meant to stay a focused mixing/monitoring tool.
   SDD change with its own stacked-PR scope (Canvas.tsx / useCanvas.ts /
   Canvas.test.tsx only).
 
-- [ ] **Split up oversized files and remove inline styles.** Full detail in
+- [x] **Split up oversized files and remove inline styles.** Full detail in
   `doc/FUTURE-IMPROVEMENTS.md` § 4.
   - Extract the ~400 lines of effect-insert logic in `AudioEngine.ts` into
     per-effect modules.
@@ -306,6 +306,31 @@ what's meant to stay a focused mixing/monitoring tool.
     an `<EffectDialogs>` component.
   - Replace `TrackPlayer.tsx`'s inline pan/volume slider gradients with CSS
     custom properties, per `doc/CSS-CONVENTIONS.md`'s no-inline-styles rule.
+
+- [ ] **Investigate the double-wired delay insert in `AudioEngine.ts`'s
+  `addTrack`.** `gainNode` connects directly to `delay.dryGain`/`delay.delayNode`
+  (`AudioEngine.ts:103-104`) *and* indirectly via the filter→distortion chain
+  (`:107-108` onward, `filter.outputGain`/`distortion.outputGain` also feed
+  `delay.dryGain`/`delay.delayNode`). This was flagged as a pre-existing,
+  source-commented routing choice during the "split up oversized files"
+  refactor and left untouched (out of scope for a behavior-preserving
+  extraction), but it's worth a deliberate look: confirm whether the dual
+  feed into delay's dry/wet inputs is intentional signal design or a copy-paste
+  artifact, since as written it looks like it could double the dry signal
+  reaching delay regardless of filter/distortion settings.
+
+- [ ] **De-duplicate effect-dialog integration tests between `TrackPlayer.test.tsx`
+  and each dialog's own test file.** `TrackPlayer.test.tsx` still contains full
+  "integration via TrackPlayer" style assertions for Filter/Distortion/Delay/Reverb
+  open/apply/cancel/active-button behavior, but each dialog already has its own
+  `*SettingsDialog.test.tsx` (`FilterSettingsDialog.test.tsx`,
+  `DistortionSettingsDialog.test.tsx`, `DelaySettingsDialog.test.tsx`,
+  `ReverbSettingsDialog.test.tsx`) with an equivalent "integration via
+  TrackPlayer" block covering the same ground. Flagged during the "split up
+  oversized files" refactor as unrelated cleanup debt and left in place to keep
+  that diff focused. Worth reviewing and trimming the duplicated coverage from
+  one side (likely `TrackPlayer.test.tsx`, keeping the per-dialog files as the
+  source of truth).
 
 - [ ] **Repo housekeeping.** Full detail in `doc/FUTURE-IMPROVEMENTS.md` § 5.
   - Delete or archive the stale `doc/as commented in the resilient forest.md`.

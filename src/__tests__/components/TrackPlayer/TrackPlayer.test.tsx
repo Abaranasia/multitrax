@@ -613,7 +613,7 @@ describe('TrackPlayer', () => {
     await waitFor(() => expect(mockAudioEngine.setPan).toHaveBeenCalledWith('track-1', -0.6));
   });
 
-  it('renders a directional gradient background for the pan slider when it is offset', () => {
+  it('renders a directional gradient background for the pan slider when it is offset to the left', () => {
     render(
       <AudioProvider>
         <TrackPlayer state={{ ...baseState, pan: -0.6 }} x={10} y={20} />
@@ -621,8 +621,48 @@ describe('TrackPlayer', () => {
     );
 
     const panInput = document.querySelector('.pan-control input[type=range]') as HTMLInputElement;
-    expect(panInput.style.background).toContain('linear-gradient');
-    expect(panInput.style.background).toContain('rgb(35, 153, 137)');
+    expect(panInput.className).toContain('pan-input--left');
+    expect(panInput.className).not.toContain('pan-input--right');
+    expect(panInput.style.getPropertyValue('--pan-fill')).toBe('20%');
+  });
+
+  it('renders a directional gradient background for the pan slider when it is offset to the right', () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, pan: 0.6 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const panInput = document.querySelector('.pan-control input[type=range]') as HTMLInputElement;
+    expect(panInput.className).toContain('pan-input--right');
+    expect(panInput.className).not.toContain('pan-input--left');
+    expect(panInput.style.getPropertyValue('--pan-fill')).toBe('80%');
+  });
+
+  it('applies no directional modifier class when pan is centered', () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, pan: 0 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const panInput = document.querySelector('.pan-control input[type=range]') as HTMLInputElement;
+    expect(panInput.className).not.toContain('pan-input--left');
+    expect(panInput.className).not.toContain('pan-input--right');
+    expect(panInput.style.getPropertyValue('--pan-fill')).toBe('50%');
+  });
+
+  it('sets --volume-fill as a CSS custom property reflecting the current volume', () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer state={{ ...baseState, volume: 0.75 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const volumeInput = document.querySelector(
+      '.volume-control input[type=range]',
+    ) as HTMLInputElement;
+    expect(volumeInput.style.getPropertyValue('--volume-fill')).toBe('75%');
   });
 
   it('recenters pan to 0 when the pan slider is double-clicked', async () => {

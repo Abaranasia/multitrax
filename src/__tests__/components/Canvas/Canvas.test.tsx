@@ -209,6 +209,77 @@ describe('Canvas', () => {
     ]);
   });
 
+  it('ignores a second Open Files click while a batch is still in flight', async () => {
+    let resolveRead: (buf: ArrayBuffer) => void = () => {};
+    const readPending = new Promise<ArrayBuffer>((resolve) => {
+      resolveRead = resolve;
+    });
+    const openAudioFiles = vi.fn(() => Promise.resolve(['/music/beat.wav']));
+    const readAudioFile = vi.fn(() => readPending);
+    window.electronAPI = {
+      ...createMockElectronAPI(),
+      openAudioFiles,
+      readAudioFile,
+    };
+
+    render(<Canvas />);
+
+    const openButton = screen.getByTitle('Open audio files');
+    await act(async () => {
+      fireEvent.click(openButton);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(readAudioFile).toHaveBeenCalled());
+
+    await act(async () => {
+      fireEvent.click(openButton);
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      resolveRead(new ArrayBuffer(4));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(mockAddTracks).toHaveBeenCalledTimes(1));
+    expect(openAudioFiles).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the Open Files button while a batch is in flight and re-enables it after', async () => {
+    let resolveRead: (buf: ArrayBuffer) => void = () => {};
+    const readPending = new Promise<ArrayBuffer>((resolve) => {
+      resolveRead = resolve;
+    });
+    const openAudioFiles = vi.fn(() => Promise.resolve(['/music/beat.wav']));
+    const readAudioFile = vi.fn(() => readPending);
+    window.electronAPI = {
+      ...createMockElectronAPI(),
+      openAudioFiles,
+      readAudioFile,
+    };
+
+    render(<Canvas />);
+
+    const openButton = screen.getByTitle<HTMLButtonElement>('Open audio files');
+    expect(openButton.disabled).toBe(false);
+
+    await act(async () => {
+      fireEvent.click(openButton);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(openButton.disabled).toBe(true));
+
+    await act(async () => {
+      resolveRead(new ArrayBuffer(4));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(mockAddTracks).toHaveBeenCalledTimes(1));
+    expect(openButton.disabled).toBe(false);
+  });
+
   it('renders a TrackPlayer for each track returned by useAudio', () => {
     useAudioMock.mockReturnValueOnce({
       tracks: [{ state: { id: '1', title: 'Test track' }, x: 10, y: 20 }],

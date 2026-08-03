@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAudio } from '../../context/useAudio';
 
 const AUDIO_EXTS = new Set(['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus', 'webm']);
@@ -43,19 +43,30 @@ export const useCanvas = () => {
     [addTracks],
   );
 
+  const isOpeningFilesRef = useRef(false);
+  const [isOpeningFiles, setIsOpeningFiles] = useState(false);
+
   const onOpenFiles = useCallback(async () => {
-    if (!window.electronAPI) return;
-    const paths = await window.electronAPI.openAudioFiles();
-    if (!paths.length) return;
+    if (!window.electronAPI || isOpeningFilesRef.current) return;
 
-    const files: { path: string; name: string; buffer: ArrayBuffer }[] = [];
-    for (const p of paths) {
-      const buf = await window.electronAPI.readAudioFile(p);
-      const name = p.split('/').pop() ?? p.split('\\').pop() ?? p;
-      files.push({ path: p, name, buffer: buf });
+    isOpeningFilesRef.current = true;
+    setIsOpeningFiles(true);
+    try {
+      const paths = await window.electronAPI.openAudioFiles();
+      if (!paths.length) return;
+
+      const files: { path: string; name: string; buffer: ArrayBuffer }[] = [];
+      for (const p of paths) {
+        const buf = await window.electronAPI.readAudioFile(p);
+        const name = p.split('/').pop() ?? p.split('\\').pop() ?? p;
+        files.push({ path: p, name, buffer: buf });
+      }
+
+      await addTracks(files);
+    } finally {
+      isOpeningFilesRef.current = false;
+      setIsOpeningFiles(false);
     }
-
-    await addTracks(files);
   }, [addTracks]);
 
   return {
@@ -63,6 +74,7 @@ export const useCanvas = () => {
     onDragOver,
     onDrop,
     onOpenFiles,
+    isOpeningFiles,
     stopAll,
     playAll,
   };

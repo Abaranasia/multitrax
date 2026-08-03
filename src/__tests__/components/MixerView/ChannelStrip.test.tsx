@@ -73,7 +73,11 @@ describe('ChannelStrip', () => {
   it('renders the track title and a waveform preview', () => {
     render(
       <AudioProvider>
-        <ChannelStrip track={makeTrack({ ...baseState, waveform: [0.2, 0.6, 0.4] })} />
+        <ChannelStrip
+          track={makeTrack({ ...baseState, waveform: [0.2, 0.6, 0.4] })}
+          isDragging={false}
+          onDragHandleMouseDown={vi.fn()}
+        />
       </AudioProvider>,
     );
 
@@ -84,7 +88,11 @@ describe('ChannelStrip', () => {
   it('shows a 0.0 dB readout at full volume and -∞ dB when muted', () => {
     const { rerender } = render(
       <AudioProvider>
-        <ChannelStrip track={makeTrack({ ...baseState, volume: 1 })} />
+        <ChannelStrip
+          track={makeTrack({ ...baseState, volume: 1 })}
+          isDragging={false}
+          onDragHandleMouseDown={vi.fn()}
+        />
       </AudioProvider>,
     );
 
@@ -92,7 +100,11 @@ describe('ChannelStrip', () => {
 
     rerender(
       <AudioProvider>
-        <ChannelStrip track={makeTrack({ ...baseState, volume: 0 })} />
+        <ChannelStrip
+          track={makeTrack({ ...baseState, volume: 0 })}
+          isDragging={false}
+          onDragHandleMouseDown={vi.fn()}
+        />
       </AudioProvider>,
     );
 
@@ -102,7 +114,11 @@ describe('ChannelStrip', () => {
   it('calls play through the audio engine when the transport play button is clicked', async () => {
     render(
       <AudioProvider>
-        <ChannelStrip track={makeTrack({ ...baseState })} />
+        <ChannelStrip
+          track={makeTrack({ ...baseState })}
+          isDragging={false}
+          onDragHandleMouseDown={vi.fn()}
+        />
       </AudioProvider>,
     );
 
@@ -113,7 +129,11 @@ describe('ChannelStrip', () => {
   it('changes volume and calls engine.setVolume for the same track', async () => {
     render(
       <AudioProvider>
-        <ChannelStrip track={makeTrack({ ...baseState })} />
+        <ChannelStrip
+          track={makeTrack({ ...baseState })}
+          isDragging={false}
+          onDragHandleMouseDown={vi.fn()}
+        />
       </AudioProvider>,
     );
 
@@ -127,7 +147,11 @@ describe('ChannelStrip', () => {
   it('changes pan and calls engine.setPan for the same track', async () => {
     render(
       <AudioProvider>
-        <ChannelStrip track={makeTrack({ ...baseState })} />
+        <ChannelStrip
+          track={makeTrack({ ...baseState })}
+          isDragging={false}
+          onDragHandleMouseDown={vi.fn()}
+        />
       </AudioProvider>,
     );
 
@@ -141,11 +165,62 @@ describe('ChannelStrip', () => {
   it('opens the filter settings dialog from the effect toggles', async () => {
     render(
       <AudioProvider>
-        <ChannelStrip track={makeTrack({ ...baseState })} />
+        <ChannelStrip
+          track={makeTrack({ ...baseState })}
+          isDragging={false}
+          onDragHandleMouseDown={vi.fn()}
+        />
       </AudioProvider>,
     );
 
     fireEvent.click(screen.getByTitle('Filter settings'));
     expect(await screen.findByText('Apply')).toBeTruthy();
+  });
+
+  it('calls onDragHandleMouseDown with the track id when the grip is pressed', () => {
+    const onDragHandleMouseDown = vi.fn();
+    render(
+      <AudioProvider>
+        <ChannelStrip
+          track={makeTrack({ ...baseState })}
+          isDragging={false}
+          onDragHandleMouseDown={onDragHandleMouseDown}
+        />
+      </AudioProvider>,
+    );
+
+    fireEvent.mouseDown(screen.getByTitle('Drag to reorder'));
+
+    expect(onDragHandleMouseDown).toHaveBeenCalledTimes(1);
+    expect(onDragHandleMouseDown.mock.calls[0][0]).toBe('track-1');
+  });
+
+  it('adds the is-dragging class to the strip root when isDragging is true', () => {
+    render(
+      <AudioProvider>
+        <ChannelStrip
+          track={makeTrack({ ...baseState })}
+          isDragging={true}
+          onDragHandleMouseDown={vi.fn()}
+        />
+      </AudioProvider>,
+    );
+
+    expect(document.querySelector('.mixer-strip.is-dragging')).toBeTruthy();
+  });
+
+  it('does not add the is-dragging class when isDragging is false', () => {
+    render(
+      <AudioProvider>
+        <ChannelStrip
+          track={makeTrack({ ...baseState })}
+          isDragging={false}
+          onDragHandleMouseDown={vi.fn()}
+        />
+      </AudioProvider>,
+    );
+
+    expect(document.querySelector('.mixer-strip.is-dragging')).toBeNull();
+    expect(document.querySelector('.mixer-strip')).toBeTruthy();
   });
 });

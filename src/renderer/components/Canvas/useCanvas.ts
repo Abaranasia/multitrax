@@ -69,6 +69,7 @@ export const useCanvas = () => {
     loadSession,
     newSession,
     updatePosition,
+    reorderTracks,
   } = useAudio();
 
   useEffect(() => {
@@ -253,5 +254,6 @@ export const useCanvas = () => {
     onOrganizeTracks,
     viewMode,
     switchView,
+    reorderTracks,
   };
 };

@@ -41,6 +41,7 @@ export interface AudioContextValue {
   setReverbSettings: (id: string, s: ReverbSettings) => void;
   setDistortionSettings: (id: string, s: DistortionSettings) => void;
   updatePosition: (id: string, x: number, y: number) => void;
+  reorderTracks: (id: string, toIndex: number) => void;
   tickCurrentTimes: () => void;
   loadSession: (snapshots: SessionTrackSnapshot[]) => Promise<{ loaded: number; missing: string[] }>;
   newSession: () => void;

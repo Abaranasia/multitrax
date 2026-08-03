@@ -1,3 +1,4 @@
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import { TrackEntry } from '../../context/audioContextInstance';
 import { formatDb } from '../../utils/formatDb';
 import { useChannelStrip } from './useChannelStrip';
@@ -25,9 +26,11 @@ import './MixerView.css';
 
 interface ChannelStripProps {
   track: TrackEntry;
+  isDragging: boolean;
+  onDragHandleMouseDown: (id: string, e: ReactMouseEvent) => void;
 }
 
-export const ChannelStrip = ({ track }: ChannelStripProps) => {
+export const ChannelStrip = ({ track, isDragging, onDragHandleMouseDown }: ChannelStripProps) => {
   const { state } = track;
   const {
     fmt,
@@ -65,9 +68,18 @@ export const ChannelStrip = ({ track }: ChannelStripProps) => {
   );
 
   return (
-    <div className="mixer-strip">
-      <div className="mixer-strip-title" title={state.title}>
-        {state.title.split(/[\\/]/).pop() ?? state.title}
+    <div className={`mixer-strip${isDragging ? ' is-dragging' : ''}`}>
+      <div className="mixer-strip-header">
+        <span
+          className="mixer-strip-grip"
+          title="Drag to reorder"
+          onMouseDown={(e) => onDragHandleMouseDown(track.state.id, e)}
+        >
+          ⣿
+        </span>
+        <div className="mixer-strip-title" title={state.title}>
+          {state.title.split(/[\\/]/).pop() ?? state.title}
+        </div>
       </div>
 
       <WaveformCanvas

@@ -34,6 +34,28 @@
   font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
+.mixer-strip-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+}
+
+.mixer-strip-grip {
+  flex-shrink: 0;
+  cursor: grab;
+  color: #5f6474;
+  font-size: 12px;
+  line-height: 1;
+  user-select: none;
+}
+
+.mixer-strip.is-dragging {
+  cursor: grabbing;
+  opacity: 0.85;
+  outline: 1px solid #f5a623;
+}
+
 .mixer-strip-title {
   color: #e9ebf0;
   font-size: 12px;

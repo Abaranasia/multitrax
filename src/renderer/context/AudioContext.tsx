@@ -514,6 +514,17 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setTracks((prev) => prev.map((t) => (t.state.id === id ? { ...t, x, y } : t)));
   }, []);
 
+  const reorderTracks = useCallback((id: string, toIndex: number) => {
+    setTracks((prev) => {
+      const fromIndex = prev.findIndex((t) => t.state.id === id);
+      if (fromIndex === -1 || fromIndex === toIndex) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  }, []);
+
   // Called by animation frame to sync currentTime
   const tickCurrentTimes = useCallback(() => {
     setTracks((prev) =>
@@ -554,6 +565,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setReverbSettings,
         setDistortionSettings,
         updatePosition,
+        reorderTracks,
         tickCurrentTimes,
         loadSession,
         newSession,

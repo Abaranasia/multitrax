@@ -238,10 +238,29 @@ what's meant to stay a focused mixing/monitoring tool.
   `currentSessionPath` to null. Added as a "New Session" item in the
   `SessionMenu` dropdown, alongside Load/Save Session.
 
-- [ ] **Dashboard track-view reorganization** — add a dashboard-level action to
+- [x] **Dashboard track-view reorganization** — add a dashboard-level action to
   reorganize the visible track views in a consistent layout, such as aligning
   cards by size, spacing, or a predictable grid/order when the user requests it.
   This should help reduce visual clutter when many tracks are loaded.
+  **Implemented** via a new `⊞ Organize` floating button next to the Session
+  menu, backed by a new `canvasLayout.ts` util shared by both the default and
+  organized placement paths: `TOP_INSET = 90` / `SIDE_INSET = 20` reserve the
+  screen-top band occupied by the `SessionMenu` (top-left) and `RecorderBar`
+  (top-right) buttons, and `computeGridPositions(count, viewportWidth)` fills
+  a row-major grid (`TRACK_CARD_WIDTH = 380`, matching `.track-player`'s CSS
+  width, plus a `GRID_GAP = 20` and an approximate `TRACK_CARD_HEIGHT = 260`
+  row spacing — card height is content-driven, so this is a spacing
+  approximation, not an enforced height). `useCanvas.ts`'s new
+  `onOrganizeTracks` calls the existing `updatePosition(id, x, y)` once per
+  track with the computed coordinates, so organizing is a one-shot snapshot
+  rather than a persistent "layout mode" — tracks can still be dragged
+  freely afterward. `AudioContext.tsx`'s cascade start for new/duplicated
+  tracks moved from the literal `{ x: 20, y: 20 }` (which sat directly under
+  the Session menu button) to `{ x: SIDE_INSET, y: TOP_INSET }`, so default
+  placement also skips the reserved top band. `SessionMenu.css`'s
+  `.session-menu` positioning moved from `fixed` to `relative`, since the new
+  `.top-left-actions` wrapper in `Canvas.tsx` now owns the fixed top-left
+  placement for both the Session menu and the Organize button.
 
 - [ ] **Mixer-style vertical track view** — add a second view mode that displays
   track information in a vertical, console-like layout with one track per row,

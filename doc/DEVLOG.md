@@ -700,3 +700,50 @@ Canvas, TrackContextMenu and TrackPlayer test suites
   filename regex), `SessionMenu.test.tsx` (renders/clicks the new item).
 - Checked off "Save / Load session" filename note and added "New Session" to
   `doc/TODO.md`.
+
+---
+
+## [2026-08-03] — Dashboard track-view reorganization (grid Organize button)
+
+**Files:** `src/renderer/utils/canvasLayout.ts` (new),
+`src/renderer/context/AudioContext.tsx`,
+`src/renderer/components/Canvas/useCanvas.ts`,
+`src/renderer/components/Canvas/Canvas.tsx`,
+`src/renderer/components/Canvas/Canvas.css`,
+`src/renderer/components/SessionMenu/SessionMenu.css`,
+`src/__tests__/utils/canvasLayout.test.ts` (new),
+`src/__tests__/context/AudioContext.test.tsx`,
+`src/__tests__/components/Canvas/Canvas.test.tsx`, `doc/TODO.md`
+
+- New `canvasLayout.ts` util is the single source of truth for track
+  placement, shared by both the default cascade and the new grid action:
+  `TOP_INSET = 90` / `SIDE_INSET = 20` reserve the top band occupied by the
+  `SessionMenu` and `RecorderBar` floating buttons; `TRACK_CARD_WIDTH = 380`
+  mirrors `.track-player`'s CSS width; `computeGridPositions(count,
+  viewportWidth)` fills a row-major grid using those insets plus a
+  `GRID_GAP = 20` and an approximate `TRACK_CARD_HEIGHT = 260` row spacing
+  (card height is content-driven, so this is a spacing approximation, not an
+  enforced height).
+- Added a `⊞ Organize` floating button next to the Session menu
+  (`Canvas.tsx`, disabled when there are no tracks). `useCanvas.ts`'s new
+  `onOrganizeTracks` computes `computeGridPositions(tracks.length,
+  window.innerWidth)` and calls the existing `updatePosition(id, x, y)` once
+  per track in array order — organizing is a one-shot snapshot, not a
+  persistent layout mode, so tracks stay freely draggable afterward.
+- `AudioContext.tsx`'s cascade start for new/duplicated tracks moved from the
+  literal `{ x: 20, y: 20 }` — which sat directly under the Session menu
+  button — to `{ x: SIDE_INSET, y: TOP_INSET }`, so default (non-organized)
+  placement also skips the reserved top band.
+- `SessionMenu.css`'s `.session-menu` positioning changed from `fixed;
+  top/left: 20px` to `position: relative`, since a new `.top-left-actions`
+  flex wrapper in `Canvas.tsx` now owns the fixed top-left placement for both
+  the Session menu and the Organize button. `.session-menu-dropdown`'s
+  `position: absolute` anchoring is unaffected — `relative` still
+  establishes the same positioning context.
+- Added tests: `canvasLayout.test.ts` (column/row math, every position stays
+  within the reserved insets, single-column wrap, empty case),
+  `AudioContext.test.tsx` (first added track lands at `TOP_INSET`/`SIDE_INSET`
+  instead of `20`/`20`), `Canvas.test.tsx` (Organize button disabled when
+  empty, clicking it calls `updatePosition` per track with the computed grid
+  coordinates).
+- Checked off "Dashboard track-view reorganization" in `doc/TODO.md`.

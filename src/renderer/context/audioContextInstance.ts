@@ -1,6 +1,7 @@
 import { createContext } from 'react';
 import { AudioEngine } from '../audio/AudioEngine';
 import { TrackState } from '../domain/TrackState';
+import { SessionTrackSnapshot } from '../domain/SessionFile';
 import {
   FilterSettings,
   DistortionSettings,
@@ -41,6 +42,7 @@ export interface AudioContextValue {
   setDistortionSettings: (id: string, s: DistortionSettings) => void;
   updatePosition: (id: string, x: number, y: number) => void;
   tickCurrentTimes: () => void;
+  loadSession: (snapshots: SessionTrackSnapshot[]) => Promise<{ loaded: number; missing: string[] }>;
 }
 
 export const Ctx = createContext<AudioContextValue | null>(null);

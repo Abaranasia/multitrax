@@ -298,23 +298,23 @@ what's meant to stay a focused mixing/monitoring tool.
     `FADE_DURATION_MAX_S`, matching the existing `DELAY_TIME_MAX_MS` /
     `DAMPING_MIN_HZ` pattern.
 
-- [ ] **Guard against overlapping Open-Files imports.** A race condition was
+- [x] **Guard against overlapping Open-Files imports.** A race condition was
   discovered during the error-handling-gaps change review (review-resilience
   lens, corroborated by refuter): a second "Open Files" click while a first
   batch's IPC reads are still in flight wipes the session-scoped `grantedPaths`
   allowlist mid-flight, causing the first batch's still-pending `readAudioFile`
   IPC calls to reject with "Access denied", silently discarding every
   already-read file in that batch with zero UI feedback (unhandled promise
-  rejection). The fix is a busy-guard on `onOpenFiles` (useRef checked
-  synchronously, prevents re-invocation while in-flight) + disabled state on
-  the "+ Open Files" button in Canvas.tsx while a batch is in flight
-  (mirroring RecorderBar.tsx's `disabled={isSaving}` pattern). A working
-  prototype was implemented and independently validated (148/148 tests) during
-  error-handling-gaps; see apply-progress narrative and B.12 task for the
-  exact approach. Reverted from error-handling-gaps to keep review scope clean
-  (Canvas files were not in the originally-reviewed diff); pick up as a new
-  SDD change with its own stacked-PR scope (Canvas.tsx / useCanvas.ts /
-  Canvas.test.tsx only).
+  rejection). Fixed with a busy-guard on `onOpenFiles` in `useCanvas.ts`
+  (`useRef` checked synchronously, prevents re-invocation while in-flight,
+  cleared in a `finally` block) + a `disabled` state on the "+ Open Files"
+  button in `Canvas.tsx` while a batch is in flight (mirroring
+  RecorderBar.tsx's `disabled={isSaving}` pattern). This re-applies the exact
+  approach prototyped and independently validated during error-handling-gaps
+  (see that change's apply-progress narrative, B.12 task) but reverted there
+  to keep review scope clean; 2 new tests added to `Canvas.test.tsx`
+  (overlapping-click no-op, button disabled/re-enabled), 189/189 full suite
+  passing, `tsc`/`eslint` clean.
 
 - [x] **Split up oversized files and remove inline styles.** Full detail in
   `doc/FUTURE-IMPROVEMENTS.md` § 4.

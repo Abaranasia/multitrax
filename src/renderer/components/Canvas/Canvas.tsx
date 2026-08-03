@@ -5,7 +5,7 @@ import { TrackPlayer } from '../TrackPlayer/TrackPlayer';
 import { RecorderBar } from '../Recorder/RecorderBar';
 
 export const Canvas = () => {
-  const { tracks, onDragOver, onDrop, onOpenFiles, stopAll, playAll } = useCanvas();
+  const { tracks, onDragOver, onDrop, onOpenFiles, isOpeningFiles, stopAll, playAll } = useCanvas();
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     void onDragOver(event);
@@ -52,7 +52,12 @@ export const Canvas = () => {
           ⏹ Stop All
         </button>
 
-        <button className="btn-open" onClick={handleOpenFiles} title="Open audio files">
+        <button
+          className="btn-open"
+          onClick={handleOpenFiles}
+          title="Open audio files"
+          disabled={isOpeningFiles}
+        >
           + Open Files
         </button>
       </div>

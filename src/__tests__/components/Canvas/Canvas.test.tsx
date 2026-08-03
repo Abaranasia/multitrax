@@ -506,7 +506,7 @@ describe('Canvas', () => {
 
     await waitFor(() => expect(saveSession).toHaveBeenCalled());
     const [json, suggestedName] = saveSession.mock.calls[0];
-    expect(suggestedName).toMatch(/^session-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(suggestedName).toMatch(/^session-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}\.json$/);
 
     const parsed = JSON.parse(json) as {
       version: number;

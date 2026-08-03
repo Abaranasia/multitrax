@@ -51,7 +51,9 @@ function defaultSessionFileName(): string {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
-  return `session-${now.getFullYear()}-${month}-${day}.json`;
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  return `session-${now.getFullYear()}-${month}-${day}_${hours}-${minutes}.json`;
 }
 
 export const useCanvas = () => {

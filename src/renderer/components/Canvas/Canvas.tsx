@@ -27,6 +27,7 @@ export const Canvas = () => {
     onOrganizeTracks,
     viewMode,
     switchView,
+    reorderTracks,
   } = useCanvas();
 
   const { isOpen: isSessionMenuOpen, toggle: toggleSessionMenu, close: closeSessionMenu } =
@@ -73,7 +74,7 @@ export const Canvas = () => {
           <TrackPlayer key={t.state.id} state={t.state} filePath={t.filePath} x={t.x} y={t.y} />
         ))
       ) : (
-        <MixerView tracks={tracks} />
+        <MixerView tracks={tracks} reorderTracks={reorderTracks} />
       )}
 
       <div className="top-left-actions">

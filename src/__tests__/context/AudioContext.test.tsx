@@ -626,4 +626,104 @@ describe('AudioContext', () => {
     await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('0'));
     expect(mockAudioEngine.removeTrack).toHaveBeenCalledWith(TRACK_ID);
   });
+
+  it('reorderTracks moves the dragged track to the target index without touching x/y', async () => {
+    const ids: `${string}-${string}-${string}-${string}-${string}`[] = [
+      '11111111-1111-1111-1111-111111111111',
+      '22222222-2222-2222-2222-222222222222',
+      '33333333-3333-3333-3333-333333333333',
+    ];
+    let call = 0;
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => ids[call++]);
+
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              void audio.addTracks([
+                { path: '/a.mp3', name: 'A', buffer: new ArrayBuffer(4) },
+                { path: '/b.mp3', name: 'B', buffer: new ArrayBuffer(4) },
+                { path: '/c.mp3', name: 'C', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
+            Add Tracks
+          </button>
+          <button onClick={() => audio.reorderTracks(ids[0], 2)}>Reorder</button>
+          <div data-testid="titles">{audio.tracks.map((t) => t.state.title).join(',')}</div>
+          <div data-testid="track-a-pos">
+            {(() => {
+              const a = audio.tracks.find((t) => t.state.id === ids[0]);
+              return a ? `${a.x},${a.y}` : '';
+            })()}
+          </div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add Tracks'));
+    await waitFor(() => expect(screen.getByTestId('titles').textContent).toBe('A,B,C'));
+    const trackAPosBefore = screen.getByTestId('track-a-pos').textContent;
+
+    fireEvent.click(screen.getByText('Reorder'));
+
+    // Track A moved from index 0 to the last slot, but its own x/y — which
+    // travels with the moved TrackEntry, not with the array slot — must be
+    // unchanged: reorderTracks only splices array order, never touches x/y.
+    await waitFor(() => expect(screen.getByTestId('titles').textContent).toBe('B,C,A'));
+    expect(screen.getByTestId('track-a-pos').textContent).toBe(trackAPosBefore);
+  });
+
+  it('reorderTracks is a no-op when the id is not found or already at the target index', async () => {
+    const ids: `${string}-${string}-${string}-${string}-${string}`[] = [
+      '11111111-1111-1111-1111-111111111111',
+      '22222222-2222-2222-2222-222222222222',
+    ];
+    let call = 0;
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => ids[call++]);
+
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              void audio.addTracks([
+                { path: '/a.mp3', name: 'A', buffer: new ArrayBuffer(4) },
+                { path: '/b.mp3', name: 'B', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
+            Add Tracks
+          </button>
+          <button onClick={() => audio.reorderTracks('missing-id', 1)}>Reorder Missing</button>
+          <button onClick={() => audio.reorderTracks(ids[0], 0)}>Reorder Same Index</button>
+          <div data-testid="titles">{audio.tracks.map((t) => t.state.title).join(',')}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add Tracks'));
+    await waitFor(() => expect(screen.getByTestId('titles').textContent).toBe('A,B'));
+
+    fireEvent.click(screen.getByText('Reorder Missing'));
+    expect(screen.getByTestId('titles').textContent).toBe('A,B');
+
+    fireEvent.click(screen.getByText('Reorder Same Index'));
+    expect(screen.getByTestId('titles').textContent).toBe('A,B');
+  });
 });

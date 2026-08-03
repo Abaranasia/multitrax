@@ -16,6 +16,7 @@ describe('SessionMenu', () => {
         onLoadSession={vi.fn()}
         onSaveSession={vi.fn()}
         onSaveNewSession={vi.fn()}
+        onNewSession={vi.fn()}
         saveDisabled={false}
         loadDisabled={false}
       />,
@@ -24,6 +25,7 @@ describe('SessionMenu', () => {
     expect(screen.queryByText('Load Session')).toBeNull();
     expect(screen.queryByText('Save Session')).toBeNull();
     expect(screen.queryByText('Save New Session')).toBeNull();
+    expect(screen.queryByText('New Session')).toBeNull();
   });
 
   it('calls onToggle when the toggle button is clicked', () => {
@@ -36,6 +38,7 @@ describe('SessionMenu', () => {
         onLoadSession={vi.fn()}
         onSaveSession={vi.fn()}
         onSaveNewSession={vi.fn()}
+        onNewSession={vi.fn()}
         saveDisabled={false}
         loadDisabled={false}
       />,
@@ -45,7 +48,7 @@ describe('SessionMenu', () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
-  it('renders Load Session, Save Session, and Save New Session items when open', () => {
+  it('renders Load Session, Save Session, Save New Session, and New Session items when open', () => {
     render(
       <SessionMenu
         isOpen
@@ -54,6 +57,7 @@ describe('SessionMenu', () => {
         onLoadSession={vi.fn()}
         onSaveSession={vi.fn()}
         onSaveNewSession={vi.fn()}
+        onNewSession={vi.fn()}
         saveDisabled={false}
         loadDisabled={false}
       />,
@@ -62,6 +66,7 @@ describe('SessionMenu', () => {
     expect(screen.getByText('Load Session')).toBeTruthy();
     expect(screen.getByText('Save Session')).toBeTruthy();
     expect(screen.getByText('Save New Session')).toBeTruthy();
+    expect(screen.getByText('New Session')).toBeTruthy();
   });
 
   it('calls onLoadSession and then onClose when Load Session is clicked', () => {
@@ -75,6 +80,7 @@ describe('SessionMenu', () => {
         onLoadSession={onLoadSession}
         onSaveSession={vi.fn()}
         onSaveNewSession={vi.fn()}
+        onNewSession={vi.fn()}
         saveDisabled={false}
         loadDisabled={false}
       />,
@@ -97,6 +103,7 @@ describe('SessionMenu', () => {
         onLoadSession={vi.fn()}
         onSaveSession={onSaveSession}
         onSaveNewSession={vi.fn()}
+        onNewSession={vi.fn()}
         saveDisabled={false}
         loadDisabled={false}
       />,
@@ -119,6 +126,7 @@ describe('SessionMenu', () => {
         onLoadSession={vi.fn()}
         onSaveSession={vi.fn()}
         onSaveNewSession={onSaveNewSession}
+        onNewSession={vi.fn()}
         saveDisabled={false}
         loadDisabled={false}
       />,
@@ -127,6 +135,29 @@ describe('SessionMenu', () => {
     fireEvent.click(screen.getByText('Save New Session'));
 
     expect(onSaveNewSession).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onNewSession and then onClose when New Session is clicked', () => {
+    const onNewSession = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <SessionMenu
+        isOpen
+        onToggle={vi.fn()}
+        onClose={onClose}
+        onLoadSession={vi.fn()}
+        onSaveSession={vi.fn()}
+        onSaveNewSession={vi.fn()}
+        onNewSession={onNewSession}
+        saveDisabled={false}
+        loadDisabled={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('New Session'));
+
+    expect(onNewSession).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -139,6 +170,7 @@ describe('SessionMenu', () => {
         onLoadSession={vi.fn()}
         onSaveSession={vi.fn()}
         onSaveNewSession={vi.fn()}
+        onNewSession={vi.fn()}
         saveDisabled
         loadDisabled={false}
       />,
@@ -158,6 +190,7 @@ describe('SessionMenu', () => {
         onLoadSession={vi.fn()}
         onSaveSession={vi.fn()}
         onSaveNewSession={vi.fn()}
+        onNewSession={vi.fn()}
         saveDisabled={false}
         loadDisabled
       />,

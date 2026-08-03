@@ -55,7 +55,8 @@ function defaultSessionFileName(): string {
 }
 
 export const useCanvas = () => {
-  const { tracks, addTracks, tickCurrentTimes, stopAll, playAll, loadSession } = useAudio();
+  const { tracks, addTracks, tickCurrentTimes, stopAll, playAll, loadSession, newSession } =
+    useAudio();
 
   useEffect(() => {
     const id = setInterval(tickCurrentTimes, 100);
@@ -200,6 +201,14 @@ export const useCanvas = () => {
     }
   }, [loadSession]);
 
+  const onNewSession = useCallback(() => {
+    if (tracks.length > 0 && !window.confirm('Start a new session? Unsaved changes will be lost.')) {
+      return;
+    }
+    newSession();
+    setCurrentSessionPath(null);
+  }, [tracks.length, newSession]);
+
   return {
     tracks,
     onDragOver,
@@ -213,5 +222,6 @@ export const useCanvas = () => {
     isSavingSession,
     onLoadSession,
     isLoadingSession,
+    onNewSession,
   };
 };

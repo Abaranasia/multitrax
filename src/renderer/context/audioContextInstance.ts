@@ -43,6 +43,7 @@ export interface AudioContextValue {
   updatePosition: (id: string, x: number, y: number) => void;
   tickCurrentTimes: () => void;
   loadSession: (snapshots: SessionTrackSnapshot[]) => Promise<{ loaded: number; missing: string[] }>;
+  newSession: () => void;
 }
 
 export const Ctx = createContext<AudioContextValue | null>(null);

@@ -17,6 +17,7 @@ const mockTickCurrentTimes = vi.fn();
 const mockStopAll = vi.fn();
 const mockPlayAll = vi.fn();
 const mockLoadSession = vi.fn();
+const mockNewSession = vi.fn();
 
 type MockAudioState = {
   tracks: Array<{
@@ -35,6 +36,7 @@ type MockAudioState = {
   stopAll: typeof mockStopAll;
   playAll: typeof mockPlayAll;
   loadSession: typeof mockLoadSession;
+  newSession: typeof mockNewSession;
 };
 
 const useAudioMock = vi.fn((): MockAudioState => ({
@@ -44,6 +46,7 @@ const useAudioMock = vi.fn((): MockAudioState => ({
   stopAll: mockStopAll,
   playAll: mockPlayAll,
   loadSession: mockLoadSession,
+  newSession: mockNewSession,
 }));
 
 vi.mock('@/renderer/context/useAudio', () => ({
@@ -71,6 +74,7 @@ describe('Canvas', () => {
     mockPlayAll.mockReset();
     mockLoadSession.mockReset();
     mockLoadSession.mockResolvedValue({ loaded: 0, missing: [] });
+    mockNewSession.mockReset();
     useAudioMock.mockReturnValue({
       tracks: [],
       addTracks: mockAddTracks,
@@ -78,6 +82,7 @@ describe('Canvas', () => {
       stopAll: mockStopAll,
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
+      newSession: mockNewSession,
     });
   });
 
@@ -296,6 +301,7 @@ describe('Canvas', () => {
       stopAll: mockStopAll,
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
+      newSession: mockNewSession,
     });
 
     render(<Canvas />);
@@ -311,6 +317,7 @@ describe('Canvas', () => {
       stopAll: mockStopAll,
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
+      newSession: mockNewSession,
     });
 
     render(<Canvas />);
@@ -326,6 +333,7 @@ describe('Canvas', () => {
       stopAll: mockStopAll,
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
+      newSession: mockNewSession,
     });
 
     render(<Canvas />);
@@ -344,6 +352,7 @@ describe('Canvas', () => {
       stopAll: mockStopAll,
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
+      newSession: mockNewSession,
     });
 
     render(<Canvas />);
@@ -359,6 +368,7 @@ describe('Canvas', () => {
       stopAll: mockStopAll,
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
+      newSession: mockNewSession,
     });
 
     render(<Canvas />);
@@ -374,6 +384,7 @@ describe('Canvas', () => {
       stopAll: mockStopAll,
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
+      newSession: mockNewSession,
     });
 
     render(<Canvas />);
@@ -469,6 +480,7 @@ describe('Canvas', () => {
       stopAll: mockStopAll,
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
+      newSession: mockNewSession,
     });
 
     const saveSession = vi.fn((json: string, suggestedName: string) => {
@@ -547,6 +559,7 @@ describe('Canvas', () => {
       stopAll: mockStopAll,
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
+      newSession: mockNewSession,
     });
 
     let resolveSave: (v: { saved: boolean; filePath?: string }) => void = () => {};
@@ -591,6 +604,7 @@ describe('Canvas', () => {
       stopAll: mockStopAll,
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
+      newSession: mockNewSession,
     });
 
     const saveSession = vi.fn(() =>
@@ -630,6 +644,7 @@ describe('Canvas', () => {
       stopAll: mockStopAll,
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
+      newSession: mockNewSession,
     });
 
     const openSession = vi.fn(() =>
@@ -676,6 +691,7 @@ describe('Canvas', () => {
       stopAll: mockStopAll,
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
+      newSession: mockNewSession,
     });
 
     const saveSession = vi
@@ -855,5 +871,58 @@ describe('Canvas', () => {
     });
 
     expect(openSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the session immediately with no confirmation when there are no tracks', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockImplementation(() => true);
+
+    render(<Canvas />);
+
+    fireEvent.click(screen.getByTitle('Session menu'));
+    fireEvent.click(screen.getByText('New Session'));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(mockNewSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks for confirmation before clearing a session with existing tracks, and clears it when confirmed', () => {
+    useAudioMock.mockReturnValue({
+      tracks: [{ state: { id: '1', title: 'Track' }, filePath: '/t.wav', x: 0, y: 0 }],
+      addTracks: mockAddTracks,
+      tickCurrentTimes: mockTickCurrentTimes,
+      stopAll: mockStopAll,
+      playAll: mockPlayAll,
+      loadSession: mockLoadSession,
+      newSession: mockNewSession,
+    });
+    const confirmSpy = vi.spyOn(window, 'confirm').mockImplementation(() => true);
+
+    render(<Canvas />);
+
+    fireEvent.click(screen.getByTitle('Session menu'));
+    fireEvent.click(screen.getByText('New Session'));
+
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(mockNewSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not clear the session when the user cancels the confirmation', () => {
+    useAudioMock.mockReturnValue({
+      tracks: [{ state: { id: '1', title: 'Track' }, filePath: '/t.wav', x: 0, y: 0 }],
+      addTracks: mockAddTracks,
+      tickCurrentTimes: mockTickCurrentTimes,
+      stopAll: mockStopAll,
+      playAll: mockPlayAll,
+      loadSession: mockLoadSession,
+      newSession: mockNewSession,
+    });
+    vi.spyOn(window, 'confirm').mockImplementation(() => false);
+
+    render(<Canvas />);
+
+    fireEvent.click(screen.getByTitle('Session menu'));
+    fireEvent.click(screen.getByText('New Session'));
+
+    expect(mockNewSession).not.toHaveBeenCalled();
   });
 });

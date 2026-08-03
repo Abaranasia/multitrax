@@ -20,6 +20,7 @@ export const Canvas = () => {
     isSavingSession,
     onLoadSession,
     isLoadingSession,
+    onNewSession,
   } = useCanvas();
 
   const { isOpen: isSessionMenuOpen, toggle: toggleSessionMenu, close: closeSessionMenu } =
@@ -70,6 +71,7 @@ export const Canvas = () => {
         onLoadSession={handleLoadSession}
         onSaveSession={handleSaveSession}
         onSaveNewSession={handleSaveNewSession}
+        onNewSession={onNewSession}
         saveDisabled={isSavingSession || tracks.length === 0}
         loadDisabled={isLoadingSession}
       />

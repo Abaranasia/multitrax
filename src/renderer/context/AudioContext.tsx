@@ -502,6 +502,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [engine, tracks],
   );
 
+  const newSession = useCallback(() => {
+    for (const entry of tracks) {
+      engine.removeTrack(entry.state.id);
+    }
+    setTracks([]);
+  }, [engine, tracks]);
+
   const updatePosition = useCallback((id: string, x: number, y: number) => {
     setTracks((prev) => prev.map((t) => (t.state.id === id ? { ...t, x, y } : t)));
   }, []);
@@ -548,6 +555,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updatePosition,
         tickCurrentTimes,
         loadSession,
+        newSession,
       }}
     >
       {children}

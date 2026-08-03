@@ -7,6 +7,7 @@ interface SessionMenuProps {
   onLoadSession: () => void;
   onSaveSession: () => void;
   onSaveNewSession: () => void;
+  onNewSession: () => void;
   saveDisabled: boolean;
   loadDisabled: boolean;
 }
@@ -18,6 +19,7 @@ export const SessionMenu = ({
   onLoadSession,
   onSaveSession,
   onSaveNewSession,
+  onNewSession,
   saveDisabled,
   loadDisabled,
 }: SessionMenuProps) => {
@@ -33,6 +35,11 @@ export const SessionMenu = ({
 
   const handleSaveNewSession = () => {
     onSaveNewSession();
+    onClose();
+  };
+
+  const handleNewSession = () => {
+    onNewSession();
     onClose();
   };
 
@@ -69,6 +76,14 @@ export const SessionMenu = ({
             title="Save session to a new file"
           >
             Save New Session
+          </button>
+
+          <button
+            className="session-menu-item"
+            onClick={handleNewSession}
+            title="Clear the current session and start a new one"
+          >
+            New Session
           </button>
         </div>
       )}

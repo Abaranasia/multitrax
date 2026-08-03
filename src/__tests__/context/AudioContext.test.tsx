@@ -560,4 +560,38 @@ describe('AudioContext', () => {
     expect(screen.getByTestId('loaded').textContent).toBe('1');
     expect(screen.getByTestId('missing').textContent).toBe('/missing.wav');
   });
+
+  it('newSession removes every track from the engine and clears state', async () => {
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              audio.addTracks([
+                { path: '/test.mp3', name: 'Test file', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
+            Add Track
+          </button>
+          <button onClick={() => audio.newSession()}>New Session</button>
+          <div data-testid="track-count">{audio.tracks.length}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add Track'));
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('1'));
+
+    fireEvent.click(screen.getByText('New Session'));
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('0'));
+    expect(mockAudioEngine.removeTrack).toHaveBeenCalledWith(TRACK_ID);
+  });
 });

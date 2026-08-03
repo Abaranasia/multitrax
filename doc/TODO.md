@@ -262,10 +262,47 @@ what's meant to stay a focused mixing/monitoring tool.
   `.top-left-actions` wrapper in `Canvas.tsx` now owns the fixed top-left
   placement for both the Session menu and the Organize button.
 
-- [ ] **Mixer-style vertical track view** — add a second view mode that displays
+- [x] **Mixer-style vertical track view** — add a second view mode that displays
   track information in a vertical, console-like layout with one track per row,
   making it easier to compare levels, mute/solo states, and per-track controls
   at a glance.
+  **Implemented** as a visual-only MVP following the "Option 1C — Rack" design
+  in `doc/templates/Audio UI modernization project/Multitrack Redesign.dc.html`.
+  The old standalone `⊞ Organize` button in `.top-left-actions` was replaced by
+  a `ViewMenu` dropdown (mirroring `SessionMenu`'s open/close pattern), which
+  lists `⊞ Organize Tracks` only while in canvas mode, plus a single dynamic
+  item that switches to the other view (`🎚 Switch to Mixer View` /
+  `🖼 Switch to Track View`). `useCanvas.ts` now owns `viewMode: 'canvas' |
+  'mixer'` and `switchView()`; `Canvas.tsx` branches its track rendering
+  between the existing free-form `TrackPlayer` cards and the new `MixerView`,
+  which renders one `ChannelStrip` per track (in `tracks` array order, ignoring
+  `x`/`y`). Each strip **reuses** existing `TrackPlayer` sub-components as-is
+  (`WaveformCanvas`, `EffectToggles`, `PanControl`, `VolumeControl`,
+  `TransportControls`, effect dialogs) restyled into a vertical fader via CSS,
+  plus a derived dB readout (`formatDb.ts`, `20*log10(volume)`) — no new track
+  state was added. Mute/Solo, a live level meter, and the design's Master strip
+  were explicitly deferred (see the three new entries below) since none of
+  `TrackState`, `AudioContext.tsx`, or the audio engine have the backing data
+  (mute/solo flags, an `AnalyserNode`, or a master bus) required to drive them.
+
+- [ ] **Mixer view: Mute / Solo buttons** — add `muted`/`soloed` booleans to
+  `TrackState`, plus setters in `AudioContext.tsx` (mute routes through the
+  existing volume path to 0 and restores the prior value; solo mutes every
+  other track). Deferred out of the initial mixer-view MVP above; no
+  audio-graph changes needed, just new state + wiring.
+
+- [ ] **Mixer view: live VU meter per channel strip** — requires an
+  `AnalyserNode` per track in the audio engine and a polling/animation-frame
+  bridge into React to drive the meter bar next to each `ChannelStrip`'s
+  fader. Deferred out of the initial mixer-view MVP above; touches the audio
+  engine itself, not just the UI.
+
+- [ ] **Mixer view: Master strip with master volume** — there is no master bus
+  in the current audio graph (each track routes independently). Adding one
+  means introducing a master `GainNode` in the engine, a corresponding
+  `masterVolume` value in `AudioContext.tsx`, and rendering the design's
+  `.strip.master` column as a real control instead of a static element.
+  Deferred out of the initial mixer-view MVP above.
 
 - [ ] **Real-time effect preview + floating settings panel** — convert the
   Filter/Distortion/Delay/Reverb settings dialogs from "draft state,

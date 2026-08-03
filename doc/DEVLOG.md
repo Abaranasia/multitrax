@@ -747,3 +747,88 @@ Canvas, TrackContextMenu and TrackPlayer test suites
   empty, clicking it calls `updatePosition` per track with the computed grid
   coordinates).
 - Checked off "Dashboard track-view reorganization" in `doc/TODO.md`.
+
+---
+
+## [2026-08-03] — Mixer-style vertical track view (View menu + console layout)
+
+**Files:** `src/renderer/components/Canvas/useCanvas.ts`,
+`src/renderer/components/Canvas/Canvas.tsx`,
+`src/renderer/components/Canvas/Canvas.css`,
+`src/renderer/components/ViewMenu/useViewMenu.ts` (new),
+`src/renderer/components/ViewMenu/ViewMenu.tsx` (new),
+`src/renderer/components/ViewMenu/ViewMenu.css` (new),
+`src/renderer/components/MixerView/MixerView.tsx` (new),
+`src/renderer/components/MixerView/ChannelStrip.tsx` (new),
+`src/renderer/components/MixerView/PanDial.tsx` (new),
+`src/renderer/components/MixerView/useChannelStrip.ts` (new),
+`src/renderer/components/MixerView/MixerView.css` (new),
+`src/renderer/utils/formatDb.ts` (new),
+`src/renderer/components/TrackPlayer/components/transportControls/TransportControls.tsx`,
+`src/renderer/components/TrackPlayer/components/transportControls/PlaybackButtons.tsx` (new),
+`src/renderer/components/TrackPlayer/components/transportControls/TransportToggles.tsx` (new),
+`src/renderer/components/TrackPlayer/components/index.ts`,
+`src/renderer/components/TrackPlayer/TrackPlayer.css`,
+various new/updated tests under `src/__tests__/components/ViewMenu/`,
+`src/__tests__/components/MixerView/`, `src/__tests__/utils/formatDb.test.ts`,
+`src/__tests__/components/Canvas/Canvas.test.tsx`, `doc/TODO.md`
+
+- Added a second track-display mode — a mixing-console layout — following
+  "Option 1C — Rack" from
+  `doc/templates/Audio UI modernization project/Multitrack Redesign.dc.html`.
+  Shipped as a **visual-only MVP**: reuses only what already existed
+  (volume, pan, effects, waveform, transport) and deliberately omits
+  Mute/Solo, a live VU meter, and a Master strip, since none of `TrackState`,
+  `AudioContext.tsx`, or the audio engine carry the state (mute/solo flags,
+  an `AnalyserNode`, or a master bus) those would need — tracked instead as
+  three new deferred `doc/TODO.md` entries.
+- `useCanvas.ts` gained `viewMode: 'canvas' | 'mixer'` and `switchView()`
+  (toggles between the two). `Canvas.tsx` branches its track rendering on
+  `viewMode`: the existing free-form `TrackPlayer` card mapping is untouched
+  in `'canvas'` mode; `'mixer'` renders the new `<MixerView tracks={tracks}/>`
+  instead, iterating `tracks` in array order (ignoring `x`/`y`, which are
+  canvas-only).
+- The old standalone `⊞ Organize` button was replaced by a `ViewMenu`
+  dropdown, mirroring `SessionMenu`/`useSessionMenu`'s open/close pattern
+  exactly (`useViewMenu.ts`, same mousedown/Escape auto-close). The menu
+  shows `⊞ Organize Tracks` (the pre-existing grid-snap action) only while
+  in canvas mode, plus one dynamic item that always names the *other* view
+  — `🎚 Switch to Mixer View` / `🖼 Switch to Track View` — so only one
+  "switch" target is ever offered at a time.
+- `MixerView.tsx` renders one `ChannelStrip` per track in a horizontally
+  scrollable `.mixer-rack`. Each `ChannelStrip` composes **existing**
+  `TrackPlayer` sub-components rather than reimplementing control logic:
+  `WaveformCanvas`, `EffectToggles`, `VolumeControl`, and a new `PanDial`
+  (below), plus a derived dB readout (`formatDb.ts`: `20·log10(volume)`,
+  `"-∞ dB"` at 0 — pure display math, not stored state).
+- `PanDial.tsx` replaces the card view's pan slider **in the mixer view
+  only** — the shared `PanControl`/`usePanControl` slider is untouched for
+  `TrackPlayer`. It reuses `usePanControl`'s `pan`/`onChange`/`onDoubleClick`
+  exactly as-is, rendering a rotating dial face (`±45°` sweep, tick mark via
+  `::after`) with a compact `L60`/`Center`/`R60` label; the original range
+  input is kept underneath for real drag/keyboard interaction but made
+  invisible (`opacity: 0`) and overlaid on the dial.
+- `TransportControls.tsx` was split into `PlaybackButtons.tsx` (play/pause +
+  stop) and `TransportToggles.tsx` (loop/fade-in/fade-out/seek-fade/settings),
+  with `TransportControls` now just composing both — `TrackPlayer.tsx`'s
+  card view keeps calling the combined component, so its DOM/CSS/tests are
+  unchanged. `ChannelStrip.tsx` uses the two pieces independently: a
+  `.mixer-middle-row` puts `TransportToggles` (stacked vertically via
+  `flex-direction: column`) to the left of the vertical fader, while
+  `PlaybackButtons` stays on its own line below the dB readout — a 150px
+  strip can't fit any of these groups in one row without overflowing.
+- Fixed several layout bugs found after the first pass: the rotated volume
+  `<input type="range">` (`transform: rotate(-90deg)`) doesn't reserve
+  layout space for its rotated bounds, so the `%` value sat hidden underneath
+  it — fixed by taking the input out of flow (`position: absolute`, centered)
+  and pinning `.volume-value` to the bottom of the fader box instead. The
+  volume mute icon is hidden in the mixer view (`display: none`, scoped to
+  `.mixer-fader`) since a real mute/solo control will replace it later.
+  `.mixer-rack`'s padding changed from a flat `18px` to `90px 20px 20px`,
+  mirroring `TOP_INSET`/`SIDE_INSET` from `canvasLayout.ts`, so strips start
+  below the fixed Session/View button row instead of underneath it.
+- Checked off "Mixer-style vertical track view" in `doc/TODO.md` with an
+  implementation note, and added three new deferred entries: Mute/Solo
+  buttons, a live per-strip VU meter, and a Master strip with master volume
+  — each needs `TrackState`/`AudioContext.tsx`/audio-engine changes beyond
+  a pure view addition.

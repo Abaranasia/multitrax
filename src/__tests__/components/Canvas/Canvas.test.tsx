@@ -11,6 +11,7 @@ import {
 } from '@testing-library/react';
 
 import { createMockElectronAPI } from '@/__tests__/test-utils/mockElectronAPI';
+import { computeGridPositions } from '@/renderer/utils/canvasLayout';
 
 const mockAddTracks = vi.fn();
 const mockTickCurrentTimes = vi.fn();
@@ -18,6 +19,7 @@ const mockStopAll = vi.fn();
 const mockPlayAll = vi.fn();
 const mockLoadSession = vi.fn();
 const mockNewSession = vi.fn();
+const mockUpdatePosition = vi.fn();
 
 type MockAudioState = {
   tracks: Array<{
@@ -37,6 +39,7 @@ type MockAudioState = {
   playAll: typeof mockPlayAll;
   loadSession: typeof mockLoadSession;
   newSession: typeof mockNewSession;
+  updatePosition: typeof mockUpdatePosition;
 };
 
 const useAudioMock = vi.fn((): MockAudioState => ({
@@ -47,6 +50,7 @@ const useAudioMock = vi.fn((): MockAudioState => ({
   playAll: mockPlayAll,
   loadSession: mockLoadSession,
   newSession: mockNewSession,
+  updatePosition: mockUpdatePosition,
 }));
 
 vi.mock('@/renderer/context/useAudio', () => ({
@@ -75,6 +79,7 @@ describe('Canvas', () => {
     mockLoadSession.mockReset();
     mockLoadSession.mockResolvedValue({ loaded: 0, missing: [] });
     mockNewSession.mockReset();
+    mockUpdatePosition.mockReset();
     useAudioMock.mockReturnValue({
       tracks: [],
       addTracks: mockAddTracks,
@@ -83,6 +88,7 @@ describe('Canvas', () => {
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
       newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
     });
   });
 
@@ -302,6 +308,7 @@ describe('Canvas', () => {
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
       newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
     });
 
     render(<Canvas />);
@@ -318,6 +325,7 @@ describe('Canvas', () => {
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
       newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
     });
 
     render(<Canvas />);
@@ -334,6 +342,7 @@ describe('Canvas', () => {
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
       newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
     });
 
     render(<Canvas />);
@@ -353,6 +362,7 @@ describe('Canvas', () => {
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
       newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
     });
 
     render(<Canvas />);
@@ -369,6 +379,7 @@ describe('Canvas', () => {
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
       newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
     });
 
     render(<Canvas />);
@@ -385,6 +396,7 @@ describe('Canvas', () => {
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
       newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
     });
 
     render(<Canvas />);
@@ -393,6 +405,54 @@ describe('Canvas', () => {
     expect(playAllBtn.disabled).toBe(false);
     fireEvent.click(playAllBtn);
     expect(mockPlayAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the Organize button when there are no tracks', () => {
+    render(<Canvas />);
+
+    expect(
+      screen.getByTitle<HTMLButtonElement>('Arrange tracks in a grid').disabled,
+    ).toBe(true);
+  });
+
+  it('enables the Organize button and arranges tracks in a grid when clicked', () => {
+    const originalInnerWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 1200, configurable: true });
+
+    const mockTracks = [
+      { state: { id: '1', title: 'Track 1' }, x: 10, y: 20 },
+      { state: { id: '2', title: 'Track 2' }, x: 30, y: 40 },
+      { state: { id: '3', title: 'Track 3' }, x: 50, y: 60 },
+    ];
+    useAudioMock.mockReturnValueOnce({
+      tracks: mockTracks,
+      addTracks: mockAddTracks,
+      tickCurrentTimes: mockTickCurrentTimes,
+      stopAll: mockStopAll,
+      playAll: mockPlayAll,
+      loadSession: mockLoadSession,
+      newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
+    });
+
+    render(<Canvas />);
+
+    const organizeBtn = screen.getByTitle<HTMLButtonElement>('Arrange tracks in a grid');
+    expect(organizeBtn.disabled).toBe(false);
+    fireEvent.click(organizeBtn);
+
+    const expectedPositions = computeGridPositions(mockTracks.length, window.innerWidth);
+    expect(mockUpdatePosition).toHaveBeenCalledTimes(mockTracks.length);
+    mockTracks.forEach((track, i) => {
+      expect(mockUpdatePosition).toHaveBeenNthCalledWith(
+        i + 1,
+        track.state.id,
+        expectedPositions[i].x,
+        expectedPositions[i].y,
+      );
+    });
+
+    Object.defineProperty(window, 'innerWidth', { value: originalInnerWidth, configurable: true });
   });
 
   it('disables the Save Session and Save New Session menu items when there are no tracks', () => {
@@ -481,6 +541,7 @@ describe('Canvas', () => {
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
       newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
     });
 
     const saveSession = vi.fn((json: string, suggestedName: string) => {
@@ -560,6 +621,7 @@ describe('Canvas', () => {
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
       newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
     });
 
     let resolveSave: (v: { saved: boolean; filePath?: string }) => void = () => {};
@@ -605,6 +667,7 @@ describe('Canvas', () => {
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
       newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
     });
 
     const saveSession = vi.fn(() =>
@@ -645,6 +708,7 @@ describe('Canvas', () => {
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
       newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
     });
 
     const openSession = vi.fn(() =>
@@ -692,6 +756,7 @@ describe('Canvas', () => {
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
       newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
     });
 
     const saveSession = vi
@@ -894,6 +959,7 @@ describe('Canvas', () => {
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
       newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
     });
     const confirmSpy = vi.spyOn(window, 'confirm').mockImplementation(() => true);
 
@@ -915,6 +981,7 @@ describe('Canvas', () => {
       playAll: mockPlayAll,
       loadSession: mockLoadSession,
       newSession: mockNewSession,
+      updatePosition: mockUpdatePosition,
     });
     vi.spyOn(window, 'confirm').mockImplementation(() => false);
 

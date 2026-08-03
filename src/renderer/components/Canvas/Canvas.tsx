@@ -21,6 +21,7 @@ export const Canvas = () => {
     onLoadSession,
     isLoadingSession,
     onNewSession,
+    onOrganizeTracks,
   } = useCanvas();
 
   const { isOpen: isSessionMenuOpen, toggle: toggleSessionMenu, close: closeSessionMenu } =
@@ -64,17 +65,28 @@ export const Canvas = () => {
         <TrackPlayer key={t.state.id} state={t.state} filePath={t.filePath} x={t.x} y={t.y} />
       ))}
 
-      <SessionMenu
-        isOpen={isSessionMenuOpen}
-        onToggle={toggleSessionMenu}
-        onClose={closeSessionMenu}
-        onLoadSession={handleLoadSession}
-        onSaveSession={handleSaveSession}
-        onSaveNewSession={handleSaveNewSession}
-        onNewSession={onNewSession}
-        saveDisabled={isSavingSession || tracks.length === 0}
-        loadDisabled={isLoadingSession}
-      />
+      <div className="top-left-actions">
+        <SessionMenu
+          isOpen={isSessionMenuOpen}
+          onToggle={toggleSessionMenu}
+          onClose={closeSessionMenu}
+          onLoadSession={handleLoadSession}
+          onSaveSession={handleSaveSession}
+          onSaveNewSession={handleSaveNewSession}
+          onNewSession={onNewSession}
+          saveDisabled={isSavingSession || tracks.length === 0}
+          loadDisabled={isLoadingSession}
+        />
+
+        <button
+          className="btn-organize"
+          onClick={onOrganizeTracks}
+          title="Arrange tracks in a grid"
+          disabled={tracks.length === 0}
+        >
+          ⊞ Organize
+        </button>
+      </div>
 
       <div className="controls-bar" role="group" aria-label="Playback controls">
         <button

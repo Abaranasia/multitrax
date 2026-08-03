@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAudio } from '../../context/useAudio';
 import { TrackEntry } from '../../context/audioContextInstance';
 import { SessionFile, SessionTrackSnapshot } from '../../domain/SessionFile';
+import { computeGridPositions } from '../../utils/canvasLayout';
 
 const AUDIO_EXTS = new Set(['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus', 'webm']);
 
@@ -57,8 +58,16 @@ function defaultSessionFileName(): string {
 }
 
 export const useCanvas = () => {
-  const { tracks, addTracks, tickCurrentTimes, stopAll, playAll, loadSession, newSession } =
-    useAudio();
+  const {
+    tracks,
+    addTracks,
+    tickCurrentTimes,
+    stopAll,
+    playAll,
+    loadSession,
+    newSession,
+    updatePosition,
+  } = useAudio();
 
   useEffect(() => {
     const id = setInterval(tickCurrentTimes, 100);
@@ -211,6 +220,14 @@ export const useCanvas = () => {
     setCurrentSessionPath(null);
   }, [tracks.length, newSession]);
 
+  const onOrganizeTracks = useCallback(() => {
+    const positions = computeGridPositions(tracks.length, window.innerWidth);
+    tracks.forEach((track, i) => {
+      const pos = positions[i];
+      updatePosition(track.state.id, pos.x, pos.y);
+    });
+  }, [tracks, updatePosition]);
+
   return {
     tracks,
     onDragOver,
@@ -225,5 +242,6 @@ export const useCanvas = () => {
     onLoadSession,
     isLoadingSession,
     onNewSession,
+    onOrganizeTracks,
   };
 };

@@ -832,3 +832,66 @@ various new/updated tests under `src/__tests__/components/ViewMenu/`,
   buttons, a live per-strip VU meter, and a Master strip with master volume
   — each needs `TrackState`/`AudioContext.tsx`/audio-engine changes beyond
   a pure view addition.
+
+---
+
+## [2026-08-03] — Drag-to-reorder channel strips in the mixer view
+
+**Files:** `src/renderer/context/audioContextInstance.ts`,
+`src/renderer/context/AudioContext.tsx`,
+`src/renderer/components/MixerView/useMixerReorder.ts` (new),
+`src/renderer/components/MixerView/MixerView.tsx`,
+`src/renderer/components/MixerView/ChannelStrip.tsx`,
+`src/renderer/components/MixerView/MixerView.css`,
+`src/renderer/components/Canvas/useCanvas.ts`, `src/renderer/components/Canvas/Canvas.tsx`,
+`src/__tests__/components/MixerView/useMixerReorder.test.tsx` (new),
+`src/__tests__/components/MixerView/MixerView.test.tsx`,
+`src/__tests__/components/MixerView/ChannelStrip.test.tsx`,
+`src/__tests__/context/AudioContext.test.tsx`, `src/__tests__/components/Canvas/Canvas.test.tsx`
+
+- Channel strips in the mixer view can now be reordered by dragging — a
+  live-swap-on-hover model (the row reorders the instant the pointer
+  crosses into a neighboring slot, not on drop), matching how a real
+  mixing console lets you rearrange channel strips.
+- Added `reorderTracks(id, toIndex)` to `AudioContextValue`/`AudioProvider`,
+  next to the existing `updatePosition`. `tracks` order was previously only
+  ever appended-to or filtered — no mutator moved an item within the array.
+  `reorderTracks` splices the matching entry out and back in at the target
+  index and is a no-op if the id is missing or already at that index; it
+  only ever changes array position, never `x`/`y`, so it has zero effect on
+  canvas view or on the free-form card placement.
+- New `useMixerReorder.ts` drives the drag interaction with the same manual
+  `mousedown` → `window` `mousemove`/`mouseup` pattern already used for
+  canvas-card dragging in `useTrackPlayer.ts` — no drag library was added
+  (none exists in this repo). On `mousemove` it reads `.mixer-rack`'s
+  children (1:1 with `tracks`) via `getBoundingClientRect()` to find which
+  strip's horizontal bounds contain the pointer (clamped to the first/last
+  slot past either edge), and calls `reorderTracks` as soon as that index
+  differs from the dragged track's current one.
+- Because `reorderTracks` gives `tracks` a new array reference on every
+  live swap, the long-lived `mousemove` listener can't just close over
+  `tracks`/`draggingId` from drag-start — it would keep computing target
+  indices against a stale order. Both are read through refs
+  (`tracksRef`/`draggingIdRef`) kept in sync via a `useEffect`, not written
+  directly during render.
+- `ChannelStrip.tsx` gained a `.mixer-strip-header` row: a small `⣿` grip
+  (`title="Drag to reorder"`) beside the title, wired to
+  `onDragHandleMouseDown`. Dragging is scoped to that handle rather than
+  the whole strip, since (unlike a canvas card, which only needs to dodge
+  its own `.track-controls`) a channel strip is almost entirely interactive
+  controls — fader, pan dial, effect toggles, transport, waveform-seek —
+  leaving little safe surface to grab otherwise. The root strip gets an
+  `is-dragging` class (orange outline, reduced opacity, `cursor: grabbing`)
+  while its id matches `MixerView`'s `draggingId`.
+- `MixerView`/`useCanvas.ts`/`Canvas.tsx` thread `reorderTracks` through
+  from `useAudio()` down to `MixerView`, the same way `tracks` already
+  flows.
+- New order survives session save/load for free — both already round-trip
+  on array order, so no `SessionFile` changes were needed.
+- Added tests: `useMixerReorder.test.tsx` (edge clamping, `userSelect`
+  restore on drop, no stale updates after a drag ends), plus updated
+  `AudioContext.test.tsx` (reorder moves the right entry, no-ops on missing
+  id / same index, `x`/`y` travel with the moved entry rather than staying
+  at the array slot), `ChannelStrip.test.tsx`/`MixerView.test.tsx` (grip
+  triggers the handler, `is-dragging` class reflects the prop), and
+  `Canvas.test.tsx`'s `useAudio()` mock updated with `reorderTracks`.

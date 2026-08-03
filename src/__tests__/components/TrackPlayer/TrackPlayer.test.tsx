@@ -668,6 +668,28 @@ describe('TrackPlayer', () => {
     await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenCalledWith('track-1', 0.5));
   });
 
+  it('mutes the track by setting volume to 0 and unmutes back to the last volume when the icon is clicked again', async () => {
+    const { rerender } = render(
+      <AudioProvider>
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState, volume: 0.6 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const muteButton = screen.getByTitle('Mute');
+    fireEvent.click(muteButton);
+    await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenCalledWith('track-1', 0));
+
+    rerender(
+      <AudioProvider>
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState, volume: 0 }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    const unmuteButton = screen.getByTitle('Unmute');
+    fireEvent.click(unmuteButton);
+    await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenCalledWith('track-1', 0.6));
+  });
+
   it('renders the pan slider above the volume control, centered by default, and calls engine.setPan', async () => {
     render(
       <AudioProvider>

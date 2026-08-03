@@ -6,6 +6,7 @@ import { fireEvent, render, screen, waitFor, cleanup } from '@testing-library/re
 import { createMockAudioEngine } from '@/__tests__/test-utils/mockAudioEngine';
 import { createMockElectronAPI } from '@/__tests__/test-utils/mockElectronAPI';
 import type { SessionTrackSnapshot } from '@/renderer/domain/SessionFile';
+import { SIDE_INSET, TOP_INSET } from '@/renderer/utils/canvasLayout';
 
 const TRACK_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -122,6 +123,37 @@ describe('AudioContext', () => {
     fireEvent.click(screen.getByText('Add Track'));
     await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('1'));
     expect(screen.getByTestId('track-title').textContent).toBe('Test file');
+  });
+
+  it('places the first added track below the top-left buttons, not directly under them', async () => {
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              audio.addTracks([
+                { path: '/test.mp3', name: 'Test file', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
+            Add Track
+          </button>
+          <div data-testid="track-x">{audio.tracks[0]?.x ?? ''}</div>
+          <div data-testid="track-y">{audio.tracks[0]?.y ?? ''}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add Track'));
+    await waitFor(() => expect(screen.getByTestId('track-y').textContent).toBe(String(TOP_INSET)));
+    expect(screen.getByTestId('track-x').textContent).toBe(String(SIDE_INSET));
   });
 
   it('keeps already-decoded files in the batch when an earlier file fails to decode', async () => {

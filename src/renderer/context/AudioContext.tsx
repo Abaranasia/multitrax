@@ -10,6 +10,7 @@ import {
 import { Ctx, TrackEntry } from './audioContextInstance';
 import { computeWaveformPeaks } from '../audio/waveform';
 import { SessionTrackSnapshot } from '../domain/SessionFile';
+import { SIDE_INSET, TOP_INSET } from '../utils/canvasLayout';
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Initialize the engine once per provider mount, without touching refs during render.
@@ -19,7 +20,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [engine] = useState<AudioEngine>(() => new AudioEngine());
 
   const [tracks, setTracks] = useState<TrackEntry[]>([]);
-  const nextPos = useRef({ x: 20, y: 20 });
+  const nextPos = useRef({ x: SIDE_INSET, y: TOP_INSET });
 
   const addTracks = useCallback(
     async (files: { path: string; name: string; buffer: ArrayBuffer }[]) => {

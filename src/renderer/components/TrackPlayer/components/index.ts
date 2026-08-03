@@ -22,4 +22,6 @@ export * from './panControl/PanControl';
 export * from './effectToggles/useEffectToggles';
 export * from './effectToggles/EffectToggles';
 export * from './transportControls/useTransportControls';
+export * from './transportControls/PlaybackButtons';
+export * from './transportControls/TransportToggles';
 export * from './transportControls/TransportControls';

@@ -1,0 +1,193 @@
+/* Ported from doc/templates/Audio UI modernization project/Multitrack Redesign.dc.html
+   (Option 1C — Rack) lines 180-226 & 371-439, under a `.mixer-*` prefix so it
+   never collides with the existing card/`.rk-*` CSS if that template is reused
+   elsewhere. Shared TrackPlayer control classes (waveform, effect toggles,
+   pan, volume, transport) are re-skinned via descendant selectors scoped to
+   `.mixer-strip`/`.mixer-fader`, not overridden globally. */
+
+.mixer-rack {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  /* top/side clearance mirrors TOP_INSET/SIDE_INSET in canvasLayout.ts, so
+     strips never sit under the fixed Session/View buttons in .top-left-actions. */
+  padding: 90px 20px 20px;
+  overflow-x: auto;
+  background: linear-gradient(180deg, #1a1d26, #12141b);
+  box-sizing: border-box;
+}
+
+.mixer-strip {
+  width: 150px;
+  flex-shrink: 0;
+  background: #191c24;
+  border: 1px solid #262a34;
+  border-radius: 12px;
+  padding: 12px 11px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+  color: #e9ebf0;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+.mixer-strip-title {
+  color: #e9ebf0;
+  font-size: 12px;
+  font-weight: 800;
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Compact waveform, re-skinned to sit flush in the strip. */
+.mixer-strip .waveform-shell {
+  width: 100%;
+  height: 30px;
+  margin-bottom: 0;
+  border-radius: 5px;
+  background: #12141b;
+}
+
+/* FX badge row — same F/W/D/R toggles as the card view, laid out as a
+   borderless row of round badges instead of a bordered pill. */
+.mixer-strip .track-effects {
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  gap: 5px;
+  justify-content: center;
+}
+
+/* Pan dial — decorative rotating knob replacing the card view's slider,
+   matching the "Option 1C — Rack" mock. The underlying range input is kept
+   for actual dragging (same accessibility/keyboard behavior as the slider)
+   but made invisible and overlaid on the dial face. */
+.mixer-pan {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+}
+
+.mixer-pan-label {
+  color: #5f6474;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.mixer-pan-dial-wrap {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.mixer-pan-dial {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #2b303c, #191c24);
+  border: 1px solid #363b48;
+}
+
+.mixer-pan-dial::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 11px;
+  border-radius: 1px;
+  background: #f5a623;
+}
+
+.mixer-pan-dial-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+}
+
+/* Toggle group (loop/fade/settings) sits to the left of the fader, stacked
+   vertically, so the strip reads as [toggles][fader] instead of stacking
+   the fader above a separate controls row. */
+.mixer-middle-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  flex: 1;
+}
+
+/* Vertical fader — rotates the existing volume range input via CSS only;
+   no new control logic. The input is taken out of flow (position: absolute)
+   and centered on rotation, since a CSS transform doesn't affect the layout
+   box — leaving it in-flow would reserve only its unrotated (thin) height
+   and let it visually overlap the icon/value below it. */
+.mixer-fader {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 150px;
+  padding: 4px 0;
+}
+
+.mixer-fader .volume-control {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Hidden in the mixer view — the mute toggle will move into the future
+   Solo/Mute buttons (see doc/TODO.md) instead of duplicating here. */
+.mixer-fader .volume-control .volume-icon {
+  display: none;
+}
+
+.mixer-fader .volume-control input[type='range'] {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120px;
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+
+.mixer-fader .volume-control .volume-value {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+
+.mixer-db {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  color: #8b90a0;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Loop/fade/settings toggles, stacked vertically beside the fader instead
+   of the card view's single wide row (a 150px strip can't fit them side by
+   side without overflowing). */
+.mixer-strip .controls-group {
+  margin-left: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-shrink: 0;
+}

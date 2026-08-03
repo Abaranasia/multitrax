@@ -167,6 +167,12 @@
   gap: 8px;
 }
 
+.playback-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .controls-group {
   display: flex;
   align-items: center;

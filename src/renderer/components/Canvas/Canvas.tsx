@@ -1,6 +1,9 @@
 import { useCanvas } from './useCanvas';
 import { useSessionMenu } from '../SessionMenu/useSessionMenu';
 import { SessionMenu } from '../SessionMenu/SessionMenu';
+import { useViewMenu } from '../ViewMenu/useViewMenu';
+import { ViewMenu } from '../ViewMenu/ViewMenu';
+import { MixerView } from '../MixerView/MixerView';
 
 import './Canvas.css';
 import { TrackPlayer } from '../TrackPlayer/TrackPlayer';
@@ -22,10 +25,14 @@ export const Canvas = () => {
     isLoadingSession,
     onNewSession,
     onOrganizeTracks,
+    viewMode,
+    switchView,
   } = useCanvas();
 
   const { isOpen: isSessionMenuOpen, toggle: toggleSessionMenu, close: closeSessionMenu } =
     useSessionMenu();
+
+  const { isOpen: isViewMenuOpen, toggle: toggleViewMenu, close: closeViewMenu } = useViewMenu();
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     void onDragOver(event);
@@ -61,9 +68,13 @@ export const Canvas = () => {
         </div>
       )}
 
-      {tracks.map((t) => (
-        <TrackPlayer key={t.state.id} state={t.state} filePath={t.filePath} x={t.x} y={t.y} />
-      ))}
+      {viewMode === 'canvas' ? (
+        tracks.map((t) => (
+          <TrackPlayer key={t.state.id} state={t.state} filePath={t.filePath} x={t.x} y={t.y} />
+        ))
+      ) : (
+        <MixerView tracks={tracks} />
+      )}
 
       <div className="top-left-actions">
         <SessionMenu
@@ -78,14 +89,15 @@ export const Canvas = () => {
           loadDisabled={isLoadingSession}
         />
 
-        <button
-          className="btn-organize"
-          onClick={onOrganizeTracks}
-          title="Arrange tracks in a grid"
-          disabled={tracks.length === 0}
-        >
-          ⊞ Organize
-        </button>
+        <ViewMenu
+          isOpen={isViewMenuOpen}
+          onToggle={toggleViewMenu}
+          onClose={closeViewMenu}
+          viewMode={viewMode}
+          onOrganizeTracks={onOrganizeTracks}
+          organizeDisabled={tracks.length === 0}
+          onSwitchView={switchView}
+        />
       </div>
 
       <div className="controls-bar" role="group" aria-label="Playback controls">

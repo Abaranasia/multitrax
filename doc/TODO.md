@@ -190,9 +190,14 @@ what's meant to stay a focused mixing/monitoring tool.
     (`webUtils.getPathForFile`). This also unblocks **Save / Load session**
     below, which persists file paths.
 
-- [ ] **Mute by clicking the volume icon** — make the volume icon in each
-  track card toggle mute/unmute for that track when clicked, using the
-  existing per-track volume state and setter flow.
+- [x] **Mute by clicking the volume icon** — the volume icon in each track
+  card toggles mute/unmute for that track when clicked.
+  **Implemented** entirely in `useVolumeControl.ts` / `VolumeControl.tsx` —
+  no new state on `TrackState`/`AudioEngine`. "Muted" is derived as
+  `volume === 0`; a `useRef` remembers the last non-zero volume so clicking
+  the icon again restores it via the existing `setVolume` setter. The icon
+  is now a real `<button>` (was a `<span>`) for keyboard/AT accessibility,
+  swapping between 🔊/🔇 with a "Mute"/"Unmute" title.
 
 - [ ] **Save / Load session** — persist the current set of tracks to an
   external file so the whole setup (which files are loaded, their canvas

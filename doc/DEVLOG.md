@@ -625,3 +625,39 @@ Canvas, TrackContextMenu and TrackPlayer test suites
 - Extracted `createMockElectronAPI()` into `src/__tests__/test-utils/`, mirroring
   the existing `createMockAudioEngine()`, so `window.electronAPI` stubs stay
   type-complete as the bridge grows.
+
+---
+
+## [2026-08-03] — Mute by clicking the volume icon
+
+**Files:** `src/renderer/components/TrackPlayer/components/volumeControl/VolumeControl.tsx`,
+`src/renderer/components/TrackPlayer/components/volumeControl/useVolumeControl.ts`,
+`src/renderer/components/TrackPlayer/TrackPlayer.css`,
+`src/__tests__/components/TrackPlayer/VolumeControl.test.tsx`,
+`src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx`,
+`doc/volume-mute-plan.md` (new), `doc/TODO.md`
+
+- Investigated via `codegraph_explore` and confirmed no `muted` concept existed
+  anywhere in `TrackState`, `AudioEngine`, or `AudioContext`. Decided (confirmed
+  with the user, recorded in `doc/volume-mute-plan.md`) not to add one: "muted"
+  is derived as `volume === 0`, keeping the whole feature inside the
+  `VolumeControl`/`useVolumeControl` pair and reusing the existing `setVolume`
+  setter untouched.
+- `useVolumeControl.ts`: added a `lastVolumeRef` (`useRef`, synced via
+  `useEffect` whenever `state.volume > 0`) so the last non-zero volume survives
+  both manual slider drags and mute/unmute toggles. Added `isMuted =
+  state.volume === 0` and `onToggleMute = () => setVolume(id, isMuted ?
+  lastVolumeRef.current : 0)`.
+- `VolumeControl.tsx`: turned the `.volume-icon` from a plain `<span>` into a
+  real `<button type="button">` (matching the existing `.btn-close` pattern)
+  for keyboard/AT accessibility, wired to `onToggleMute`. Glyph swaps
+  🔊 ↔ 🔇 with a "Mute"/"Unmute" `title` and `aria-label`.
+- `TrackPlayer.css`: reset default button chrome on `.volume-icon` (background,
+  border, padding) and added `cursor: pointer` / `flex-shrink: 0`, mirroring
+  how `.btn-close` resets its own button, so the glyph-only look is unchanged.
+- Added tests: `VolumeControl.test.tsx` (clicking the icon calls
+  `onToggleMute`; renders 🔇/"Unmute" when `isMuted`, 🔊/"Mute" otherwise),
+  `TrackPlayer.test.tsx` (end-to-end: clicking the icon at volume 0.6 calls
+  `engine.setVolume('track-1', 0)`, clicking again at volume 0 restores 0.6).
+- Checked off "Mute by clicking the volume icon" in `doc/TODO.md`, noting the
+  derived-state approach and the button/accessibility change.

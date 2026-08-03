@@ -6,12 +6,30 @@ interface VolumeControlProps {
   style: CSSProperties;
   title: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  isMuted: boolean;
+  onToggleMute: () => void;
 }
 
-export const VolumeControl = ({ volume, percentage, style, title, onChange }: VolumeControlProps) => {
+export const VolumeControl = ({
+  volume,
+  percentage,
+  style,
+  title,
+  onChange,
+  isMuted,
+  onToggleMute,
+}: VolumeControlProps) => {
   return (
     <div className="volume-control">
-      <span className="volume-icon">🔊</span>
+      <button
+        type="button"
+        className="volume-icon"
+        onClick={onToggleMute}
+        title={isMuted ? 'Unmute' : 'Mute'}
+        aria-label={isMuted ? 'Unmute' : 'Mute'}
+      >
+        {isMuted ? '🔇' : '🔊'}
+      </button>
       <input
         type="range"
         min={0}

@@ -14,6 +14,8 @@ describe('VolumeControl', () => {
     style: { '--volume-fill': '75%' } as CSSProperties,
     title: 'Volume: 75%',
     onChange: vi.fn(),
+    isMuted: false,
+    onToggleMute: vi.fn(),
   };
 
   it('renders the input with the right value, title and style custom property', () => {
@@ -42,5 +44,26 @@ describe('VolumeControl', () => {
 
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(receivedValue).toBe('0.5');
+  });
+
+  it('renders the unmuted icon and calls onToggleMute when the icon is clicked', () => {
+    const onToggleMute = vi.fn();
+    render(<VolumeControl {...baseProps} onToggleMute={onToggleMute} />);
+
+    const icon = document.querySelector('.volume-icon') as HTMLButtonElement;
+    expect(icon.textContent).toBe('🔊');
+    expect(icon.title).toBe('Mute');
+
+    fireEvent.click(icon);
+
+    expect(onToggleMute).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders the muted icon when isMuted is true', () => {
+    render(<VolumeControl {...baseProps} isMuted={true} />);
+
+    const icon = document.querySelector('.volume-icon') as HTMLButtonElement;
+    expect(icon.textContent).toBe('🔇');
+    expect(icon.title).toBe('Unmute');
   });
 });

@@ -4,6 +4,8 @@ import { TrackEntry } from '../../context/audioContextInstance';
 import { SessionFile, SessionTrackSnapshot } from '../../domain/SessionFile';
 import { computeGridPositions } from '../../utils/canvasLayout';
 
+export type ViewMode = 'canvas' | 'mixer';
+
 const AUDIO_EXTS = new Set(['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus', 'webm']);
 
 function isKnownAudio(name: string): boolean {
@@ -228,6 +230,12 @@ export const useCanvas = () => {
     });
   }, [tracks, updatePosition]);
 
+  const [viewMode, setViewMode] = useState<ViewMode>('canvas');
+
+  const switchView = useCallback(() => {
+    setViewMode((mode) => (mode === 'canvas' ? 'mixer' : 'canvas'));
+  }, []);
+
   return {
     tracks,
     onDragOver,
@@ -243,5 +251,7 @@ export const useCanvas = () => {
     isLoadingSession,
     onNewSession,
     onOrganizeTracks,
+    viewMode,
+    switchView,
   };
 };

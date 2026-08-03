@@ -407,15 +407,15 @@ describe('Canvas', () => {
     expect(mockPlayAll).toHaveBeenCalledTimes(1);
   });
 
-  it('disables the Organize button when there are no tracks', () => {
+  it('disables the Organize Tracks item when there are no tracks', () => {
     render(<Canvas />);
 
-    expect(
-      screen.getByTitle<HTMLButtonElement>('Arrange tracks in a grid').disabled,
-    ).toBe(true);
+    fireEvent.click(screen.getByTitle('View menu'));
+
+    expect(screen.getByText<HTMLButtonElement>('⊞ Organize Tracks').disabled).toBe(true);
   });
 
-  it('enables the Organize button and arranges tracks in a grid when clicked', () => {
+  it('enables Organize Tracks and arranges tracks in a grid when clicked', () => {
     const originalInnerWidth = window.innerWidth;
     Object.defineProperty(window, 'innerWidth', { value: 1200, configurable: true });
 
@@ -424,7 +424,7 @@ describe('Canvas', () => {
       { state: { id: '2', title: 'Track 2' }, x: 30, y: 40 },
       { state: { id: '3', title: 'Track 3' }, x: 50, y: 60 },
     ];
-    useAudioMock.mockReturnValueOnce({
+    useAudioMock.mockReturnValue({
       tracks: mockTracks,
       addTracks: mockAddTracks,
       tickCurrentTimes: mockTickCurrentTimes,
@@ -437,9 +437,10 @@ describe('Canvas', () => {
 
     render(<Canvas />);
 
-    const organizeBtn = screen.getByTitle<HTMLButtonElement>('Arrange tracks in a grid');
-    expect(organizeBtn.disabled).toBe(false);
-    fireEvent.click(organizeBtn);
+    fireEvent.click(screen.getByTitle('View menu'));
+    const organizeItem = screen.getByText<HTMLButtonElement>('⊞ Organize Tracks');
+    expect(organizeItem.disabled).toBe(false);
+    fireEvent.click(organizeItem);
 
     const expectedPositions = computeGridPositions(mockTracks.length, window.innerWidth);
     expect(mockUpdatePosition).toHaveBeenCalledTimes(mockTracks.length);
@@ -452,7 +453,40 @@ describe('Canvas', () => {
       );
     });
 
+    // The menu auto-closes after the action.
+    expect(screen.queryByText('⊞ Organize Tracks')).toBeNull();
+
     Object.defineProperty(window, 'innerWidth', { value: originalInnerWidth, configurable: true });
+  });
+
+  it('opens the view menu on toggle click and closes it on a second click', () => {
+    render(<Canvas />);
+
+    expect(screen.queryByText('🎚 Switch to Mixer View')).toBeNull();
+
+    fireEvent.click(screen.getByTitle('View menu'));
+    expect(screen.getByText('🎚 Switch to Mixer View')).toBeTruthy();
+
+    fireEvent.click(screen.getByTitle('View menu'));
+    expect(screen.queryByText('🎚 Switch to Mixer View')).toBeNull();
+  });
+
+  it('switches to the mixer view and back to the track view via the view menu', () => {
+    render(<Canvas />);
+
+    fireEvent.click(screen.getByTitle('View menu'));
+    fireEvent.click(screen.getByText('🎚 Switch to Mixer View'));
+
+    expect(document.querySelector('.mixer-rack')).toBeTruthy();
+    expect(screen.queryByTestId('track-player')).toBeNull();
+
+    fireEvent.click(screen.getByTitle('View menu'));
+    expect(screen.queryByText('⊞ Organize Tracks')).toBeNull();
+    expect(screen.getByText('🖼 Switch to Track View')).toBeTruthy();
+
+    fireEvent.click(screen.getByText('🖼 Switch to Track View'));
+
+    expect(document.querySelector('.mixer-rack')).toBeNull();
   });
 
   it('disables the Save Session and Save New Session menu items when there are no tracks', () => {

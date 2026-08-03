@@ -239,4 +239,196 @@ describe('main IPC handlers', () => {
     expect(showItemInFolder).not.toHaveBeenCalled();
     expect(res).toEqual({ revealed: false, error: 'ENOENT: no such file or directory' });
   });
+
+  it('dialog:saveSession writes JSON and returns saved result', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const fs = await import('fs');
+    const json = '{"version":1,"tracks":[]}';
+
+    const res = await handlers['dialog:saveSession'](null, json, 'session.json');
+
+    expect((electron as any).dialog.showSaveDialog).toHaveBeenCalled();
+    expect((fs as any).writeFileSync).toHaveBeenCalledWith('/tmp/out.wav', json, 'utf-8');
+    expect(res).toEqual({ saved: true, filePath: '/tmp/out.wav' });
+  });
+
+  it('dialog:saveSession returns { saved: false } when the dialog is canceled', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const showSaveDialog = (electron as any).dialog.showSaveDialog as ReturnType<typeof vi.fn>;
+    showSaveDialog.mockResolvedValueOnce({ canceled: true });
+
+    const res = await handlers['dialog:saveSession'](null, '{}', 'session.json');
+
+    expect(res).toEqual({ saved: false });
+  });
+
+  it('dialog:saveSession returns { saved: false, error } when writeFileSync throws', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const fs = await import('fs');
+    (fs as any).writeFileSync.mockImplementationOnce(() => {
+      throw new Error('EACCES: permission denied');
+    });
+
+    const res = await handlers['dialog:saveSession'](null, '{}', 'session.json');
+
+    expect(res).toEqual({ saved: false, error: 'EACCES: permission denied' });
+  });
+
+  it('fs:writeSessionFile writes JSON to the given path and returns saved result', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const fs = await import('fs');
+    const json = '{"version":1,"tracks":[]}';
+
+    const res = await handlers['fs:writeSessionFile'](null, '/tmp/session.json', json);
+
+    expect((fs as any).writeFileSync).toHaveBeenCalledWith('/tmp/session.json', json, 'utf-8');
+    expect(res).toEqual({ saved: true });
+  });
+
+  it('fs:writeSessionFile returns { saved: false, error } when writeFileSync throws', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const fs = await import('fs');
+    (fs as any).writeFileSync.mockImplementationOnce(() => {
+      throw new Error('EACCES: permission denied');
+    });
+
+    const res = await handlers['fs:writeSessionFile'](null, '/tmp/session.json', '{}');
+
+    expect(res).toEqual({ saved: false, error: 'EACCES: permission denied' });
+  });
+
+  it('dialog:openSession reads the selected file and returns its contents', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const showOpenDialog = (electron as any).dialog.showOpenDialog as ReturnType<typeof vi.fn>;
+    showOpenDialog.mockResolvedValueOnce({ canceled: false, filePaths: ['/tmp/session.json'] });
+    const fs = await import('fs');
+    (fs as any).readFileSync.mockReturnValue('{"version":1,"tracks":[]}');
+
+    const res = await handlers['dialog:openSession']();
+
+    expect((fs as any).readFileSync).toHaveBeenCalledWith('/tmp/session.json', 'utf-8');
+    expect(res).toEqual({
+      opened: true,
+      data: '{"version":1,"tracks":[]}',
+      filePath: '/tmp/session.json',
+    });
+  });
+
+  it('dialog:openSession returns { opened: false } when the dialog is canceled', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const showOpenDialog = (electron as any).dialog.showOpenDialog as ReturnType<typeof vi.fn>;
+    showOpenDialog.mockResolvedValueOnce({ canceled: true, filePaths: [] });
+
+    const res = await handlers['dialog:openSession']();
+
+    expect(res).toEqual({ opened: false });
+  });
+
+  it('dialog:openSession returns { opened: false, error } when readFileSync throws', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const showOpenDialog = (electron as any).dialog.showOpenDialog as ReturnType<typeof vi.fn>;
+    showOpenDialog.mockResolvedValueOnce({ canceled: false, filePaths: ['/tmp/session.json'] });
+    const fs = await import('fs');
+    (fs as any).readFileSync.mockImplementationOnce(() => {
+      throw new Error('ENOENT: no such file or directory');
+    });
+
+    const res = await handlers['dialog:openSession']();
+
+    expect(res).toEqual({ opened: false, error: 'ENOENT: no such file or directory' });
+  });
+
+  it('fs:readSessionAudioFile returns ArrayBuffer for an existing absolute file path', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const fs = await import('fs');
+    (fs as any).statSync.mockReturnValueOnce({ isFile: () => true });
+    const data = Buffer.from([1, 2, 3]);
+    (fs as any).readFileSync.mockReturnValue(data);
+
+    const res = await handlers['fs:readSessionAudioFile'](null, '/music/song.wav');
+
+    expect(res).toEqual({ ok: true, buffer: data.buffer });
+  });
+
+  it('fs:readSessionAudioFile resolves { ok: false } for a relative path', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+
+    const res = await handlers['fs:readSessionAudioFile'](null, 'song.wav');
+
+    expect(res).toEqual({ ok: false, error: 'Path is not absolute' });
+  });
+
+  it('fs:readSessionAudioFile resolves { ok: false } when the path is not a file', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const fs = await import('fs');
+    (fs as any).statSync.mockReturnValueOnce({ isFile: () => false });
+
+    const res = await handlers['fs:readSessionAudioFile'](null, '/music');
+
+    expect(res).toEqual({ ok: false, error: 'Path is not a file' });
+  });
+
+  it('fs:readSessionAudioFile resolves { ok: false } when the file no longer exists', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const fs = await import('fs');
+    (fs as any).statSync.mockImplementationOnce(() => {
+      throw new Error('ENOENT: no such file or directory');
+    });
+
+    const res = await handlers['fs:readSessionAudioFile'](null, '/music/gone.wav');
+
+    expect(res).toEqual({ ok: false, error: 'ENOENT: no such file or directory' });
+  });
+
+  it('fs:readSessionAudioFile resolves { ok: false } when readFileSync throws', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const fs = await import('fs');
+    (fs as any).statSync.mockReturnValueOnce({ isFile: () => true });
+    (fs as any).readFileSync.mockImplementationOnce(() => {
+      throw new Error('EACCES: permission denied');
+    });
+
+    const res = await handlers['fs:readSessionAudioFile'](null, '/music/song.wav');
+
+    expect(res).toEqual({ ok: false, error: 'EACCES: permission denied' });
+  });
 });

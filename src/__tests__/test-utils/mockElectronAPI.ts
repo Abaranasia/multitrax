@@ -16,6 +16,10 @@ export function createMockElectronAPI(overrides: Partial<ElectronAPI> = {}): Ele
     readAudioFile: vi.fn(() => Promise.resolve(new ArrayBuffer(0))),
     saveRecording: vi.fn(() => Promise.resolve({ saved: true })),
     revealFile: vi.fn(() => Promise.resolve({ revealed: true })),
+    saveSession: vi.fn(() => Promise.resolve({ saved: true })),
+    writeSessionFile: vi.fn(() => Promise.resolve({ saved: true })),
+    openSession: vi.fn(() => Promise.resolve({ opened: false })),
+    readSessionAudioFile: vi.fn(() => Promise.resolve({ ok: true, buffer: new ArrayBuffer(0) })),
     getPathForFile: vi.fn((file: File) => file.name),
     ...overrides,
   };

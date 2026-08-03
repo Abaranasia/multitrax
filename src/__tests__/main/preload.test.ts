@@ -50,6 +50,30 @@ describe('preload bridge', () => {
       'shell:revealFile',
       '/music/song.wav',
     );
+
+    const json = '{"version":1,"tracks":[]}';
+    await exposed.saveSession(json, 'session.json');
+    expect((electron as any).ipcRenderer.invoke).toHaveBeenCalledWith(
+      'dialog:saveSession',
+      json,
+      'session.json',
+    );
+
+    await exposed.openSession();
+    expect((electron as any).ipcRenderer.invoke).toHaveBeenCalledWith('dialog:openSession');
+
+    await exposed.writeSessionFile('/tmp/session.json', json);
+    expect((electron as any).ipcRenderer.invoke).toHaveBeenCalledWith(
+      'fs:writeSessionFile',
+      '/tmp/session.json',
+      json,
+    );
+
+    await exposed.readSessionAudioFile('/music/song.wav');
+    expect((electron as any).ipcRenderer.invoke).toHaveBeenCalledWith(
+      'fs:readSessionAudioFile',
+      '/music/song.wav',
+    );
   });
 
   it('resolves a dropped File to its on-disk path through webUtils', async () => {

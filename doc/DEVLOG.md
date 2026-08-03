@@ -661,3 +661,42 @@ Canvas, TrackContextMenu and TrackPlayer test suites
   `engine.setVolume('track-1', 0)`, clicking again at volume 0 restores 0.6).
 - Checked off "Mute by clicking the volume icon" in `doc/TODO.md`, noting the
   derived-state approach and the button/accessibility change.
+
+---
+
+## [2026-08-03] — New Session action + timestamped session filenames
+
+**Files:** `src/renderer/context/AudioContext.tsx`,
+`src/renderer/context/audioContextInstance.ts`,
+`src/renderer/components/Canvas/useCanvas.ts`,
+`src/renderer/components/SessionMenu/SessionMenu.tsx`,
+`src/renderer/components/Canvas/Canvas.tsx`,
+`src/__tests__/context/AudioContext.test.tsx`,
+`src/__tests__/components/Canvas/Canvas.test.tsx`,
+`src/__tests__/components/SessionMenu/SessionMenu.test.tsx`, `doc/TODO.md`
+
+- Added a "New Session" menu item that clears the dashboard and frees every
+  track's audio resources. `AudioContext.tsx`'s new `newSession()` follows the
+  exact teardown precedent `loadSession` already established: loop
+  `engine.removeTrack(id)` over every current track (disposing the gain,
+  filter, delay, reverb, and panner nodes) *before* replacing state with
+  `setTracks([])` — a bare `setTracks([])` would otherwise leak the engine's
+  internal node map. No blob-URL revocation is needed since tracks load via
+  `ArrayBuffer`, never `createObjectURL`.
+- `useCanvas.ts`'s `onNewSession` gates the call behind `window.confirm`,
+  shown only when `tracks.length > 0` (an empty canvas clears instantly, same
+  as `stopAll`), and resets `currentSessionPath` to `null` so a subsequent
+  "Save Session" doesn't overwrite the previous file.
+- Wired a "New Session" button into `SessionMenu.tsx` (closes the menu on
+  click, same as the other items) and threaded `onNewSession` through
+  `Canvas.tsx`.
+- Changed `defaultSessionFileName()` in `useCanvas.ts` to include hour and
+  minute (`session-YYYY-MM-DD_HH-mm.json` instead of `session-YYYY-MM-DD.json`)
+  so multiple sessions saved the same day no longer collide/overwrite each
+  other by default.
+- Added tests for both: `AudioContext.test.tsx` (newSession removes every
+  engine track and clears state), `Canvas.test.tsx` (no confirm when the
+  canvas is empty, confirm-and-clear, confirm-and-cancel, plus the updated
+  filename regex), `SessionMenu.test.tsx` (renders/clicks the new item).
+- Checked off "Save / Load session" filename note and added "New Session" to
+  `doc/TODO.md`.

@@ -224,8 +224,19 @@ what's meant to stay a focused mixing/monitoring tool.
   successful save-as or load) and, when known, writes straight to it via the
   new `fs:writeSessionFile` IPC handler — no dialog. "Save New Session" is the
   save-as path, always opening the save dialog via `dialog:saveSession` (now
-  suggesting a date-based `session-YYYY-MM-DD.json` name) and updating
-  `currentSessionPath` on success.
+  suggesting a date-and-time-based `session-YYYY-MM-DD_HH-mm.json` name, so
+  same-day saves don't collide) and updating `currentSessionPath` on success.
+
+- [x] **New Session** — clear the canvas and release every track's audio
+  resources in one action, for starting over without restarting the app.
+  **Implemented** via `AudioContext.tsx`'s `newSession()`, following the same
+  teardown precedent as `loadSession`: loop `engine.removeTrack(id)` over
+  every existing track (disposing all Web Audio nodes) before wiping state
+  with `setTracks([])` — a bare `setTracks([])` alone would leak the engine's
+  internal node map. `useCanvas.ts`'s `onNewSession` guards it behind
+  `window.confirm` (only shown when there are tracks to lose) and resets
+  `currentSessionPath` to null. Added as a "New Session" item in the
+  `SessionMenu` dropdown, alongside Load/Save Session.
 
 - [ ] **Dashboard track-view reorganization** — add a dashboard-level action to
   reorganize the visible track views in a consistent layout, such as aligning

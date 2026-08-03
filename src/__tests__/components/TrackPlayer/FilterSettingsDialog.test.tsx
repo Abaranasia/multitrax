@@ -136,7 +136,7 @@ describe('FilterSettingsDialog', () => {
     it('opens filter settings, updates draft values and applies them to engine', async () => {
       render(
         <AudioProvider>
-          <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+          <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
         </AudioProvider>,
       );
 
@@ -173,7 +173,7 @@ describe('FilterSettingsDialog', () => {
     it('discards filter draft changes and does not call the engine when cancelled', async () => {
       render(
         <AudioProvider>
-          <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+          <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
         </AudioProvider>,
       );
 
@@ -192,7 +192,12 @@ describe('FilterSettingsDialog', () => {
     it('shows the filter button as active only when filterMix is above 0', () => {
       const { rerender } = render(
         <AudioProvider>
-          <TrackPlayer state={{ ...baseState, filterMix: 0 }} x={10} y={20} />
+          <TrackPlayer
+            filePath="/sample.wav"
+            state={{ ...baseState, filterMix: 0 }}
+            x={10}
+            y={20}
+          />
         </AudioProvider>,
       );
 
@@ -200,7 +205,12 @@ describe('FilterSettingsDialog', () => {
 
       rerender(
         <AudioProvider>
-          <TrackPlayer state={{ ...baseState, filterMix: 40 }} x={10} y={20} />
+          <TrackPlayer
+            filePath="/sample.wav"
+            state={{ ...baseState, filterMix: 40 }}
+            x={10}
+            y={20}
+          />
         </AudioProvider>,
       );
 

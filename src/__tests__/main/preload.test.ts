@@ -12,7 +12,11 @@ vi.mock('electron', () => {
     invoke: vi.fn().mockResolvedValue('ok'),
   };
 
-  return { contextBridge: { exposeInMainWorld }, ipcRenderer };
+  const webUtils = {
+    getPathForFile: vi.fn().mockReturnValue('/resolved/path.wav'),
+  };
+
+  return { contextBridge: { exposeInMainWorld }, ipcRenderer, webUtils };
 });
 
 describe('preload bridge', () => {
@@ -40,5 +44,22 @@ describe('preload bridge', () => {
       buffer,
       'name.wav',
     );
+
+    await exposed.revealFile('/music/song.wav');
+    expect((electron as any).ipcRenderer.invoke).toHaveBeenCalledWith(
+      'shell:revealFile',
+      '/music/song.wav',
+    );
+  });
+
+  it('resolves a dropped File to its on-disk path through webUtils', async () => {
+    const electron = await import('electron');
+    await import('../../main/preload');
+
+    const exposed = (global as any).__EXPOSED_API;
+    const file = { name: 'song.wav' } as unknown as File;
+
+    expect(exposed.getPathForFile(file)).toBe('/resolved/path.wav');
+    expect((electron as any).webUtils.getPathForFile).toHaveBeenCalledWith(file);
   });
 });

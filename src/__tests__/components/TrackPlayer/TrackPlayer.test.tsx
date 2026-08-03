@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 
 import { createMockAudioEngine } from '@/__tests__/test-utils/mockAudioEngine';
+import { createMockElectronAPI } from '@/__tests__/test-utils/mockElectronAPI';
 
 const mockAudioEngine = createMockAudioEngine();
 
@@ -72,7 +73,10 @@ describe('TrackPlayer', () => {
     }
   });
 
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    Reflect.deleteProperty(window, 'electronAPI');
+  });
 
   // Registers a track matching `state.id` into AudioContext's internal track
   // list (via addTracks) before rendering, so context actions that look the
@@ -85,13 +89,18 @@ describe('TrackPlayer', () => {
       ]);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-    return <TrackPlayer state={state} x={x} y={y} />;
+    return <TrackPlayer filePath="/sample.wav" state={state} x={x} y={y} />;
   };
 
   it('renders a waveform preview for the track', () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, waveform: [0.2, 0.6, 0.4] }} x={10} y={20} />
+        <TrackPlayer
+          filePath="/sample.wav"
+          state={{ ...baseState, waveform: [0.2, 0.6, 0.4] }}
+          x={10}
+          y={20}
+        />
       </AudioProvider>,
     );
 
@@ -109,7 +118,12 @@ describe('TrackPlayer', () => {
 
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, title: fullPath }} x={10} y={20} />
+        <TrackPlayer
+          filePath="/sample.wav"
+          state={{ ...baseState, title: fullPath }}
+          x={10}
+          y={20}
+        />
       </AudioProvider>,
     );
 
@@ -122,7 +136,7 @@ describe('TrackPlayer', () => {
   it('calls play and pause through the audio engine when playback button is clicked', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -137,7 +151,7 @@ describe('TrackPlayer', () => {
     cleanup();
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, playing: true }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState, playing: true }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -149,7 +163,12 @@ describe('TrackPlayer', () => {
   it('calls stop and resets time via engine', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, currentTime: 5 }} x={10} y={20} />
+        <TrackPlayer
+          filePath="/sample.wav"
+          state={{ ...baseState, currentTime: 5 }}
+          x={10}
+          y={20}
+        />
       </AudioProvider>,
     );
 
@@ -161,7 +180,7 @@ describe('TrackPlayer', () => {
   it('toggles loop, fade in/out and seek-fade and calls engine setters', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -189,7 +208,7 @@ describe('TrackPlayer', () => {
   it('opens settings, updates draft values and applies them to engine', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -218,7 +237,7 @@ describe('TrackPlayer', () => {
   it('discards fade draft changes and does not call the engine when cancelled', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -237,7 +256,12 @@ describe('TrackPlayer', () => {
   it('reseeds fade draft values from the latest track state when reopened, discarding both the prior cancelled edit and the original mount value', async () => {
     const { rerender } = render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, fadeInDuration: 5 }} x={10} y={20} />
+        <TrackPlayer
+          filePath="/sample.wav"
+          state={{ ...baseState, fadeInDuration: 5 }}
+          x={10}
+          y={20}
+        />
       </AudioProvider>,
     );
 
@@ -251,7 +275,12 @@ describe('TrackPlayer', () => {
     // Track state changes elsewhere (e.g. duplicate/undo) while the dialog is closed.
     rerender(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, fadeInDuration: 7 }} x={10} y={20} />
+        <TrackPlayer
+          filePath="/sample.wav"
+          state={{ ...baseState, fadeInDuration: 7 }}
+          x={10}
+          y={20}
+        />
       </AudioProvider>,
     );
 
@@ -266,7 +295,7 @@ describe('TrackPlayer', () => {
   it('opens filter settings, updates draft values and applies them to engine', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -303,7 +332,7 @@ describe('TrackPlayer', () => {
   it('discards filter draft changes and does not call the engine when cancelled', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -322,7 +351,7 @@ describe('TrackPlayer', () => {
   it('shows the filter button as active only when filterMix is above 0', () => {
     const { rerender } = render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, filterMix: 0 }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState, filterMix: 0 }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -330,7 +359,7 @@ describe('TrackPlayer', () => {
 
     rerender(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, filterMix: 40 }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState, filterMix: 40 }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -340,7 +369,7 @@ describe('TrackPlayer', () => {
   it('opens delay settings, updates draft values and applies them to engine', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -376,7 +405,7 @@ describe('TrackPlayer', () => {
   it('discards delay draft changes and does not call the engine when cancelled', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -395,7 +424,7 @@ describe('TrackPlayer', () => {
   it('opens reverb settings, updates draft values and applies them to engine', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -432,7 +461,7 @@ describe('TrackPlayer', () => {
   it('discards reverb draft changes and does not call the engine when cancelled', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -451,7 +480,7 @@ describe('TrackPlayer', () => {
   it('shows the reverb button as active only when reverbMix is above 0', () => {
     const { rerender } = render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, reverbMix: 0 }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState, reverbMix: 0 }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -459,7 +488,7 @@ describe('TrackPlayer', () => {
 
     rerender(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, reverbMix: 40 }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState, reverbMix: 40 }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -469,7 +498,7 @@ describe('TrackPlayer', () => {
   it('opens distortion settings, updates draft values and applies them to engine', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -503,7 +532,7 @@ describe('TrackPlayer', () => {
   it('discards distortion draft changes and does not call the engine when cancelled', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -522,7 +551,12 @@ describe('TrackPlayer', () => {
   it('shows the distortion button as active only when distortionMix is above 0', () => {
     const { rerender } = render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, distortionMix: 0 }} x={10} y={20} />
+        <TrackPlayer
+          filePath="/sample.wav"
+          state={{ ...baseState, distortionMix: 0 }}
+          x={10}
+          y={20}
+        />
       </AudioProvider>,
     );
 
@@ -532,7 +566,12 @@ describe('TrackPlayer', () => {
 
     rerender(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, distortionMix: 40 }} x={10} y={20} />
+        <TrackPlayer
+          filePath="/sample.wav"
+          state={{ ...baseState, distortionMix: 40 }}
+          x={10}
+          y={20}
+        />
       </AudioProvider>,
     );
 
@@ -564,10 +603,47 @@ describe('TrackPlayer', () => {
     expect(screen.queryByText('Duplicate')).toBeNull();
   });
 
+  it('reveals the track source file in the OS file manager from the context menu', async () => {
+    const revealFile = vi.fn(() => Promise.resolve({ revealed: true }));
+    window.electronAPI = createMockElectronAPI({ revealFile });
+
+    render(
+      <AudioProvider>
+        <TrackPlayer filePath="/music/library/song.wav" state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    fireEvent.contextMenu(screen.getByTitle(baseState.title), { clientX: 100, clientY: 150 });
+
+    const revealItem = await screen.findByText<HTMLButtonElement>('Show in Folder');
+    expect(revealItem.disabled).toBe(false);
+    fireEvent.click(revealItem);
+
+    await waitFor(() => expect(revealFile).toHaveBeenCalledWith('/music/library/song.wav'));
+    // Menu closes after the action is taken
+    expect(screen.queryByText('Show in Folder')).toBeNull();
+  });
+
+  it('disables Show in Folder for a track whose path is not a real file location', async () => {
+    window.electronAPI = createMockElectronAPI();
+
+    render(
+      <AudioProvider>
+        <TrackPlayer filePath="song.wav" state={{ ...baseState }} x={10} y={20} />
+      </AudioProvider>,
+    );
+
+    fireEvent.contextMenu(screen.getByTitle(baseState.title), { clientX: 100, clientY: 150 });
+
+    const revealItem = await screen.findByText<HTMLButtonElement>('Show in Folder');
+    expect(revealItem.disabled).toBe(true);
+    expect(window.electronAPI.revealFile).not.toHaveBeenCalled();
+  });
+
   it('closes the context menu when clicking outside of it', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -581,7 +657,7 @@ describe('TrackPlayer', () => {
   it('changes volume and calls engine.setVolume', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -595,7 +671,7 @@ describe('TrackPlayer', () => {
   it('renders the pan slider above the volume control, centered by default, and calls engine.setPan', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -616,7 +692,7 @@ describe('TrackPlayer', () => {
   it('renders a directional gradient background for the pan slider when it is offset to the left', () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, pan: -0.6 }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState, pan: -0.6 }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -629,7 +705,7 @@ describe('TrackPlayer', () => {
   it('renders a directional gradient background for the pan slider when it is offset to the right', () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, pan: 0.6 }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState, pan: 0.6 }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -642,7 +718,7 @@ describe('TrackPlayer', () => {
   it('applies no directional modifier class when pan is centered', () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, pan: 0 }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState, pan: 0 }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -655,7 +731,7 @@ describe('TrackPlayer', () => {
   it('sets --volume-fill as a CSS custom property reflecting the current volume', () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, volume: 0.75 }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState, volume: 0.75 }} x={10} y={20} />
       </AudioProvider>,
     );
 
@@ -668,7 +744,7 @@ describe('TrackPlayer', () => {
   it('recenters pan to 0 when the pan slider is double-clicked', async () => {
     render(
       <AudioProvider>
-        <TrackPlayer state={{ ...baseState, pan: -0.6 }} x={10} y={20} />
+        <TrackPlayer filePath="/sample.wav" state={{ ...baseState, pan: -0.6 }} x={10} y={20} />
       </AudioProvider>,
     );
 

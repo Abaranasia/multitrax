@@ -167,9 +167,28 @@ what's meant to stay a focused mixing/monitoring tool.
   existing per-track setters; it's dropped onto the canvas offset by
   `+20/+20` from the source card.
 
-- [ ] **Reveal file in explorer** — add a new option in `TrackContextMenu`
+- [x] **Reveal file in explorer** — add a new option in `TrackContextMenu`
   to open the selected track's source file in the OS file explorer / finder,
   using the existing file path information already available for each track.
+  **Implemented** as a "Show in Folder" item — see `main.ts`
+  (`shell:revealFile`, backed by `shell.showItemInFolder`), `preload.ts`
+  (`revealFile`), `useTrackPlayer.ts` (`reveal` / `canReveal`) and
+  `TrackContextMenu.tsx`. `TrackEntry.filePath` is threaded down to
+  `TrackPlayer` as a prop, the same way `x`/`y` already were.
+  - The main-process handler deliberately does **not** gate on the
+    `grantedPaths` allowlist used by `fs:readAudioFile`: that set is *replaced*
+    on every open-file dialog, so tracks from an earlier batch could no longer
+    be revealed, and drag-and-drop paths never enter it. Revealing only opens
+    the OS file manager, so an absolute-path + exists + is-a-file check is the
+    proportionate gate. It resolves `{ revealed, error? }` rather than
+    rejecting, matching `dialog:saveRecording`.
+  - **Latent bug fixed along the way:** drag-and-drop stored
+    `(file as File & { path?: string }).path ?? file.name`, but Electron
+    removed `File.path` in v32 (this project runs 42.x) — so every dropped
+    track held a bare filename, not a path. `useCanvas.onDrop` now resolves the
+    real path through a new `getPathForFile` preload method
+    (`webUtils.getPathForFile`). This also unblocks **Save / Load session**
+    below, which persists file paths.
 
 - [ ] **Mute by clicking the volume icon** — make the volume icon in each
   track card toggle mute/unmute for that track when clicked, using the

@@ -30,7 +30,10 @@ export const useCanvas = () => {
       for (const file of Array.from(e.dataTransfer.files)) {
         if (!file.type.startsWith('audio/') && !isKnownAudio(file.name)) continue;
 
-        const filePath = (file as File & { path?: string }).path ?? file.name;
+        // Electron removed `File.path` in v32, so the real on-disk path can only
+        // come from the preload bridge. Fall back to the bare name outside
+        // Electron (tests, browser) — degraded, but never throws.
+        const filePath = window.electronAPI?.getPathForFile(file) ?? file.name;
         const arrayBuffer = await file.arrayBuffer();
         files.push({ path: filePath, name: file.name, buffer: arrayBuffer });
       }

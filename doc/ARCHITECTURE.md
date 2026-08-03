@@ -38,12 +38,16 @@ This is a Node.js program. It can access the file system, show native OS dialogs
 
 ### 2 — The Bridge (Preload)
 Electron enforces a strict security boundary: the UI cannot access the file system
-directly. The preload script is a thin, trusted intermediary that exposes only three
+directly. The preload script is a thin, trusted intermediary that exposes only five
 specific operations to the UI:
 
 - **Open files** — ask the OS to show a file picker and return the chosen paths
 - **Read a file** — load a file's raw bytes into memory
 - **Save a recording** — write the mixed audio to disk after showing a save dialog
+- **Reveal a file** — open the OS file manager with a track's source file selected
+- **Resolve a dropped file's path** — turn a drag-and-dropped `File` into its real
+  on-disk path (Electron removed the `File.path` property in v32, so this is the
+  only way the UI can learn where a dropped file actually lives)
 
 ### 3 — Renderer (the visible app)
 This is a web page running inside Electron's Chromium browser. It contains the

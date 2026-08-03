@@ -135,7 +135,7 @@ describe('ReverbSettingsDialog', () => {
     it('opens reverb settings, updates draft values and applies them to engine', async () => {
       render(
         <AudioProvider>
-          <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+          <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
         </AudioProvider>,
       );
 
@@ -172,7 +172,7 @@ describe('ReverbSettingsDialog', () => {
     it('discards reverb draft changes and does not call the engine when cancelled', async () => {
       render(
         <AudioProvider>
-          <TrackPlayer state={{ ...baseState }} x={10} y={20} />
+          <TrackPlayer filePath="/sample.wav" state={{ ...baseState }} x={10} y={20} />
         </AudioProvider>,
       );
 
@@ -191,7 +191,12 @@ describe('ReverbSettingsDialog', () => {
     it('shows the reverb button as active only when reverbMix is above 0', () => {
       const { rerender } = render(
         <AudioProvider>
-          <TrackPlayer state={{ ...baseState, reverbMix: 0 }} x={10} y={20} />
+          <TrackPlayer
+            filePath="/sample.wav"
+            state={{ ...baseState, reverbMix: 0 }}
+            x={10}
+            y={20}
+          />
         </AudioProvider>,
       );
 
@@ -199,7 +204,12 @@ describe('ReverbSettingsDialog', () => {
 
       rerender(
         <AudioProvider>
-          <TrackPlayer state={{ ...baseState, reverbMix: 40 }} x={10} y={20} />
+          <TrackPlayer
+            filePath="/sample.wav"
+            state={{ ...baseState, reverbMix: 40 }}
+            x={10}
+            y={20}
+          />
         </AudioProvider>,
       );
 

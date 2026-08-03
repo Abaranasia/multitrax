@@ -28,19 +28,25 @@ vi.mock('electron', () => {
     showSaveDialog: vi.fn().mockResolvedValue({ canceled: false, filePath: '/tmp/out.wav' }),
   };
 
-  return { app, BrowserWindow, ipcMain, dialog, __ipcHandlers: handlers };
+  const shell = {
+    showItemInFolder: vi.fn(),
+  };
+
+  return { app, BrowserWindow, ipcMain, dialog, shell, __ipcHandlers: handlers };
 });
 
-// Mock fs so we can inspect read/write without touching disk
+// Mock fs so we can inspect read/write/stat without touching disk
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>();
   const writeFileSync = vi.fn();
   const readFileSync = vi.fn();
+  const statSync = vi.fn(() => ({ isFile: () => true }));
   return {
     ...actual,
     writeFileSync,
     readFileSync,
-    default: { ...actual, writeFileSync, readFileSync },
+    statSync,
+    default: { ...actual, writeFileSync, readFileSync, statSync },
   } as any;
 });
 
@@ -170,5 +176,67 @@ describe('main IPC handlers', () => {
     await expect(
       handlers['fs:readAudioFile'](null, path.resolve('/path/b.wav')),
     ).resolves.toEqual(data.buffer);
+  });
+
+  it('shell:revealFile shows an existing file in the OS file manager', async () => {
+    const electron = await import('electron');
+    const fs = await import('fs');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    (fs as any).statSync.mockReturnValueOnce({ isFile: () => true });
+
+    const res = await handlers['shell:revealFile'](null, '/music/song.wav');
+
+    expect((electron as any).shell.showItemInFolder).toHaveBeenCalledWith('/music/song.wav');
+    expect(res).toEqual({ revealed: true });
+  });
+
+  it('shell:revealFile refuses a relative path without touching the shell', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const showItemInFolder = (electron as any).shell.showItemInFolder as ReturnType<typeof vi.fn>;
+    showItemInFolder.mockClear();
+
+    const res = await handlers['shell:revealFile'](null, 'song.wav');
+
+    expect(showItemInFolder).not.toHaveBeenCalled();
+    expect(res).toEqual({ revealed: false, error: 'Path is not absolute' });
+  });
+
+  it('shell:revealFile refuses a path that is not a file', async () => {
+    const electron = await import('electron');
+    const fs = await import('fs');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const showItemInFolder = (electron as any).shell.showItemInFolder as ReturnType<typeof vi.fn>;
+    showItemInFolder.mockClear();
+    (fs as any).statSync.mockReturnValueOnce({ isFile: () => false });
+
+    const res = await handlers['shell:revealFile'](null, '/music');
+
+    expect(showItemInFolder).not.toHaveBeenCalled();
+    expect(res).toEqual({ revealed: false, error: 'Path is not a file' });
+  });
+
+  it('shell:revealFile reports a clean error when the file no longer exists', async () => {
+    const electron = await import('electron');
+    const fs = await import('fs');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const showItemInFolder = (electron as any).shell.showItemInFolder as ReturnType<typeof vi.fn>;
+    showItemInFolder.mockClear();
+    (fs as any).statSync.mockImplementationOnce(() => {
+      throw new Error('ENOENT: no such file or directory');
+    });
+
+    const res = await handlers['shell:revealFile'](null, '/music/gone.wav');
+
+    expect(showItemInFolder).not.toHaveBeenCalled();
+    expect(res).toEqual({ revealed: false, error: 'ENOENT: no such file or directory' });
   });
 });

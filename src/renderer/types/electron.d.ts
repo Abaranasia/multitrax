@@ -5,6 +5,8 @@ export interface ElectronAPI {
     buffer: ArrayBuffer,
     suggestedName: string,
   ) => Promise<{ saved: boolean; filePath?: string; error?: string }>;
+  revealFile: (filePath: string) => Promise<{ revealed: boolean; error?: string }>;
+  getPathForFile: (file: File) => string;
 }
 
 declare global {

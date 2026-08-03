@@ -10,6 +10,8 @@ import {
   createEvent,
 } from '@testing-library/react';
 
+import { createMockElectronAPI } from '@/__tests__/test-utils/mockElectronAPI';
+
 const mockAddTracks = vi.fn();
 const mockTickCurrentTimes = vi.fn();
 const mockStopAll = vi.fn();
@@ -149,11 +151,44 @@ describe('Canvas', () => {
     ]);
   });
 
+  it('resolves a dropped file to its real on-disk path through the preload bridge', async () => {
+    const getPathForFile = vi.fn(() => '/music/library/song.mp3');
+    window.electronAPI = {
+      ...createMockElectronAPI(),
+      getPathForFile,
+    };
+
+    render(<Canvas />);
+
+    const audioFile = new File(['audio'], 'song.mp3', { type: 'audio/mpeg' });
+    const dataTransfer: { files: File[]; dropEffect: string } = {
+      files: [audioFile],
+      dropEffect: '',
+    };
+    const canvas = screen.getByText('Drop audio files here').closest('.canvas');
+    if (!canvas) throw new Error('Canvas element not found');
+
+    act(() => {
+      fireEvent(canvas, createEvent.drop(canvas, { dataTransfer }));
+    });
+
+    await waitFor(() => expect(mockAddTracks).toHaveBeenCalledTimes(1));
+    expect(getPathForFile).toHaveBeenCalledWith(audioFile);
+    expect(mockAddTracks).toHaveBeenCalledWith([
+      expect.objectContaining({ path: '/music/library/song.mp3', name: 'song.mp3' }),
+    ]);
+  });
+
   it('opens files through electronAPI and calls addTracks with decoded file data', async () => {
     const openAudioFiles = vi.fn(() => Promise.resolve(['/music/beat.wav']));
     const readAudioFile = vi.fn(() => Promise.resolve(new ArrayBuffer(4)));
     const saveRecording = vi.fn(() => Promise.resolve({ saved: true }));
-    window.electronAPI = { openAudioFiles, readAudioFile, saveRecording };
+    window.electronAPI = {
+      ...createMockElectronAPI(),
+      openAudioFiles,
+      readAudioFile,
+      saveRecording,
+    };
 
     render(<Canvas />);
 

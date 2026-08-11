@@ -701,4 +701,32 @@ describe('AudioEngine (unit)', () => {
     const recorderDest = (engine as any).recorderDest;
     expect(stream).toBe(recorderDest.stream);
   });
+
+  // ── Metering ─────────────────────────────────────────────────────────────
+
+  it('getLevel returns 0 for an unknown track id', () => {
+    const engine = new AudioEngine();
+    expect(engine.getLevel('nonexistent')).toBe(0);
+  });
+
+  it('getLevel returns 0 when the track exists but is not playing', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 5 } as unknown as AudioBuffer;
+    engine.addTrack('level1', buf);
+    expect(engine.getLevel('level1')).toBe(0);
+  });
+
+  it('getLevel computes RMS from the analyser\'s time-domain data while playing', () => {
+    const engine = new AudioEngine();
+    const buf = { duration: 5 } as unknown as AudioBuffer;
+    engine.addTrack('level2', buf);
+    engine.play('level2');
+
+    const track = (engine as any).tracks.get('level2');
+    track.analyser.getFloatTimeDomainData = (array: Float32Array) => {
+      array.fill(0.5);
+    };
+
+    expect(engine.getLevel('level2')).toBeCloseTo(0.5, 5);
+  });
 });

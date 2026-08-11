@@ -44,6 +44,8 @@ interface TrackNodes {
   delay: DelayNodes;
   reverb: ReverbNodes;
   pannerNode: StereoPannerNode;
+  analyser: AnalyserNode;
+  levelBuffer: Float32Array<ArrayBuffer>;
   sourceNode: AudioBufferSourceNode | null;
   buffer: AudioBuffer;
   startOffset: number; // seconds — where playback was paused
@@ -98,6 +100,9 @@ export class AudioEngine {
     const delay = createDelayNodes(this.ctx);
     const reverb = createReverbNodes(this.ctx, this.impulseResponses);
     const pannerNode = this.ctx.createStereoPanner();
+    const analyser = this.ctx.createAnalyser();
+    analyser.fftSize = 512;
+    const levelBuffer = new Float32Array(analyser.fftSize);
 
     // Chain order: gainNode → delay insert → reverb insert → pannerNode → masterGain.
     gainNode.connect(delay.dryGain);
@@ -116,7 +121,12 @@ export class AudioEngine {
     delay.outputGain.connect(reverb.dryGain);
     delay.outputGain.connect(reverb.preDelay);
     reverb.outputGain.connect(pannerNode);
-    pannerNode.connect(this.masterGain);
+    // The analyser is inserted serially (pannerNode → analyser → masterGain)
+    // rather than tapped in parallel off pannerNode, because AnalyserNode is
+    // a unity-gain passthrough: tapping it as a second connection alongside
+    // masterGain would double the signal actually reaching masterGain.
+    pannerNode.connect(analyser);
+    analyser.connect(this.masterGain);
 
     this.tracks.set(id, {
       gainNode,
@@ -125,6 +135,8 @@ export class AudioEngine {
       delay,
       reverb,
       pannerNode,
+      analyser,
+      levelBuffer,
       sourceNode: null,
       buffer,
       startOffset: 0,
@@ -171,6 +183,7 @@ export class AudioEngine {
     track.reverb.wetGain.disconnect();
     track.reverb.outputGain.disconnect();
     track.pannerNode.disconnect();
+    track.analyser.disconnect();
     this.tracks.delete(id);
   }
 
@@ -440,6 +453,19 @@ export class AudioEngine {
     const track = this.tracks.get(id);
     if (!track) return;
     applyReverbSettings(track.reverb, s, this.ctx.currentTime, this.impulseResponses);
+  }
+
+  // ── Metering ───────────────────────────────────────────────────────────────
+
+  /** Instantaneous RMS amplitude (0–1) of this track's post-fader signal, or 0 when silent/unknown. */
+  getLevel(id: string): number {
+    const track = this.tracks.get(id);
+    if (!track || !track.playing) return 0;
+
+    track.analyser.getFloatTimeDomainData(track.levelBuffer);
+    let sumSquares = 0;
+    for (const sample of track.levelBuffer) sumSquares += sample * sample;
+    return Math.sqrt(sumSquares / track.levelBuffer.length);
   }
 
   // ── State queries ──────────────────────────────────────────────────────────

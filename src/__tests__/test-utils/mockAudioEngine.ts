@@ -46,6 +46,7 @@ export function createMockAudioEngine(options: MockAudioEngineOptions = {}) {
     setDistortionSettings: vi.fn(),
     isPlaying: vi.fn().mockReturnValue(false),
     getCurrentTime: vi.fn().mockReturnValue(0),
+    getLevel: vi.fn().mockReturnValue(0),
     close: vi.fn(),
   };
 }

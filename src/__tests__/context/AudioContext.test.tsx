@@ -449,6 +449,150 @@ describe('AudioContext', () => {
     expect(screen.getByTestId('clone-distortion-drive').textContent).toBe('40');
   });
 
+  it('duplicating a muted track keeps the clone silent in the engine, not just in the UI', async () => {
+    const SOURCE_ID = '11111111-1111-1111-1111-111111111111';
+    const CLONE_ID = '22222222-2222-2222-2222-222222222222';
+    let call = 0;
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() =>
+      call++ === 0 ? SOURCE_ID : CLONE_ID,
+    );
+
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              audio.addTracks([{ path: '/guitar.wav', name: 'Guitar', buffer: new ArrayBuffer(4) }])
+            }
+          >
+            Add Track
+          </button>
+          <button onClick={() => audio.setMuted(SOURCE_ID, true)}>Mute</button>
+          <button onClick={() => audio.duplicateTrack(SOURCE_ID)}>Duplicate</button>
+          <div data-testid="track-count">{audio.tracks.length}</div>
+          <div data-testid="clone-muted">{String(audio.tracks[1]?.state.muted ?? '')}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add Track'));
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('1'));
+
+    fireEvent.click(screen.getByText('Mute'));
+    await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenLastCalledWith(SOURCE_ID, 0));
+
+    fireEvent.click(screen.getByText('Duplicate'));
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('2'));
+
+    expect(screen.getByTestId('clone-muted').textContent).toBe('true');
+    expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(CLONE_ID, 0);
+  });
+
+  it('duplicating a non-soloed track while another track is soloed keeps the clone silent', async () => {
+    const ids: `${string}-${string}-${string}-${string}-${string}`[] = [
+      '11111111-1111-1111-1111-111111111111',
+      '22222222-2222-2222-2222-222222222222',
+      '33333333-3333-3333-3333-333333333333',
+    ];
+    let call = 0;
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => ids[call++]);
+
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              void audio.addTracks([
+                { path: '/a.mp3', name: 'A', buffer: new ArrayBuffer(4) },
+                { path: '/b.mp3', name: 'B', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
+            Add Tracks
+          </button>
+          <button onClick={() => audio.setSoloed(ids[0], true)}>Solo A</button>
+          <button onClick={() => audio.duplicateTrack(ids[1])}>Duplicate B</button>
+          <div data-testid="track-count">{audio.tracks.length}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add Tracks'));
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('2'));
+
+    fireEvent.click(screen.getByText('Solo A'));
+    await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(ids[1], 0));
+
+    fireEvent.click(screen.getByText('Duplicate B'));
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('3'));
+
+    expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(ids[2], 0);
+  });
+
+  it('adding a track while another track is soloed adds it silenced, not at the engine default gain', async () => {
+    const ids: `${string}-${string}-${string}-${string}-${string}`[] = [
+      '11111111-1111-1111-1111-111111111111',
+      '22222222-2222-2222-2222-222222222222',
+    ];
+    let call = 0;
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => ids[call++]);
+
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              void audio.addTracks([{ path: '/a.mp3', name: 'A', buffer: new ArrayBuffer(4) }])
+            }
+          >
+            Add A
+          </button>
+          <button onClick={() => audio.setSoloed(ids[0], true)}>Solo A</button>
+          <button
+            onClick={() =>
+              void audio.addTracks([{ path: '/b.mp3', name: 'B', buffer: new ArrayBuffer(4) }])
+            }
+          >
+            Add B
+          </button>
+          <div data-testid="track-count">{audio.tracks.length}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add A'));
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('1'));
+
+    fireEvent.click(screen.getByText('Solo A'));
+    await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(ids[0], 1));
+
+    fireEvent.click(screen.getByText('Add B'));
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('2'));
+
+    expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(ids[1], 0);
+  });
+
   it('loadSession replaces existing tracks and applies every engine setting from the snapshot', async () => {
     const OLD_ID = '11111111-1111-1111-1111-111111111111';
     const NEW_ID = '22222222-2222-2222-2222-222222222222';
@@ -591,6 +735,156 @@ describe('AudioContext', () => {
     expect(screen.getByTestId('track-title').textContent).toBe('Good');
     expect(screen.getByTestId('loaded').textContent).toBe('1');
     expect(screen.getByTestId('missing').textContent).toBe('/missing.wav');
+  });
+
+  it('muting a track sends engine.setVolume(id, 0), unmuting restores the last nominal volume', async () => {
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              audio.addTracks([{ path: '/a.mp3', name: 'A', buffer: new ArrayBuffer(4) }])
+            }
+          >
+            Add Track
+          </button>
+          <button onClick={() => audio.setVolume(TRACK_ID, 0.7)}>Set Volume</button>
+          <button onClick={() => audio.setMuted(TRACK_ID, true)}>Mute</button>
+          <button onClick={() => audio.setMuted(TRACK_ID, false)}>Unmute</button>
+          <div data-testid="muted">{String(audio.tracks[0]?.state.muted ?? '')}</div>
+          <div data-testid="volume">{String(audio.tracks[0]?.state.volume ?? '')}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add Track'));
+    await waitFor(() => expect(screen.getByTestId('muted').textContent).toBe('false'));
+
+    fireEvent.click(screen.getByText('Set Volume'));
+    await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenLastCalledWith(TRACK_ID, 0.7));
+
+    fireEvent.click(screen.getByText('Mute'));
+    await waitFor(() => expect(screen.getByTestId('muted').textContent).toBe('true'));
+    expect(mockAudioEngine.setVolume).toHaveBeenLastCalledWith(TRACK_ID, 0);
+    // Nominal volume is preserved while muted, for the fader UI.
+    expect(screen.getByTestId('volume').textContent).toBe('0.7');
+
+    fireEvent.click(screen.getByText('Unmute'));
+    await waitFor(() => expect(screen.getByTestId('muted').textContent).toBe('false'));
+    expect(mockAudioEngine.setVolume).toHaveBeenLastCalledWith(TRACK_ID, 0.7);
+  });
+
+  it('dragging the fader while muted stays silent at the engine level', async () => {
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              audio.addTracks([{ path: '/a.mp3', name: 'A', buffer: new ArrayBuffer(4) }])
+            }
+          >
+            Add Track
+          </button>
+          <button onClick={() => audio.setMuted(TRACK_ID, true)}>Mute</button>
+          <button onClick={() => audio.setVolume(TRACK_ID, 0.9)}>Set Volume</button>
+          <div data-testid="volume">{String(audio.tracks[0]?.state.volume ?? '')}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add Track'));
+    await waitFor(() => expect(screen.getByTestId('volume').textContent).toBe('1'));
+
+    fireEvent.click(screen.getByText('Mute'));
+    await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenLastCalledWith(TRACK_ID, 0));
+
+    fireEvent.click(screen.getByText('Set Volume'));
+    // The fader UI value updates...
+    await waitFor(() => expect(screen.getByTestId('volume').textContent).toBe('0.9'));
+    // ...but the engine still receives 0 because the track is muted.
+    expect(mockAudioEngine.setVolume).toHaveBeenLastCalledWith(TRACK_ID, 0);
+  });
+
+  it('soloing additively: soloing A silences B, soloing B too keeps both audible, un-soloing both restores B', async () => {
+    const ids: `${string}-${string}-${string}-${string}-${string}`[] = [
+      '11111111-1111-1111-1111-111111111111',
+      '22222222-2222-2222-2222-222222222222',
+    ];
+    let call = 0;
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => ids[call++]);
+
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              void audio.addTracks([
+                { path: '/a.mp3', name: 'A', buffer: new ArrayBuffer(4) },
+                { path: '/b.mp3', name: 'B', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
+            Add Tracks
+          </button>
+          <button onClick={() => audio.setSoloed(ids[0], true)}>Solo A</button>
+          <button onClick={() => audio.setSoloed(ids[0], false)}>Unsolo A</button>
+          <button onClick={() => audio.setSoloed(ids[1], true)}>Solo B</button>
+          <button onClick={() => audio.setSoloed(ids[1], false)}>Unsolo B</button>
+          <div data-testid="titles">{audio.tracks.map((t) => t.state.title).join(',')}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add Tracks'));
+    await waitFor(() => expect(screen.getByTestId('titles').textContent).toBe('A,B'));
+    mockAudioEngine.setVolume.mockClear();
+
+    // Soloing A silences B (A stays at its nominal volume).
+    fireEvent.click(screen.getByText('Solo A'));
+    await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(ids[1], 0));
+    expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(ids[0], 1);
+
+    mockAudioEngine.setVolume.mockClear();
+
+    // Soloing B too (additive) keeps both A and B audible.
+    fireEvent.click(screen.getByText('Solo B'));
+    await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(ids[1], 1));
+    expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(ids[0], 1);
+
+    mockAudioEngine.setVolume.mockClear();
+
+    // Un-soloing A: B is still soloed, so A is now the one silenced.
+    fireEvent.click(screen.getByText('Unsolo A'));
+    await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(ids[0], 0));
+    expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(ids[1], 1);
+
+    mockAudioEngine.setVolume.mockClear();
+
+    // Un-soloing B: no track soloed anywhere, so A's audible volume is restored.
+    fireEvent.click(screen.getByText('Unsolo B'));
+    await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(ids[0], 1));
+    expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(ids[1], 1);
   });
 
   it('newSession removes every track from the engine and clears state', async () => {

@@ -12,6 +12,14 @@ import { computeWaveformPeaks } from '../audio/waveform';
 import { SessionTrackSnapshot } from '../domain/SessionFile';
 import { SIDE_INSET, TOP_INSET } from '../utils/canvasLayout';
 
+// Mute silences a track outright; otherwise, once any track anywhere is
+// soloed, every non-soloed track is silenced too (solo is additive — more
+// than one track can be soloed at once). This is the single place that
+// decides what gain actually reaches `engine.setVolume`, independent of the
+// nominal `state.volume` the fader UI reflects.
+const effectiveVolume = (state: TrackState, anySoloed: boolean): number =>
+  state.muted || (anySoloed && !state.soloed) ? 0 : state.volume;
+
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Initialize the engine once per provider mount, without touching refs during render.
   // AudioProvider wraps the whole app and lives for the process lifetime, so there is
@@ -25,6 +33,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const addTracks = useCallback(
     async (files: { path: string; name: string; buffer: ArrayBuffer }[]) => {
       const newEntries: TrackEntry[] = [];
+      const anySoloed = tracks.some((t) => t.state.soloed);
 
       for (const file of files) {
         try {
@@ -42,6 +51,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             currentTime: 0,
             volume: 1,
             pan: 0,
+            muted: false,
+            soloed: false,
             loop: true,
             playing: false,
             fadeIn: false,
@@ -72,6 +83,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             waveform,
           };
 
+          // A newly-added track defaults to unmuted/unsoloed, but if some
+          // other track is already soloed, it must join the rest of the mix
+          // in silence rather than play at the engine's default gain of 1.
+          engine.setVolume(id, effectiveVolume(state, anySoloed));
+
           newEntries.push({
             state,
             filePath: file.path,
@@ -91,7 +107,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       setTracks((prev) => [...prev, ...newEntries]);
     },
-    [engine],
+    [engine, tracks],
   );
 
   const duplicateTrack = useCallback(
@@ -129,18 +145,25 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         mix: source.state.distortionMix,
         output: source.state.distortionOutput,
       });
-      engine.setVolume(newId, source.state.volume);
+      const newState: TrackState = {
+        ...source.state,
+        id: newId,
+        title: `${source.state.title} copy`,
+        currentTime: 0,
+        playing: false,
+      };
+
+      // Route through effectiveVolume, not the raw nominal volume — a
+      // duplicate inherits muted/soloed from its source, and the engine gain
+      // must reflect that (and the current solo-elsewhere state) immediately,
+      // not just the UI.
+      const anySoloed = tracks.some((t) => t.state.soloed);
+      engine.setVolume(newId, effectiveVolume(newState, anySoloed));
       engine.setPan(newId, source.state.pan);
       engine.setLoop(newId, source.state.loop);
 
       const newEntry: TrackEntry = {
-        state: {
-          ...source.state,
-          id: newId,
-          title: `${source.state.title} copy`,
-          currentTime: 0,
-          playing: false,
-        },
+        state: newState,
         filePath: source.filePath,
         x: source.x + 20,
         y: source.y + 20,
@@ -226,12 +249,50 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setVolume = useCallback(
     (id: string, value: number) => {
-      engine.setVolume(id, value);
+      const track = tracks.find((t) => t.state.id === id);
+      // TrackPlayer's card view can render a track's VolumeControl straight
+      // from a `state` prop that isn't (yet) registered in `tracks` — fall
+      // back to the raw value in that case, same as before mute/solo existed.
+      const anySoloed = tracks.some((t) => t.state.soloed);
+      const effective = track
+        ? effectiveVolume({ ...track.state, volume: value }, anySoloed)
+        : value;
+      engine.setVolume(id, effective);
       setTracks((prev) =>
         prev.map((t) => (t.state.id === id ? { ...t, state: { ...t.state, volume: value } } : t)),
       );
     },
-    [engine],
+    [engine, tracks],
+  );
+
+  const setMuted = useCallback(
+    (id: string, muted: boolean) => {
+      const track = tracks.find((t) => t.state.id === id);
+      if (track) {
+        const anySoloed = tracks.some((t) => t.state.soloed);
+        engine.setVolume(id, effectiveVolume({ ...track.state, muted }, anySoloed));
+      }
+      setTracks((prev) =>
+        prev.map((t) => (t.state.id === id ? { ...t, state: { ...t.state, muted } } : t)),
+      );
+    },
+    [engine, tracks],
+  );
+
+  const setSoloed = useCallback(
+    (id: string, soloed: boolean) => {
+      const nextStates = tracks.map((t) =>
+        t.state.id === id ? { ...t.state, soloed } : t.state,
+      );
+      const anySoloed = nextStates.some((s) => s.soloed);
+      for (const state of nextStates) {
+        engine.setVolume(state.id, effectiveVolume(state, anySoloed));
+      }
+      setTracks((prev) =>
+        prev.map((t) => (t.state.id === id ? { ...t, state: { ...t.state, soloed } } : t)),
+      );
+    },
+    [engine, tracks],
   );
 
   const setPan = useCallback(
@@ -458,6 +519,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           currentTime: 0,
           volume: snapshot.volume,
           pan: snapshot.pan,
+          muted: false,
+          soloed: false,
           loop: snapshot.loop,
           playing: false,
           fadeIn: snapshot.fadeIn,
@@ -554,6 +617,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         playAll,
         seek,
         setVolume,
+        setMuted,
+        setSoloed,
         setPan,
         setLoop,
         setFadeIn,

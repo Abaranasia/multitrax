@@ -7,7 +7,7 @@ interface PanDialProps {
   onDoubleClick: () => void;
 }
 
-const DIAL_SWEEP_DEG = 45;
+const DIAL_SWEEP_DEG = 90;
 
 function panLabel(pan: number): string {
   if (pan === 0) return 'Center';

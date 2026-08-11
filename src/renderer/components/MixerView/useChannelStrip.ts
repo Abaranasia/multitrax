@@ -9,6 +9,8 @@ export const useChannelStrip = (state: TrackState) => {
     stop,
     seek,
     setVolume,
+    setMuted,
+    setSoloed,
     setPan,
     setLoop,
     setFadeIn,
@@ -41,6 +43,8 @@ export const useChannelStrip = (state: TrackState) => {
     setFadeOut,
     setSeekFade,
     setVolume,
+    setMuted,
+    setSoloed,
     setPan,
   };
 };

@@ -15,6 +15,7 @@ import { ChannelStrip } from '@/renderer/components/MixerView/ChannelStrip';
 import { TrackState } from '@/renderer/domain/TrackState';
 import { TrackEntry } from '@/renderer/context/audioContextInstance';
 import { AudioProvider } from '@/renderer/context/AudioContext';
+import { useAudio } from '@/renderer/context/useAudio';
 
 describe('ChannelStrip', () => {
   const baseState: TrackState = {
@@ -24,6 +25,8 @@ describe('ChannelStrip', () => {
     currentTime: 0,
     volume: 1,
     pan: 0,
+    muted: false,
+    soloed: false,
     loop: false,
     playing: false,
     fadeIn: false,
@@ -160,6 +163,56 @@ describe('ChannelStrip', () => {
     ) as HTMLInputElement;
     fireEvent.change(panInput, { target: { value: '-0.5' } });
     await waitFor(() => expect(mockAudioEngine.setPan).toHaveBeenCalledWith('track-1', -0.5));
+  });
+
+  // Mute/solo (unlike volume/pan above) look the track up in AudioProvider's
+  // own `tracks` state to compute the effective (post mute/solo) gain, so
+  // these two cases seed that state via `addTracks` first — mirroring
+  // `SeededTrackPlayer` in TrackPlayer.test.tsx — instead of only passing a
+  // `track` prop that AudioProvider never learns about.
+  const SeededChannelStrip = ({ track }: { track: TrackEntry }) => {
+    const audio = useAudio();
+    React.useEffect(() => {
+      void audio.addTracks([
+        { path: track.filePath, name: track.state.title, buffer: new ArrayBuffer(4) },
+      ]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    return <ChannelStrip track={track} isDragging={false} onDragHandleMouseDown={vi.fn()} />;
+  };
+
+  it('clicking Mute calls engine.setVolume(id, 0) for the same track', async () => {
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(
+      () => 'track-1' as `${string}-${string}-${string}-${string}-${string}`,
+    );
+
+    render(
+      <AudioProvider>
+        <SeededChannelStrip track={makeTrack({ ...baseState })} />
+      </AudioProvider>,
+    );
+
+    await screen.findByText('Sample Track');
+    const muteButton = document.querySelector('.btn-mute') as HTMLButtonElement;
+    fireEvent.click(muteButton);
+    await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenCalledWith('track-1', 0));
+  });
+
+  it('clicking Solo routes through the audio context (this track stays audible)', async () => {
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(
+      () => 'track-1' as `${string}-${string}-${string}-${string}-${string}`,
+    );
+
+    render(
+      <AudioProvider>
+        <SeededChannelStrip track={makeTrack({ ...baseState, volume: 1 })} />
+      </AudioProvider>,
+    );
+
+    await screen.findByText('Sample Track');
+    fireEvent.click(screen.getByTitle('Solo'));
+    // Soloing the only track on screen leaves it audible at its own volume.
+    await waitFor(() => expect(mockAudioEngine.setVolume).toHaveBeenCalledWith('track-1', 1));
   });
 
   it('opens the filter settings dialog from the effect toggles', async () => {

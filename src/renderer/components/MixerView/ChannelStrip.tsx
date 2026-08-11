@@ -2,7 +2,9 @@ import type { MouseEvent as ReactMouseEvent } from 'react';
 import { TrackEntry } from '../../context/audioContextInstance';
 import { formatDb } from '../../utils/formatDb';
 import { useChannelStrip } from './useChannelStrip';
+import { useMuteSoloButtons } from './useMuteSoloButtons';
 import { PanDial } from './PanDial';
+import { MuteSoloButtons } from './MuteSoloButtons';
 import {
   EffectDialogs,
   WaveformCanvas,
@@ -44,12 +46,15 @@ export const ChannelStrip = ({ track, isDragging, onDragHandleMouseDown }: Chann
     setFadeOut,
     setSeekFade,
     setVolume,
+    setMuted,
+    setSoloed,
     setPan,
   } = useChannelStrip(state);
 
   const waveformCanvasRef = useWaveformCanvas(state.waveform, progress);
   const volumeControl = useVolumeControl(state, setVolume);
   const panControl = usePanControl(state, setPan);
+  const muteSoloButtons = useMuteSoloButtons(state, setMuted, setSoloed);
   const filterDialog = useFilterSettingsDialog(state);
   const distortionDialog = useDistortionSettingsDialog(state);
   const fadeDialog = useFadeSettingsDialog(state);
@@ -92,6 +97,8 @@ export const ChannelStrip = ({ track, isDragging, onDragHandleMouseDown }: Chann
       <EffectToggles {...effectToggles} />
 
       <PanDial {...panControl} />
+
+      <MuteSoloButtons {...muteSoloButtons} />
 
       <div className="mixer-middle-row">
         <TransportToggles {...transportControls} />

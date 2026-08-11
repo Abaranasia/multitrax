@@ -285,7 +285,7 @@ what's meant to stay a focused mixing/monitoring tool.
   `TrackState`, `AudioContext.tsx`, or the audio engine have the backing data
   (mute/solo flags, an `AnalyserNode`, or a master bus) required to drive them.
 
-- [ ] **Mixer view: Mute / Solo buttons** — add `muted`/`soloed` booleans to
+- [x] **Mixer view: Mute / Solo buttons** — add `muted`/`soloed` booleans to
   `TrackState`, plus setters in `AudioContext.tsx` (mute routes through the
   existing volume path to 0 and restores the prior value; solo mutes every
   other track). Deferred out of the initial mixer-view MVP above; no

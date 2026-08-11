@@ -895,3 +895,80 @@ various new/updated tests under `src/__tests__/components/ViewMenu/`,
   at the array slot), `ChannelStrip.test.tsx`/`MixerView.test.tsx` (grip
   triggers the handler, `is-dragging` class reflects the prop), and
   `Canvas.test.tsx`'s `useAudio()` mock updated with `reorderTracks`.
+
+---
+
+## [2026-08-11] — Mixer view: Mute / Solo buttons
+
+**Files:** `src/renderer/domain/TrackState.ts`,
+`src/renderer/context/AudioContext.tsx`,
+`src/renderer/context/audioContextInstance.ts`,
+`src/renderer/components/MixerView/useMuteSoloButtons.ts` (new),
+`src/renderer/components/MixerView/MuteSoloButtons.tsx` (new),
+`src/renderer/components/MixerView/useChannelStrip.ts`,
+`src/renderer/components/MixerView/ChannelStrip.tsx`,
+`src/renderer/components/MixerView/MixerView.css`,
+`src/__tests__/context/AudioContext.test.tsx`,
+`src/__tests__/components/MixerView/MuteSoloButtons.test.tsx` (new),
+`src/__tests__/components/MixerView/ChannelStrip.test.tsx`,
+`src/__tests__/components/Canvas/Canvas.test.tsx`,
+`src/__tests__/components/TrackPlayer/TrackPlayer.test.tsx`,
+`src/__tests__/components/TrackPlayer/FilterSettingsDialog.test.tsx`,
+`src/__tests__/components/TrackPlayer/ReverbSettingsDialog.test.tsx`,
+`src/__tests__/components/TrackPlayer/DistortionSettingsDialog.test.tsx`,
+`src/__tests__/components/TrackPlayer/FadeSettingsDialog.test.tsx`,
+`src/__tests__/components/TrackPlayer/DelaySettingsDialog.test.tsx`
+
+- Closed out one of the three mixer-view items deferred in the "Mixer-style
+  vertical track view" entry above: real per-strip Mute/Solo buttons, backed
+  by two new `TrackState` booleans (`muted`, `soloed`) rather than the
+  existing card-view `volume === 0` mute hack, which stays untouched and
+  unrelated (card view only).
+- `AudioContext.tsx` gained a private `effectiveVolume(state, anySoloed)`
+  helper: muted is silence outright; otherwise, once any track anywhere is
+  soloed, every non-soloed track is silenced too — solo is **additive**
+  (multiple strips can be soloed at once). `setVolume` still writes the
+  nominal `state.volume` unconditionally (so the fader UI always shows what
+  was dragged), but now derives the gain it sends to `engine.setVolume`
+  through `effectiveVolume`, so dragging a fader while muted or soloed-out
+  stays silent at the engine. New `setMuted(id, muted)` recomputes just that
+  track's effective gain; `setSoloed(id, soloed)` recomputes `anySoloed` from
+  the next state of *all* tracks and re-sends `engine.setVolume` for every
+  one of them, since one track's solo flag changes what's audible everywhere,
+  not just on itself. No `AudioEngine.ts` changes — every path still ends in
+  the existing `engine.setVolume(id, value)` gain call.
+- `muted`/`soloed` default to `false` everywhere a `TrackState` is built
+  (`addTracks`, `loadSession`, and every test fixture with a full
+  `TrackState` literal) but are deliberately **not** added to
+  `SessionTrackSnapshot` — mirroring `playing`, sessions always load
+  unmuted/unsoloed, same as they always load stopped.
+- New `useMuteSoloButtons.ts` (plain hook, mirrors `useChannelStrip.ts`) and
+  `MuteSoloButtons.tsx` (presentational, mirrors `PanDial.tsx`) render two
+  small "M"/"S" buttons with `title`/`aria-pressed` reflecting state and an
+  `active` class convention borrowed from `.btn-playback.active`.
+  `ChannelStrip.tsx` threads `setMuted`/`setSoloed` through
+  `useChannelStrip.ts` the same way `setVolume`/`setPan` already flow, and
+  renders `<MuteSoloButtons>` between the pan dial and the fader/transport
+  row — the same spot a hardware mixer strip puts its M/S buttons.
+  `MixerView.css` adds `.mixer-mute-solo`/`.btn-mute`/`.btn-solo`, with
+  `.btn-mute.active` red-orange and `.btn-solo.active` yellow, distinct
+  colors since solo's additive semantics mean several strips can show
+  "active" at once for a different reason than mute's does. The existing
+  `.mixer-fader .volume-control .volume-icon { display: none }` rule (which
+  already cited this TODO item) is untouched.
+- Tests: `AudioContext.test.tsx` covers mute → `setVolume(id, 0)`, unmute →
+  restores the last nominal volume, dragging the fader while muted stays
+  silent at the engine, and the additive-solo matrix (solo A silences B,
+  solo B too keeps both audible, un-soloing one re-silences whichever track
+  is left un-soloed, un-soloing both restores everyone). New
+  `MuteSoloButtons.test.tsx` covers click → toggle callback and
+  `active`/`aria-pressed` reflecting props. `ChannelStrip.test.tsx` adds a
+  `SeededChannelStrip` helper (mirrors `SeededTrackPlayer` in
+  `TrackPlayer.test.tsx`) since mute/solo — unlike volume/pan — read the
+  track back out of `AudioProvider`'s own `tracks` state to compute the
+  effective gain, so the test needs that state actually populated via
+  `addTracks` rather than only passing a `track` prop.
+- Every other `TrackState`-literal test fixture (`TrackPlayer.test.tsx` and
+  the four effect-settings dialog tests, plus the ad-hoc session-save object
+  in `Canvas.test.tsx`) got `muted: false, soloed: false` added so the
+  build type-checks; none of their assertions needed to change.

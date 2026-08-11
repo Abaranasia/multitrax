@@ -30,6 +30,8 @@ export interface AudioContextValue {
   playAll: () => void;
   seek: (id: string, seconds: number) => void;
   setVolume: (id: string, value: number) => void;
+  setMuted: (id: string, muted: boolean) => void;
+  setSoloed: (id: string, soloed: boolean) => void;
   setPan: (id: string, value: number) => void;
   setLoop: (id: string, loop: boolean) => void;
   setFadeIn: (id: string, enabled: boolean) => void;

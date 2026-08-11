@@ -304,12 +304,28 @@ what's meant to stay a focused mixing/monitoring tool.
   renders the bar, styled in `MixerView.css` from the rack mock's
   `.rk-meter`.
 
-- [ ] **Mixer view: Master strip with master volume** — there is no master bus
+- [x] **Mixer view: Master strip with master volume** — there is no master bus
   in the current audio graph (each track routes independently). Adding one
   means introducing a master `GainNode` in the engine, a corresponding
   `masterVolume` value in `AudioContext.tsx`, and rendering the design's
   `.strip.master` column as a real control instead of a static element.
   Deferred out of the initial mixer-view MVP above.
+  **Implemented** following "Option 1C — Rack"'s `.strip.master` column: a
+  new `MasterStrip.tsx` (title, static "OUT" placeholder, balance dial,
+  fader, two VU meters, dB readout — no REC/mute/solo/DIM, kept minimal).
+  `AudioEngine.ts`'s constructor rewires `masterGain → masterPanner →
+  destination`/`recorderDest`, plus a `ChannelSplitterNode` feeding two
+  `AnalyserNode`s for independent L/R metering; new `setMasterVolume`,
+  `setMasterBalance`, `getMasterLevel(channel)` methods mirror the existing
+  per-track setters/`getLevel` shape. `masterVolume`/`masterBalance` live in
+  `AudioContextValue`/`AudioContext.tsx` (id-less, no mute/solo — master has
+  neither), not on `TrackState`. `MixerView.tsx` renders `MasterStrip`
+  **outside** the `rackRef`-scoped container: `useMixerReorder.ts` computes
+  drag-reorder targets from every DOM child of that ref with no filtering,
+  so the master strip sits in a sibling `.mixer-master-dock` to avoid
+  corrupting drag math. A shared `meterLevel.ts` was extracted from the
+  existing `useVUMeter.ts` (peak-hold decay + dB-scale mapping) to back the
+  new two-channel `useMasterVUMeter.ts` without duplicating that logic.
 
 - [ ] **Real-time effect preview + floating settings panel** — convert the
   Filter/Distortion/Delay/Reverb settings dialogs from "draft state,

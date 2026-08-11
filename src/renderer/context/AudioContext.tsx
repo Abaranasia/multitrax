@@ -28,7 +28,25 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [engine] = useState<AudioEngine>(() => new AudioEngine());
 
   const [tracks, setTracks] = useState<TrackEntry[]>([]);
+  const [masterVolume, setMasterVolumeState] = useState(1);
+  const [masterBalance, setMasterBalanceState] = useState(0);
   const nextPos = useRef({ x: SIDE_INSET, y: TOP_INSET });
+
+  const setMasterVolume = useCallback(
+    (value: number) => {
+      engine.setMasterVolume(value);
+      setMasterVolumeState(value);
+    },
+    [engine],
+  );
+
+  const setMasterBalance = useCallback(
+    (value: number) => {
+      engine.setMasterBalance(value);
+      setMasterBalanceState(value);
+    },
+    [engine],
+  );
 
   const addTracks = useCallback(
     async (files: { path: string; name: string; buffer: ArrayBuffer }[]) => {
@@ -607,6 +625,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       value={{
         engine,
         tracks,
+        masterVolume,
+        masterBalance,
+        setMasterVolume,
+        setMasterBalance,
         addTracks,
         duplicateTrack,
         removeTrack,

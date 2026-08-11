@@ -5,25 +5,45 @@
    pan, volume, transport) are re-skinned via descendant selectors scoped to
    `.mixer-strip`/`.mixer-fader`, not overridden globally. */
 
-.mixer-rack {
+.mixer-view {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
   /* top/side clearance mirrors TOP_INSET/SIDE_INSET in canvasLayout.ts, so
      strips never sit under the fixed Session/View buttons in .top-left-actions. */
   padding: 90px 20px 20px;
-  overflow-x: auto;
   background: linear-gradient(180deg, #1a1d26, #12141b);
   box-sizing: border-box;
+}
+
+.mixer-rack {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.mixer-master-dock {
+  flex-shrink: 0;
+  margin-left: 10px;
 }
 
 .mixer-strip {
   width: 150px;
   flex-shrink: 0;
+  /* Matches .track-player's background/border (TrackPlayer.css) so the
+     Mixer and Canvas/Track views read as one consistent palette. 
+  */
+
+  /* Old colors for reference
   background: #191c24;
   border: 1px solid #262a34;
+  */
+  background: #16213e;
+  border: 1px solid #0f3460;
   border-radius: 12px;
   padding: 12px 11px;
   display: flex;
@@ -56,6 +76,17 @@
   outline: 1px solid #f5a623;
 }
 
+/* Master bus strip — subtle background/border distinction and amber title,
+   ported from the mock's `.strip.master`/`.rk-tt` (Option 1C — Rack). */
+.mixer-strip.master {
+  background: linear-gradient(180deg, #1f2f57, #16213e);
+  border-color: #2c4a7a;
+}
+
+.mixer-strip.master .mixer-strip-title {
+  color: #f5a623;
+}
+
 .mixer-strip-title {
   color: #e9ebf0;
   font-size: 12px;
@@ -74,6 +105,21 @@
   margin-bottom: 0;
   border-radius: 5px;
   background: #12141b;
+}
+
+/* Static "OUT" placeholder in the Master strip, replacing the waveform slot. */
+.mixer-strip-out {
+  width: 100%;
+  height: 30px;
+  border-radius: 5px;
+  background: #20242e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6a6f7e;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
 }
 
 /* FX badge row — same F/W/D/R toggles as the card view, laid out as a
@@ -263,6 +309,13 @@
   display: block;
   height: var(--meter-level, 0%);
   background: linear-gradient(180deg, #4ecdc4, #f5a623 82%, #ff6b6b);
+}
+
+/* Master strip has two meters (L/R) side by side instead of one. */
+.mixer-master-meters {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
 }
 
 .mixer-db {

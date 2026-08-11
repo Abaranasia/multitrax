@@ -1033,3 +1033,112 @@ various new/updated tests under `src/__tests__/components/ViewMenu/`,
   data. `ChannelStrip.test.tsx` adds a presence check for `.mixer-meter` —
   none of its fixtures set `playing: true`, so the `requestAnimationFrame`
   loop never engages in tests.
+
+---
+
+## [2026-08-11] — Mixer view: Master strip with master volume
+
+**Files:** `src/renderer/audio/AudioEngine.ts`,
+`src/renderer/context/audioContextInstance.ts`,
+`src/renderer/context/AudioContext.tsx`,
+`src/renderer/components/MixerView/MasterStrip.tsx` (new),
+`src/renderer/components/MixerView/useMasterStrip.ts` (new),
+`src/renderer/components/MixerView/useMasterVolumeControl.ts` (new),
+`src/renderer/components/MixerView/useMasterBalanceControl.ts` (new),
+`src/renderer/components/MixerView/useMasterVUMeter.ts` (new),
+`src/renderer/components/MixerView/meterLevel.ts` (new),
+`src/renderer/components/MixerView/useVUMeter.ts`,
+`src/renderer/components/MixerView/MixerView.tsx`,
+`src/renderer/components/MixerView/MixerView.css`,
+`src/__tests__/audio/fixtures/fakeAudioContext.ts`,
+`src/__tests__/audio/AudioEngine.test.ts`,
+`src/__tests__/context/AudioContext.test.tsx`,
+`src/__tests__/test-utils/mockAudioEngine.ts`,
+`src/__tests__/components/MixerView/MixerView.test.tsx`,
+`src/__tests__/components/MixerView/MasterStrip.test.tsx` (new),
+`src/__tests__/components/MixerView/useMaster*.test.ts` (new)
+
+- Closed out the last deferred item from the mixer-view MVP: the design's
+  `.strip.master` column (Option 1C — Rack,
+  `doc/templates/Audio UI modernization project/Multitrack Redesign.dc.html`)
+  is now a real control instead of a static element. No REC button and no
+  mute/solo/DIM — deliberately kept minimal, not requested.
+- `AudioEngine.ts`'s constructor rewires the master bus:
+  `masterGain → masterPanner → destination` / `→ recorderDest` / `→
+  splitter(2, ChannelSplitterNode) → analyserL` / `→ analyserR`. This is a
+  fan-out from `masterPanner` (same pattern `masterGain` already used for
+  `destination`+`recorderDest`), not a summing/doubling risk. New
+  `setMasterVolume(value)`, `setMasterBalance(value)` mirror the existing
+  per-track `setVolume`/`setPan` shape (reusing `clamp()` and
+  `PARAM_RAMP_TIME_CONSTANT_S`); new `getMasterLevel(channel: 'left' |
+  'right')` mirrors `getLevel`'s RMS computation but with **no** "playing"
+  gate — the master bus has no per-track playing flag, so it just reports
+  whatever RMS is currently present.
+- `masterVolume`/`masterBalance` live directly on `AudioContextValue`
+  (`AudioContext.tsx`/`audioContextInstance.ts`), id-less, with no
+  mute/solo `effectiveVolume` logic — the master bus has neither concept.
+  `TrackState` was deliberately left untouched; master isn't a track.
+- New `MasterStrip.tsx`: static "Master" header (no drag grip — never
+  reorderable), a static "OUT" placeholder (`.mixer-strip-out`) in place of
+  a waveform, the existing `<PanDial>` re-used for balance (its label shows
+  the live "Center"/"L38"/"R12" value, same convention as track strips —
+  not a static "Balance" caption like the mock), the existing
+  `<VolumeControl>` for the fader, and **two** `<VUMeter>` instances (left/
+  right) instead of one.
+- **Key layout constraint discovered during planning:**
+  `useMixerReorder.ts` computes drag-reorder targets from *every* DOM child
+  of the `.mixer-rack` ref'd container, with no filtering by class or
+  attribute. Placing the Master strip inside that container would silently
+  corrupt drag math (wrong target index once dragged past it). Fixed by
+  restructuring `MixerView.tsx` into an outer `.mixer-view` wrapping the
+  ref'd `.mixer-rack` (track strips only, untouched by this change) and a
+  sibling `.mixer-master-dock` holding `<MasterStrip>` — `useMixerReorder.ts`
+  itself needed no changes.
+- Extracted `levelToPercent`/`RELEASE_PER_FRAME`/`MIN_DB` out of
+  `useVUMeter.ts` into a shared `meterLevel.ts` (behavior-preserving) so the
+  new two-channel `useMasterVUMeter.ts` doesn't duplicate the same
+  peak-hold/dB-mapping ballistics a second and third time.
+- Test fixtures: `fakeAudioContext.ts` gained `FakeChannelSplitter` +
+  `createChannelSplitter()`, required for the engine to construct at all
+  once the master bus gained a splitter. `MixerView.test.tsx` adds a
+  regression guard asserting drag-reorder still targets the correct track
+  index with the Master strip present (the exact bug the restructure
+  avoids).
+- Full suite: 336/336 tests passing (+24 new), `tsc` and `eslint` clean.
+
+---
+
+## [2026-08-12] — Pan/balance dial sweep widened to ±90°
+
+**Files:** `src/renderer/components/MixerView/PanDial.tsx`,
+`src/__tests__/components/MixerView/PanDial.test.tsx`
+
+- User feedback: the rotating dial's `±45°` sweep (pan/balance `-1..1`
+  mapped to `pan * DIAL_SWEEP_DEG`) made it hard to set precise values by
+  eye — too little visual travel per unit of value.
+- Widened `DIAL_SWEEP_DEG` from `45` to `90`. `PanDial` is shared by both
+  per-track pan (`ChannelStrip`) and the master balance dial (`MasterStrip`
+  added above), so the fix applies to every strip at once with a one-line
+  change.
+- Updated `PanDial.test.tsx`'s expected rotation angles accordingly
+  (`pan = ±0.6` → `±54°`, was `±27°`).
+
+---
+
+## [2026-08-12] — Mixer strip palette aligned with TrackPlayer
+
+**Files:** `src/renderer/components/MixerView/MixerView.css`
+
+- User feedback: wanted the Mixer view's strips to feel visually consistent
+  with the Canvas/Track view's card (`.track-player`,
+  `TrackPlayer.css`) instead of the darker, unrelated palette ported
+  wholesale from the "Option 1C — Rack" mock.
+- `.mixer-strip` background/border now match `.track-player` exactly
+  (`#16213e` / `#0f3460`).
+- `.mixer-strip.master`'s gradient/border shifted into the same navy family
+  (`linear-gradient(180deg, #1f2f57, #16213e)` / `#2c4a7a`) so it still
+  reads as visually distinct from regular strips, just from a consistent
+  hue. The amber master title accent was left unchanged.
+- Scope was limited to the strip background/border only — nested decorative
+  elements (pan dial face, mute/solo buttons, meter track) were left as-is;
+  not part of what was asked.

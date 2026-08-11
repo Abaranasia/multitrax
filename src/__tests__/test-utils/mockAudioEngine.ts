@@ -35,6 +35,8 @@ export function createMockAudioEngine(options: MockAudioEngineOptions = {}) {
     seek: vi.fn(),
     setVolume: vi.fn(),
     setPan: vi.fn(),
+    setMasterVolume: vi.fn(),
+    setMasterBalance: vi.fn(),
     setLoop: vi.fn(),
     setFadeIn: vi.fn(),
     setFadeOut: vi.fn(),
@@ -47,6 +49,7 @@ export function createMockAudioEngine(options: MockAudioEngineOptions = {}) {
     isPlaying: vi.fn().mockReturnValue(false),
     getCurrentTime: vi.fn().mockReturnValue(0),
     getLevel: vi.fn().mockReturnValue(0),
+    getMasterLevel: vi.fn().mockReturnValue(0),
     close: vi.fn(),
   };
 }

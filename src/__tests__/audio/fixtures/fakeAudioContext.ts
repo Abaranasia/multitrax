@@ -111,6 +111,11 @@ export class FakeAnalyser {
   }
 }
 
+export class FakeChannelSplitter {
+  connect() {}
+  disconnect() {}
+}
+
 export class FakeAudioContext {
   currentTime: number = 0;
   sampleRate = 44100;
@@ -142,6 +147,9 @@ export class FakeAudioContext {
   }
   createAnalyser() {
     return new FakeAnalyser();
+  }
+  createChannelSplitter(_numberOfOutputs?: number) {
+    return new FakeChannelSplitter();
   }
   createBuffer(numberOfChannels: number, length: number, sampleRate: number) {
     const channels = Array.from({ length: numberOfChannels }, () => new Float32Array(length));

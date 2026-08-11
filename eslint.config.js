@@ -13,11 +13,22 @@ export default tseslint.config(
   {
     // Root-level config/tooling scripts: lint as plain (untyped) TS/JS, no
     // type-aware rules since they aren't part of any tsconfig "include".
-    files: ['*.{js,mjs,cjs,ts}', 'scripts/**/*.{js,mjs,cjs,ts}'],
+    files: ['*.{js,mjs,cjs,ts}', 'scripts/**/*.{js,mjs,cjs,ts}', '.claude/skills/**/*.{js,mjs,cjs,ts}'],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: {
       globals: {
         ...globals.node,
+      },
+    },
+  },
+  {
+    // Agent driver scripts embed literal callback strings that Playwright
+    // runs inside the Electron renderer (page.evaluate), not in this file's
+    // own Node process — those callbacks reference browser globals.
+    files: ['.claude/skills/**/driver.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
       },
     },
   },

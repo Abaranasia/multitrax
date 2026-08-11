@@ -4,6 +4,7 @@ import { useAudio } from '../../context/useAudio';
 
 export const useChannelStrip = (state: TrackState) => {
   const {
+    engine,
     play,
     pause,
     stop,
@@ -32,6 +33,7 @@ export const useChannelStrip = (state: TrackState) => {
   const progress = state.duration > 0 ? (state.currentTime / state.duration) * 100 : 0;
 
   return {
+    engine,
     fmt,
     onProgressClick,
     progress,

@@ -51,6 +51,20 @@ describe('ChannelStrip', () => {
     expect(document.querySelector('.waveform-canvas')).toBeTruthy();
   });
 
+  it('renders a VU meter next to the fader', () => {
+    render(
+      <AudioProvider>
+        <ChannelStrip
+          track={makeTrack({ ...baseState })}
+          isDragging={false}
+          onDragHandleMouseDown={vi.fn()}
+        />
+      </AudioProvider>,
+    );
+
+    expect(document.querySelector('.mixer-meter')).toBeTruthy();
+  });
+
   it('shows a 0.0 dB readout at full volume and -∞ dB when muted', () => {
     const { rerender } = render(
       <AudioProvider>

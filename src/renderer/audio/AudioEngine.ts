@@ -66,6 +66,11 @@ interface TrackNodes {
 export class AudioEngine {
   private readonly ctx: AudioContext;
   private readonly masterGain: GainNode;
+  private readonly masterPanner: StereoPannerNode;
+  private readonly masterAnalyserL: AnalyserNode;
+  private readonly masterAnalyserR: AnalyserNode;
+  private readonly masterLevelBufferL: Float32Array<ArrayBuffer>;
+  private readonly masterLevelBufferR: Float32Array<ArrayBuffer>;
   private readonly recorderDest: MediaStreamAudioDestinationNode;
   private readonly tracks: Map<string, TrackNodes> = new Map();
   // Synthesised impulse responses are pure data (no per-track parameters),
@@ -76,9 +81,24 @@ export class AudioEngine {
   constructor() {
     this.ctx = new AudioContext();
     this.masterGain = this.ctx.createGain();
-    this.masterGain.connect(this.ctx.destination);
+    this.masterPanner = this.ctx.createStereoPanner();
+    this.masterGain.connect(this.masterPanner);
+
     this.recorderDest = this.ctx.createMediaStreamDestination();
-    this.masterGain.connect(this.recorderDest);
+    this.masterPanner.connect(this.ctx.destination);
+    this.masterPanner.connect(this.recorderDest);
+
+    const splitter = this.ctx.createChannelSplitter(2);
+    this.masterPanner.connect(splitter);
+    this.masterAnalyserL = this.ctx.createAnalyser();
+    this.masterAnalyserL.fftSize = 512;
+    this.masterAnalyserR = this.ctx.createAnalyser();
+    this.masterAnalyserR.fftSize = 512;
+    splitter.connect(this.masterAnalyserL, 0);
+    splitter.connect(this.masterAnalyserR, 1);
+    this.masterLevelBufferL = new Float32Array(this.masterAnalyserL.fftSize);
+    this.masterLevelBufferR = new Float32Array(this.masterAnalyserR.fftSize);
+
     this.impulseResponses = new ImpulseResponseCache(this.ctx);
   }
 
@@ -384,6 +404,18 @@ export class AudioEngine {
     track.pannerNode.pan.setTargetAtTime(track.pan, this.ctx.currentTime, PARAM_RAMP_TIME_CONSTANT_S);
   }
 
+  // ── Master bus ─────────────────────────────────────────────────────────────
+
+  setMasterVolume(value: number): void {
+    const volume = clamp(value, 0, 1);
+    this.masterGain.gain.setTargetAtTime(volume, this.ctx.currentTime, PARAM_RAMP_TIME_CONSTANT_S);
+  }
+
+  setMasterBalance(value: number): void {
+    const balance = clamp(value, -1, 1);
+    this.masterPanner.pan.setTargetAtTime(balance, this.ctx.currentTime, PARAM_RAMP_TIME_CONSTANT_S);
+  }
+
   // ── Loop ───────────────────────────────────────────────────────────────────
 
   setLoop(id: string, loop: boolean): void {
@@ -466,6 +498,17 @@ export class AudioEngine {
     let sumSquares = 0;
     for (const sample of track.levelBuffer) sumSquares += sample * sample;
     return Math.sqrt(sumSquares / track.levelBuffer.length);
+  }
+
+  /** Instantaneous RMS amplitude (0–1) of the master bus's L/R channel. No playing gate — the master bus has no "playing" concept. */
+  getMasterLevel(channel: 'left' | 'right'): number {
+    const analyser = channel === 'left' ? this.masterAnalyserL : this.masterAnalyserR;
+    const buffer = channel === 'left' ? this.masterLevelBufferL : this.masterLevelBufferR;
+
+    analyser.getFloatTimeDomainData(buffer);
+    let sumSquares = 0;
+    for (const sample of buffer) sumSquares += sample * sample;
+    return Math.sqrt(sumSquares / buffer.length);
   }
 
   // ── State queries ──────────────────────────────────────────────────────────

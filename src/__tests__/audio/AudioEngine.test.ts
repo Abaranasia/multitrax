@@ -729,4 +729,46 @@ describe('AudioEngine (unit)', () => {
 
     expect(engine.getLevel('level2')).toBeCloseTo(0.5, 5);
   });
+
+  // ── Master bus ───────────────────────────────────────────────────────────
+
+  it('setMasterVolume clamps value to [0,1] at both boundaries and updates masterGain', () => {
+    const engine = new AudioEngine();
+    engine.setMasterVolume(-5);
+    expect((engine as any).masterGain.gain.value).toBe(0);
+    engine.setMasterVolume(5);
+    expect((engine as any).masterGain.gain.value).toBe(1);
+    engine.setMasterVolume(0.5);
+    expect((engine as any).masterGain.gain.value).toBe(0.5);
+  });
+
+  it('setMasterBalance clamps value to [-1,1] at both boundaries and updates masterPanner', () => {
+    const engine = new AudioEngine();
+    engine.setMasterBalance(-5);
+    expect((engine as any).masterPanner.pan.value).toBe(-1);
+    engine.setMasterBalance(5);
+    expect((engine as any).masterPanner.pan.value).toBe(1);
+    engine.setMasterBalance(-0.3);
+    expect((engine as any).masterPanner.pan.value).toBe(-0.3);
+  });
+
+  it('getMasterLevel returns 0 for an unknown channel-less bus when silent', () => {
+    const engine = new AudioEngine();
+    expect(engine.getMasterLevel('left')).toBe(0);
+    expect(engine.getMasterLevel('right')).toBe(0);
+  });
+
+  it('getMasterLevel computes RMS from the respective analyser without any playing gate', () => {
+    const engine = new AudioEngine();
+
+    (engine as any).masterAnalyserL.getFloatTimeDomainData = (array: Float32Array) => {
+      array.fill(0.5);
+    };
+    (engine as any).masterAnalyserR.getFloatTimeDomainData = (array: Float32Array) => {
+      array.fill(0.25);
+    };
+
+    expect(engine.getMasterLevel('left')).toBeCloseTo(0.5, 5);
+    expect(engine.getMasterLevel('right')).toBeCloseTo(0.25, 5);
+  });
 });

@@ -240,6 +240,31 @@
   transform: translateX(-50%);
 }
 
+/* Live level meter — sits beside the fader, ported from the "Option 1C —
+   Rack" mock's `.rk-meter` (see doc/templates/.../Multitrack Redesign.dc.html
+   lines 219-220). `--meter-level` (0-100%) is set inline per-frame by
+   useVUMeter.ts, the same custom-property technique VolumeControl uses for
+   its fill gradient. */
+.mixer-meter {
+  width: 9px;
+  height: 150px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: #12141b;
+  border: 1px solid #262a34;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.mixer-meter-fill {
+  width: 100%;
+  display: block;
+  height: var(--meter-level, 0%);
+  background: linear-gradient(180deg, #4ecdc4, #f5a623 82%, #ff6b6b);
+}
+
 .mixer-db {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   color: #8b90a0;

@@ -71,6 +71,7 @@ vi.mock('@/renderer/components/Recorder/RecorderBar', () => ({
 }));
 
 import { Canvas } from '@/renderer/components/Canvas/Canvas';
+import { baseTrackState } from '@/__tests__/test-utils/trackStateFixture';
 
 describe('Canvas', () => {
   beforeEach(() => {
@@ -544,39 +545,7 @@ describe('Canvas', () => {
 
   it('saves the current session as a JSON snapshot of every track, opening the save dialog with a date-based name', async () => {
     const fullState = {
-      id: '1',
-      title: 'Guitar',
-      duration: 10,
-      currentTime: 3,
-      playing: true,
-      volume: 0.5,
-      pan: 0.2,
-      loop: true,
-      fadeIn: false,
-      fadeOut: false,
-      seekFade: false,
-      fadeInDuration: 5,
-      fadeOutDuration: 5,
-      seekFadeDuration: 2,
-      filterType: 'lowpass',
-      filterCutoff: 1000,
-      filterResonance: 1,
-      filterMix: 0,
-      filterOutput: 100,
-      delayTime: 300,
-      delayFeedback: 35,
-      delayMix: 0,
-      delayDamping: 50,
-      delayOutput: 100,
-      reverbRoom: 'hall',
-      reverbMix: 0,
-      reverbPreDelay: 20,
-      reverbDamping: 50,
-      reverbOutput: 100,
-      distortionDrive: 0,
-      distortionTone: 100,
-      distortionMix: 0,
-      distortionOutput: 100,
+      ...baseTrackState,
       waveform: [0.1, 0.2],
     };
     useAudioMock.mockReturnValue({
@@ -624,12 +593,12 @@ describe('Canvas', () => {
     expect(parsed.tracks).toEqual([
       {
         filePath: '/music/guitar.wav',
-        title: 'Guitar',
+        title: 'Sample Track',
         x: 10,
         y: 20,
-        volume: 0.5,
-        pan: 0.2,
-        loop: true,
+        volume: 1,
+        pan: 0,
+        loop: false,
         fadeIn: false,
         fadeOut: false,
         seekFade: false,
@@ -849,38 +818,11 @@ describe('Canvas', () => {
   it('loads a session through electronAPI and calls loadSession with the parsed tracks', async () => {
     const sessionTracks = [
       {
+        ...baseTrackState,
         filePath: '/music/guitar.wav',
         title: 'Guitar',
         x: 10,
         y: 20,
-        volume: 0.5,
-        pan: 0.2,
-        loop: true,
-        fadeIn: false,
-        fadeOut: false,
-        seekFade: false,
-        fadeInDuration: 5,
-        fadeOutDuration: 5,
-        seekFadeDuration: 2,
-        filterType: 'lowpass',
-        filterCutoff: 1000,
-        filterResonance: 1,
-        filterMix: 0,
-        filterOutput: 100,
-        delayTime: 300,
-        delayFeedback: 35,
-        delayMix: 0,
-        delayDamping: 50,
-        delayOutput: 100,
-        reverbRoom: 'hall',
-        reverbMix: 0,
-        reverbPreDelay: 20,
-        reverbDamping: 50,
-        reverbOutput: 100,
-        distortionDrive: 0,
-        distortionTone: 100,
-        distortionMix: 0,
-        distortionOutput: 100,
       },
     ];
     const openSession = vi.fn(() =>

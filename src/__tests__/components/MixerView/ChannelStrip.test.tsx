@@ -16,46 +16,9 @@ import { TrackState } from '@/renderer/domain/TrackState';
 import { TrackEntry } from '@/renderer/context/audioContextInstance';
 import { AudioProvider } from '@/renderer/context/AudioContext';
 import { useAudio } from '@/renderer/context/useAudio';
+import { baseTrackState as baseState } from '@/__tests__/test-utils/trackStateFixture';
 
 describe('ChannelStrip', () => {
-  const baseState: TrackState = {
-    id: 'track-1',
-    title: 'Sample Track',
-    duration: 12,
-    currentTime: 0,
-    volume: 1,
-    pan: 0,
-    muted: false,
-    soloed: false,
-    loop: false,
-    playing: false,
-    fadeIn: false,
-    fadeOut: false,
-    seekFade: false,
-    fadeInDuration: 5,
-    fadeOutDuration: 5,
-    seekFadeDuration: 2,
-    filterType: 'lowpass',
-    filterCutoff: 1000,
-    filterResonance: 1,
-    filterMix: 0,
-    filterOutput: 100,
-    delayTime: 300,
-    delayFeedback: 35,
-    delayMix: 0,
-    delayDamping: 50,
-    delayOutput: 100,
-    reverbRoom: 'hall',
-    reverbMix: 0,
-    reverbPreDelay: 20,
-    reverbDamping: 50,
-    reverbOutput: 100,
-    distortionDrive: 0,
-    distortionTone: 100,
-    distortionMix: 0,
-    distortionOutput: 100,
-  };
-
   const makeTrack = (state: TrackState): TrackEntry => ({
     state,
     filePath: '/sample.wav',

@@ -3,8 +3,10 @@ import { TrackEntry } from '../../context/audioContextInstance';
 import { formatDb } from '../../utils/formatDb';
 import { useChannelStrip } from './useChannelStrip';
 import { useMuteSoloButtons } from './useMuteSoloButtons';
+import { useVUMeter } from './useVUMeter';
 import { PanDial } from './PanDial';
 import { MuteSoloButtons } from './MuteSoloButtons';
+import { VUMeter } from './VUMeter';
 import {
   EffectDialogs,
   WaveformCanvas,
@@ -35,6 +37,7 @@ interface ChannelStripProps {
 export const ChannelStrip = ({ track, isDragging, onDragHandleMouseDown }: ChannelStripProps) => {
   const { state } = track;
   const {
+    engine,
     fmt,
     onProgressClick,
     progress,
@@ -55,6 +58,7 @@ export const ChannelStrip = ({ track, isDragging, onDragHandleMouseDown }: Chann
   const volumeControl = useVolumeControl(state, setVolume);
   const panControl = usePanControl(state, setPan);
   const muteSoloButtons = useMuteSoloButtons(state, setMuted, setSoloed);
+  const vuMeter = useVUMeter(engine, state.id, state.playing);
   const filterDialog = useFilterSettingsDialog(state);
   const distortionDialog = useDistortionSettingsDialog(state);
   const fadeDialog = useFadeSettingsDialog(state);
@@ -106,6 +110,8 @@ export const ChannelStrip = ({ track, isDragging, onDragHandleMouseDown }: Chann
         <div className="mixer-fader">
           <VolumeControl {...volumeControl} />
         </div>
+
+        <VUMeter {...vuMeter} />
       </div>
 
       <div className="mixer-db">{formatDb(state.volume)}</div>

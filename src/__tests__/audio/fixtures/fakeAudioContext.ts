@@ -102,6 +102,15 @@ export class FakePanner {
   disconnect() {}
 }
 
+export class FakeAnalyser {
+  fftSize = 2048;
+  connect() {}
+  disconnect() {}
+  getFloatTimeDomainData(array: Float32Array) {
+    array.fill(0);
+  }
+}
+
 export class FakeAudioContext {
   currentTime: number = 0;
   sampleRate = 44100;
@@ -130,6 +139,9 @@ export class FakeAudioContext {
   }
   createStereoPanner() {
     return new FakePanner();
+  }
+  createAnalyser() {
+    return new FakeAnalyser();
   }
   createBuffer(numberOfChannels: number, length: number, sampleRate: number) {
     const channels = Array.from({ length: numberOfChannels }, () => new Float32Array(length));

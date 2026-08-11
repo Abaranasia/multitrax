@@ -291,11 +291,18 @@ what's meant to stay a focused mixing/monitoring tool.
   other track). Deferred out of the initial mixer-view MVP above; no
   audio-graph changes needed, just new state + wiring.
 
-- [ ] **Mixer view: live VU meter per channel strip** — requires an
+- [x] **Mixer view: live VU meter per channel strip** — requires an
   `AnalyserNode` per track in the audio engine and a polling/animation-frame
   bridge into React to drive the meter bar next to each `ChannelStrip`'s
   fader. Deferred out of the initial mixer-view MVP above; touches the audio
   engine itself, not just the UI.
+  **Implemented**: an `AnalyserNode` is inserted serially into each track's
+  chain (`pannerNode → analyser → masterGain`, unity-gain passthrough) in
+  `AudioEngine.ts`; `getLevel(id)` reads its time-domain data and returns RMS
+  amplitude. `useVUMeter.ts` polls it via `requestAnimationFrame` with
+  peak-hold-style decay and exposes a `--meter-level` CSS var; `VUMeter.tsx`
+  renders the bar, styled in `MixerView.css` from the rack mock's
+  `.rk-meter`.
 
 - [ ] **Mixer view: Master strip with master volume** — there is no master bus
   in the current audio graph (each track routes independently). Adding one

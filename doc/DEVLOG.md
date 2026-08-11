@@ -972,3 +972,64 @@ various new/updated tests under `src/__tests__/components/ViewMenu/`,
   the four effect-settings dialog tests, plus the ad-hoc session-save object
   in `Canvas.test.tsx`) got `muted: false, soloed: false` added so the
   build type-checks; none of their assertions needed to change.
+
+---
+
+## [2026-08-11] — Mixer view: live VU meter per channel strip
+
+**Files:** `src/renderer/audio/AudioEngine.ts`,
+`src/renderer/components/MixerView/useChannelStrip.ts`,
+`src/renderer/components/MixerView/useVUMeter.ts` (new),
+`src/renderer/components/MixerView/VUMeter.tsx` (new),
+`src/renderer/components/MixerView/ChannelStrip.tsx`,
+`src/renderer/components/MixerView/MixerView.css`,
+`src/__tests__/audio/fixtures/fakeAudioContext.ts`,
+`src/__tests__/audio/AudioEngine.test.ts`,
+`src/__tests__/test-utils/mockAudioEngine.ts`,
+`src/__tests__/components/MixerView/ChannelStrip.test.tsx`
+
+- Closed out the last of the three mixer-view items deferred in the
+  "Mixer-style vertical track view" entry above (Master strip still open):
+  a live level meter per `ChannelStrip`, beside the fader.
+- `AudioEngine.ts`: each track's per-track `AnalyserNode` is inserted
+  **serially** into the existing chain — `pannerNode → analyser →
+  masterGain`, replacing the old direct `pannerNode.connect(masterGain)` —
+  rather than tapped in parallel off `pannerNode`, since a parallel tap
+  would double the signal actually reaching `masterGain` (AnalyserNode is a
+  unity-gain passthrough either way, so routing it in series changes
+  nothing about the audio). New `getLevel(id)` reads the analyser's
+  time-domain data (`fftSize = 512`, buffer reused per track as
+  `levelBuffer`) and returns instantaneous RMS amplitude (0–1), or `0` for
+  an unknown/non-playing track. `removeTrack` disconnects the analyser
+  alongside every other per-track node.
+- New `useVUMeter.ts` polls `engine.getLevel(id)` on a `requestAnimationFrame`
+  loop (only while `playing`) and applies peak-hold-style ballistics —
+  instant attack, exponential decay (`RELEASE_PER_FRAME = 0.9`) — instead of
+  redrawing the raw, jittery per-frame RMS value.
+- **Follow-up fix (same day):** the initial version mapped RMS amplitude to
+  bar height *linearly*, which reads as almost empty for real program
+  material — only a full-scale sine wave approaches 1.0 RMS, while music
+  typically sits around 0.05–0.3. Replaced with a dB-scale mapping
+  (`levelToPercent`, same `20 * log10(amplitude)` convention as
+  `formatDb.ts`) against a `MIN_DB = -48` floor, so a normally mixed track
+  now visibly fills the meter instead of barely registering.
+- New `VUMeter.tsx` (presentational, mirrors `MuteSoloButtons.tsx`) renders
+  a `<div className="mixer-meter">` with an inner `<i className="mixer-meter-fill">`
+  whose height is driven by a `--meter-level` CSS custom property — the
+  same inline-style-for-a-CSS-var technique `useVolumeControl.ts` uses for
+  its fill gradient, keeping literal inline styles out of JSX per
+  `doc/CSS-CONVENTIONS.md`. `MixerView.css`'s `.mixer-meter`/
+  `.mixer-meter-fill` are ported directly from the `.rk-meter` rule in the
+  original "Option 1C — Rack" mock (teal → orange → red gradient, 9px wide),
+  rendered as a sibling of `.mixer-fader` inside `.mixer-middle-row`.
+- `useChannelStrip.ts` now also returns `engine` (from `useAudio()`) so
+  `ChannelStrip.tsx` can pass it straight to `useVUMeter(engine, state.id,
+  state.playing)` — no new `AudioContextValue` methods were needed since
+  `engine` was already exposed on the context.
+- Test fixtures: `fakeAudioContext.ts` gained a minimal `FakeAnalyser` +
+  `createAnalyser()`; `mockAudioEngine.ts` gained a `getLevel` stub.
+  `AudioEngine.test.ts` covers `getLevel` returning `0` for an unknown or
+  non-playing track and computing RMS correctly from mocked time-domain
+  data. `ChannelStrip.test.tsx` adds a presence check for `.mixer-meter` —
+  none of its fixtures set `playing: true`, so the `requestAnimationFrame`
+  loop never engages in tests.

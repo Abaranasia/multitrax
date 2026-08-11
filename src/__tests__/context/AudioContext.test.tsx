@@ -1020,4 +1020,71 @@ describe('AudioContext', () => {
     fireEvent.click(screen.getByText('Reorder Same Index'));
     expect(screen.getByTestId('titles').textContent).toBe('A,B');
   });
+
+  // ── Master bus ───────────────────────────────────────────────────────────
+
+  it('defaults masterVolume to 1 and masterBalance to 0', () => {
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <div data-testid="master-volume">{audio.masterVolume}</div>
+          <div data-testid="master-balance">{audio.masterBalance}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    expect(screen.getByTestId('master-volume').textContent).toBe('1');
+    expect(screen.getByTestId('master-balance').textContent).toBe('0');
+  });
+
+  it('setMasterVolume calls engine.setMasterVolume and updates context state', () => {
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button onClick={() => audio.setMasterVolume(0.4)}>Set Master Volume</button>
+          <div data-testid="master-volume">{audio.masterVolume}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Set Master Volume'));
+    expect(screen.getByTestId('master-volume').textContent).toBe('0.4');
+    expect(mockAudioEngine.setMasterVolume).toHaveBeenCalledWith(0.4);
+  });
+
+  it('setMasterBalance calls engine.setMasterBalance and updates context state', () => {
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button onClick={() => audio.setMasterBalance(-0.5)}>Set Master Balance</button>
+          <div data-testid="master-balance">{audio.masterBalance}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Set Master Balance'));
+    expect(screen.getByTestId('master-balance').textContent).toBe('-0.5');
+    expect(mockAudioEngine.setMasterBalance).toHaveBeenCalledWith(-0.5);
+  });
 });

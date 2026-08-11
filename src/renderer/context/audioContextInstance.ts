@@ -20,6 +20,10 @@ export interface TrackEntry {
 export interface AudioContextValue {
   engine: AudioEngine;
   tracks: TrackEntry[];
+  masterVolume: number;
+  masterBalance: number;
+  setMasterVolume: (value: number) => void;
+  setMasterBalance: (value: number) => void;
   addTracks: (files: { path: string; name: string; buffer: ArrayBuffer }[]) => Promise<void>;
   duplicateTrack: (id: string) => void;
   removeTrack: (id: string) => void;

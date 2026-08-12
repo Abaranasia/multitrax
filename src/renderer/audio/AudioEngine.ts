@@ -124,10 +124,6 @@ export class AudioEngine {
     analyser.fftSize = 512;
     const levelBuffer = new Float32Array(analyser.fftSize);
 
-    // Chain order: gainNode → delay insert → reverb insert → pannerNode → masterGain.
-    gainNode.connect(delay.dryGain);
-    gainNode.connect(delay.delayNode);
-
     // Chain order: gainNode → filter insert → distortion insert → delay insert → reverb insert → masterGain.
     gainNode.connect(filter.dryGain);
     gainNode.connect(filter.biquadFilter);

@@ -436,35 +436,54 @@ what's meant to stay a focused mixing/monitoring tool.
   - Replace `TrackPlayer.tsx`'s inline pan/volume slider gradients with CSS
     custom properties, per `doc/CSS-CONVENTIONS.md`'s no-inline-styles rule.
 
-- [ ] **Investigate the double-wired delay insert in `AudioEngine.ts`'s
-  `addTrack`.** `gainNode` connects directly to `delay.dryGain`/`delay.delayNode`
-  (`AudioEngine.ts:103-104`) *and* indirectly via the filter→distortion chain
-  (`:107-108` onward, `filter.outputGain`/`distortion.outputGain` also feed
-  `delay.dryGain`/`delay.delayNode`). This was flagged as a pre-existing,
-  source-commented routing choice during the "split up oversized files"
-  refactor and left untouched (out of scope for a behavior-preserving
-  extraction), but it's worth a deliberate look: confirm whether the dual
-  feed into delay's dry/wet inputs is intentional signal design or a copy-paste
-  artifact, since as written it looks like it could double the dry signal
-  reaching delay regardless of filter/distortion settings.
+- [x] **Investigate the double-wired delay insert in `AudioEngine.ts`'s
+  `addTrack`.** Confirmed copy-paste artifact, not intentional design:
+  `gainNode` connected directly to `delay.dryGain`/`delay.delayNode` *and*
+  `distortion.outputGain` also fed the same two nodes via the
+  filter→distortion chain, so delay received the dry signal twice regardless
+  of filter/distortion settings. The direct `gainNode → delay` wiring was a
+  leftover from before the filter/distortion insert existed (chain used to be
+  `gainNode → delay → reverb → panner`); when filter/distortion were inserted
+  ahead of delay, the old direct connections should have been removed but
+  weren't. Fixed by deleting the two stale `gainNode.connect(delay.*)` calls
+  and their stale comment, leaving the single correct path: `gainNode →
+  filter → distortion → delay → reverb → panner`. No test asserted the direct
+  `gainNode → delay` connection, and the full 48-test `AudioEngine.test.ts`
+  suite still passes.
 
-- [ ] **De-duplicate effect-dialog integration tests between `TrackPlayer.test.tsx`
-  and each dialog's own test file.** `TrackPlayer.test.tsx` still contains full
-  "integration via TrackPlayer" style assertions for Filter/Distortion/Delay/Reverb
-  open/apply/cancel/active-button behavior, but each dialog already has its own
-  `*SettingsDialog.test.tsx` (`FilterSettingsDialog.test.tsx`,
-  `DistortionSettingsDialog.test.tsx`, `DelaySettingsDialog.test.tsx`,
-  `ReverbSettingsDialog.test.tsx`) with an equivalent "integration via
-  TrackPlayer" block covering the same ground. Flagged during the "split up
-  oversized files" refactor as unrelated cleanup debt and left in place to keep
-  that diff focused. Worth reviewing and trimming the duplicated coverage from
-  one side (likely `TrackPlayer.test.tsx`, keeping the per-dialog files as the
-  source of truth).
+- [x] **De-duplicate effect-dialog integration tests between `TrackPlayer.test.tsx`
+  and each dialog's own test file.** Confirmed the duplication: each of
+  `FadeSettingsDialog.test.tsx`, `FilterSettingsDialog.test.tsx`,
+  `DelaySettingsDialog.test.tsx`, `ReverbSettingsDialog.test.tsx` and
+  `DistortionSettingsDialog.test.tsx` already had its own "integration via
+  TrackPlayer" block (each carrying a comment claiming to be "the sole owner"
+  of that dialog's open/apply/cancel/active-button coverage), but
+  `TrackPlayer.test.tsx` still had the identical assertions too — the "move"
+  from the earlier `extract-track-overlays` work only ever copied the tests,
+  it never removed the originals. Trimmed `TrackPlayer.test.tsx` down to the
+  regressions that aren't covered elsewhere (waveform render, title/tooltip,
+  play/pause/stop, loop/fade/seek toggles, the fade-reseed-on-reopen
+  regression, context menu, reveal-in-folder, volume/pan/mute), removing 9
+  duplicated integration tests (27 → 18 tests in that file). Full suite still
+  323/323 passing across all 40 files.
 
-- [ ] **Repo housekeeping.** Full detail in `doc/FUTURE-IMPROVEMENTS.md` § 5.
-  - Delete or archive the stale `doc/as commented in the resilient forest.md`.
-  - Relocate `doc/templates/Audio UI modernization project/` (an unreferenced
-    design-mockup bundle) out of `doc/`'s spec-document space, or add a
-    clarifying README.
-  - Remove the unused `tsx` devDependency, or confirm it's needed.
-  - Reconsider `pnpm test` defaulting to watch mode.
+- [x] **Repo housekeeping.** Full detail in `doc/FUTURE-IMPROVEMENTS.md` § 5.
+  - Deleted the stale `doc/as commented in the resilient forest.md` — confirmed
+    it was superseded implementation notes for the Filter effect, which is
+    marked `[x]` above and documented in `doc/DEVLOG.md`.
+  - Moved `doc/templates/Audio UI modernization project/` to
+    `doc/mockups/Audio UI modernization project/` (`git mv`, history
+    preserved) so it reads as a design-mockup bundle, not a spec document.
+    Correction to the original note: it's *not* fully unreferenced — a lineage
+    comment at the top of `MixerView.css` cites it (`Ported from doc/.../
+    Multitrack Redesign.dc.html`); updated that comment's path to match the
+    move. `doc/templates/` is now empty and untracked by git.
+  - Removed the unused `tsx` devDependency from `package.json` — confirmed via
+    a repo-wide search for real CLI usage (not just `.tsx` file-extension
+    matches) that nothing invokes it; `pnpm install` re-run to sync
+    `pnpm-lock.yaml`.
+  - Swapped `pnpm test` to `vitest run` (single pass, matching common CI
+    convention) and kept the watch variant as `test:watch`. Left
+    `test:no-watch` in place as an alias since `.github/workflows/ci.yml` and
+    `openspec/config.yaml` call it directly by name — renaming it outright
+    would have broken CI and the openspec verify/archive tooling.

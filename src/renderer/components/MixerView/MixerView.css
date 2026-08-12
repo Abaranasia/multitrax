@@ -1,4 +1,4 @@
-/* Ported from doc/templates/Audio UI modernization project/Multitrack Redesign.dc.html
+/* Ported from doc/mockups/Audio UI modernization project/Multitrack Redesign.dc.html
    (Option 1C — Rack) lines 180-226 & 371-439, under a `.mixer-*` prefix so it
    never collides with the existing card/`.rk-*` CSS if that template is reused
    elsewhere. Shared TrackPlayer control classes (waveform, effect toggles,

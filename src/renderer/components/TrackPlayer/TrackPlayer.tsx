@@ -36,6 +36,7 @@ export const TrackPlayer = ({ state, filePath, x, y }: TrackPlayerProps) => {
     fmt,
     onMouseDown,
     onProgressClick,
+    onProgressKeyDown,
     progress,
     play,
     pause,
@@ -110,6 +111,7 @@ export const TrackPlayer = ({ state, filePath, x, y }: TrackPlayerProps) => {
         progress={progress}
         title={state.title}
         onProgressClick={onProgressClick}
+        onProgressKeyDown={onProgressKeyDown}
       />
 
       {/* Controls */}

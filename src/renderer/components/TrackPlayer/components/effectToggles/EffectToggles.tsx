@@ -26,6 +26,7 @@ export const EffectToggles = ({
         className={`btn-filter${filterActive ? ' btn-filter--active' : ''}`}
         onClick={onFilterOpen}
         title="Filter settings"
+        aria-pressed={filterActive}
       >
         F
       </button>
@@ -35,6 +36,7 @@ export const EffectToggles = ({
         className={`btn-distortion${distortionActive ? ' btn-distortion--active' : ''}`}
         onClick={onDistortionOpen}
         title="Waveshape settings"
+        aria-pressed={distortionActive}
       >
         W
       </button>
@@ -44,6 +46,7 @@ export const EffectToggles = ({
         className={`btn-delay${delayActive ? ' btn-delay--active' : ''}`}
         onClick={onDelayOpen}
         title="Delay settings"
+        aria-pressed={delayActive}
       >
         D
       </button>
@@ -53,6 +56,7 @@ export const EffectToggles = ({
         className={`btn-reverb${reverbActive ? ' btn-reverb--active' : ''}`}
         onClick={onReverbOpen}
         title="Reverb settings"
+        aria-pressed={reverbActive}
       >
         R
       </button>

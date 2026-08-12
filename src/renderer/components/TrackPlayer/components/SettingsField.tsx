@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 interface SettingsFieldOption {
   value: string;
   label: string;
@@ -27,13 +29,20 @@ export type SettingsFieldProps =
 
 export const SettingsField = (props: SettingsFieldProps) => {
   const { effect, label } = props;
+  // Generated per instance (not derived from `effect`/`label`) so the id stays
+  // unique even when the same effect dialog is open for two different tracks
+  // at once — a document-wide id collision would break both fields' association.
+  const fieldId = useId();
 
   if (props.kind === 'select') {
     const { value, onChange, options } = props;
     return (
       <div className={`${effect}-field`}>
-        <span className={`${effect}-label`}>{label}</span>
+        <label className={`${effect}-label`} htmlFor={fieldId}>
+          {label}
+        </label>
         <select
+          id={fieldId}
           className={`${effect}-select`}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -54,8 +63,11 @@ export const SettingsField = (props: SettingsFieldProps) => {
 
   return (
     <div className={`${effect}-field`}>
-      <span className={labelClassName}>{label}</span>
+      <label className={labelClassName} htmlFor={fieldId}>
+        {label}
+      </label>
       <input
+        id={fieldId}
         type="range"
         min={min}
         max={max}

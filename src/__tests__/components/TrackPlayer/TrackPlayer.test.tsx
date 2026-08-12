@@ -78,6 +78,33 @@ describe('TrackPlayer', () => {
     expect(canvas.style.height).toBe('100%');
   });
 
+  it('seeks forward/backward through the waveform via arrow keys, and jumps to start/end via Home/End', async () => {
+    render(
+      <AudioProvider>
+        <TrackPlayer
+          filePath="/sample.wav"
+          state={{ ...baseState, currentTime: 5 }}
+          x={10}
+          y={20}
+        />
+      </AudioProvider>,
+    );
+
+    const shell = document.querySelector('.waveform-shell') as HTMLDivElement;
+
+    fireEvent.keyDown(shell, { key: 'ArrowRight' });
+    await waitFor(() => expect(mockAudioEngine.seek).toHaveBeenCalledWith('track-1', 10));
+
+    fireEvent.keyDown(shell, { key: 'ArrowLeft' });
+    await waitFor(() => expect(mockAudioEngine.seek).toHaveBeenCalledWith('track-1', 0));
+
+    fireEvent.keyDown(shell, { key: 'End' });
+    await waitFor(() => expect(mockAudioEngine.seek).toHaveBeenCalledWith('track-1', 12));
+
+    fireEvent.keyDown(shell, { key: 'Home' });
+    await waitFor(() => expect(mockAudioEngine.seek).toHaveBeenCalledWith('track-1', 0));
+  });
+
   it('shows only the file name in the visible title while keeping the full path in the tooltip', () => {
     const fullPath = 'C:/Users/demo/Music/track-name.wav';
 

@@ -45,7 +45,13 @@ export const SessionMenu = ({
 
   return (
     <div className="session-menu">
-      <button className="session-menu-toggle" onClick={onToggle} title="Session menu">
+      <button
+        className="session-menu-toggle"
+        onClick={onToggle}
+        title="Session menu"
+        aria-haspopup="true"
+        aria-expanded={isOpen}
+      >
         ☰ Session
       </button>
 

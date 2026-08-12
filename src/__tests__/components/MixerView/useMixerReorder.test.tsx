@@ -20,7 +20,11 @@ interface HarnessProps {
 
 const Harness = ({ tracks, reorderTracks }: HarnessProps) => {
   const rackRef = useRef<HTMLDivElement>(null);
-  const { draggingId, onHandleMouseDown } = useMixerReorder(tracks, reorderTracks, rackRef);
+  const { draggingId, onHandleMouseDown, onGripKeyDown } = useMixerReorder(
+    tracks,
+    reorderTracks,
+    rackRef,
+  );
 
   return (
     <>
@@ -30,6 +34,7 @@ const Harness = ({ tracks, reorderTracks }: HarnessProps) => {
             <button
               data-testid={`grip-${t.state.id}`}
               onMouseDown={(e) => onHandleMouseDown(t.state.id, e)}
+              onKeyDown={(e) => onGripKeyDown(t.state.id, e)}
             />
           </div>
         ))}
@@ -163,6 +168,37 @@ describe('useMixerReorder', () => {
     reorderTracks.mockClear();
     fireEvent.mouseMove(window, { clientX: 250 });
 
+    expect(reorderTracks).not.toHaveBeenCalled();
+  });
+
+  it('moves the focused strip one slot left/right on ArrowLeft/ArrowRight', () => {
+    const reorderTracks = vi.fn();
+    render(<Harness tracks={threeTracks} reorderTracks={reorderTracks} />);
+
+    fireEvent.keyDown(screen.getByTestId('grip-2'), { key: 'ArrowLeft' });
+    expect(reorderTracks).toHaveBeenCalledWith('2', 0);
+
+    reorderTracks.mockClear();
+    fireEvent.keyDown(screen.getByTestId('grip-2'), { key: 'ArrowRight' });
+    expect(reorderTracks).toHaveBeenCalledWith('2', 2);
+  });
+
+  it('does not reorder past either end of the rack', () => {
+    const reorderTracks = vi.fn();
+    render(<Harness tracks={threeTracks} reorderTracks={reorderTracks} />);
+
+    fireEvent.keyDown(screen.getByTestId('grip-1'), { key: 'ArrowLeft' });
+    expect(reorderTracks).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(screen.getByTestId('grip-3'), { key: 'ArrowRight' });
+    expect(reorderTracks).not.toHaveBeenCalled();
+  });
+
+  it('ignores keys other than ArrowLeft/ArrowRight', () => {
+    const reorderTracks = vi.fn();
+    render(<Harness tracks={threeTracks} reorderTracks={reorderTracks} />);
+
+    fireEvent.keyDown(screen.getByTestId('grip-2'), { key: 'Enter' });
     expect(reorderTracks).not.toHaveBeenCalled();
   });
 });

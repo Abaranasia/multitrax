@@ -41,6 +41,54 @@ describe('SettingsField', () => {
     expect(onChange).toHaveBeenCalledWith(2500);
   });
 
+  it('associates the slider label with its input via htmlFor/id, so screen readers announce a name', () => {
+    render(
+      <SettingsField
+        kind="slider"
+        effect="filter-settings"
+        label="Cutoff"
+        min={20}
+        max={20000}
+        step={10}
+        value={1000}
+        onChange={vi.fn()}
+        format={(v) => `${v}Hz`}
+      />,
+    );
+
+    const label = document.querySelector('.filter-settings-label') as HTMLLabelElement;
+    const input = document.querySelector('input[type=range]') as HTMLInputElement;
+    expect(label.tagName).toBe('LABEL');
+    expect(label.htmlFor).toBe(input.id);
+    expect(input.id).not.toBe('');
+  });
+
+  it('gives two simultaneously-rendered instances of the same field distinct ids, so two open dialogs (e.g. for two different tracks) never collide', () => {
+    const sliderProps = {
+      kind: 'slider' as const,
+      effect: 'filter-settings',
+      label: 'Cutoff',
+      min: 20,
+      max: 20000,
+      step: 10,
+      value: 1000,
+      onChange: vi.fn(),
+      format: (v: number) => `${v}Hz`,
+    };
+    render(
+      <>
+        <SettingsField {...sliderProps} />
+        <SettingsField {...sliderProps} />
+      </>,
+    );
+
+    const inputs = document.querySelectorAll('input[type=range]');
+    expect(inputs.length).toBe(2);
+    const [firstId, secondId] = Array.from(inputs).map((el) => el.id);
+    expect(firstId).not.toBe(secondId);
+    expect(firstId).not.toBe('');
+  });
+
   it('applies the mix modifier classes to label and value when mix is true', () => {
     render(
       <SettingsField
@@ -87,5 +135,24 @@ describe('SettingsField', () => {
 
     fireEvent.change(select, { target: { value: 'cathedral' } });
     expect(onChange).toHaveBeenCalledWith('cathedral');
+  });
+
+  it('associates the select label with its dropdown via htmlFor/id', () => {
+    render(
+      <SettingsField
+        kind="select"
+        effect="reverb-settings"
+        label="Room"
+        value="hall"
+        onChange={vi.fn()}
+        options={[{ value: 'hall', label: 'Hall' }]}
+      />,
+    );
+
+    const label = document.querySelector('.reverb-settings-label') as HTMLLabelElement;
+    const select = document.querySelector('.reverb-settings-select') as HTMLSelectElement;
+    expect(label.tagName).toBe('LABEL');
+    expect(label.htmlFor).toBe(select.id);
+    expect(select.id).not.toBe('');
   });
 });

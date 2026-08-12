@@ -13,7 +13,11 @@ interface MixerViewProps {
 
 export const MixerView = ({ tracks, reorderTracks }: MixerViewProps) => {
   const rackRef = useRef<HTMLDivElement>(null);
-  const { draggingId, onHandleMouseDown } = useMixerReorder(tracks, reorderTracks, rackRef);
+  const { draggingId, onHandleMouseDown, onGripKeyDown } = useMixerReorder(
+    tracks,
+    reorderTracks,
+    rackRef,
+  );
 
   return (
     <div className="mixer-view">
@@ -24,6 +28,7 @@ export const MixerView = ({ tracks, reorderTracks }: MixerViewProps) => {
             track={t}
             isDragging={t.state.id === draggingId}
             onDragHandleMouseDown={onHandleMouseDown}
+            onDragHandleKeyDown={onGripKeyDown}
           />
         ))}
       </div>

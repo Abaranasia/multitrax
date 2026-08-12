@@ -3,6 +3,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type RefObject,
 } from 'react';
@@ -76,5 +77,24 @@ export const useMixerReorder = (
     [reorderTracks, rackRef],
   );
 
-  return { draggingId, onHandleMouseDown };
+  // Keyboard equivalent of the mouse drag above: the grip is a plain focusable
+  // element (not a native <button>, since Left/Right steer reordering rather
+  // than "activate"), so arrow keys move the focused strip one slot at a time.
+  const onGripKeyDown = useCallback(
+    (id: string, e: ReactKeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+
+      const fromIndex = tracks.findIndex((t) => t.state.id === id);
+      if (fromIndex === -1) return;
+
+      const toIndex = e.key === 'ArrowLeft' ? fromIndex - 1 : fromIndex + 1;
+      if (toIndex < 0 || toIndex >= tracks.length) return;
+
+      e.preventDefault();
+      reorderTracks(id, toIndex);
+    },
+    [tracks, reorderTracks],
+  );
+
+  return { draggingId, onHandleMouseDown, onGripKeyDown };
 };

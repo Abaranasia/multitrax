@@ -228,18 +228,21 @@ maintainability" entry for the fix write-up and test evidence for each.
 
 ## 5. CI / Tooling / Coverage
 
-- [ ] **Electron-builder packaging config has zero CI signal.**
+All 3 fixed — see `doc/TODO.md`'s "Audit round 01 › CI / tooling / coverage"
+entry for the fix write-up and test evidence for each.
+
+- [x] **Electron-builder packaging config has zero CI signal.**
   `.github/workflows/ci.yml` only runs `pnpm build` (vite + tsc); it never
   invokes `electron-builder`/`pnpm pack`, so the `"build"` block in
   `package.json` (appId, per-OS targets, output dir) is never exercised.
 
-- [ ] **`useVUMeter.ts` has no dedicated test.**
+- [x] **`useVUMeter.ts` has no dedicated test.**
   `src/renderer/components/MixerView/useVUMeter.ts`. Its sibling
   `useMasterVUMeter.ts` has one (`useMasterVUMeter.test.ts`); `ChannelStrip.test.tsx`
   renders the component that uses `useVUMeter` but never asserts on its
   meter/level output. Looks like an accidental gap, not a deliberate skip.
 
-- [ ] **`@types/node` is three majors ahead of CI's pinned Node version.**
+- [x] **`@types/node` is three majors ahead of CI's pinned Node version.**
   `package.json` declares `^25.9.1`; `.github/workflows/ci.yml:24` pins
   Node 22. No concrete API-gap bug found from this, just a version-
   declaration drift worth tightening.

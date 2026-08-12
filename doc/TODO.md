@@ -488,13 +488,12 @@ what's meant to stay a focused mixing/monitoring tool.
     `openspec/config.yaml` call it directly by name — renaming it outright
     would have broken CI and the openspec verify/archive tooling.
 
-## Audit round 01
+## Audit round 01 — closed (all 5 sections fixed)
 
 Full-app review (audio engine, Electron main/IPC, React state layer, UI
 components, build/CI/coverage). Full detail, file:line references, and the
 concrete reachable-failure scenario for every item are in
-`doc/audit-round01.md`; that document's own checkboxes track fix status too
-— keep both in sync as items are closed.
+`doc/audit-round01.md`, now fully checked off there too.
 
 - [x] **Bugs** (`doc/audit-round01.md` § 1) — reachable defects in shipped
   behavior; fixed first, per plan.
@@ -658,7 +657,32 @@ concrete reachable-failure scenario for every item are in
   stash` round-trips). Full suite 41 files / 360 tests passing, `tsc`/`eslint`
   clean.
 
-- [ ] **CI / tooling / coverage** (`doc/audit-round01.md` § 5).
-  - [ ] Electron-builder packaging config has zero CI signal.
-  - [ ] `useVUMeter.ts` has no dedicated test.
-  - [ ] `@types/node` is three majors ahead of CI's pinned Node version.
+- [x] **CI / tooling / coverage** (`doc/audit-round01.md` § 5).
+  - [x] Electron-builder packaging config has zero CI signal. Fixed by adding
+    a "Package" step to `.github/workflows/ci.yml` running
+    `pnpm exec electron-builder --dir --publish=never` right after the
+    existing `pnpm build` step. Deliberately `--dir` (unpacked) rather than a
+    full AppImage/installer: it still exercises `package.json`'s `build`
+    config (appId, `files` glob, output dir, per-platform target sections)
+    without needing installer-specific tooling or risking an accidental
+    publish — a full release build belongs in a dedicated release workflow,
+    not PR-validation CI. Verified locally with `pnpm exec electron-builder
+    --dir --publish=never` (packages successfully; the only warning is the
+    expected "no icon configured" default-icon fallback, unrelated to this
+    fix) and validated the edited workflow file is syntactically valid YAML.
+  - [x] `useVUMeter.ts` has no dedicated test. Added
+    `useVUMeter.test.ts` (7 tests) mirroring `useMasterVUMeter.test.ts`'s
+    fake-`requestAnimationFrame` pattern, covering the behavior that's
+    actually specific to this hook vs. its sibling: the `playing` gate (no
+    polling and a forced 0% reading while not playing, even with a
+    previously-held peak level), peak-hold decay, and cleanup on both
+    unmount and a `playing → false` transition.
+  - [x] `@types/node` is three majors ahead of CI's pinned Node version.
+    Fixed by pinning `@types/node` to `^22.9.0` (resolves to `22.20.1`),
+    matching CI's actual Node 22 runtime, instead of bumping CI to a newer
+    Node just to match a devDependency — type declarations should describe
+    the runtime that's actually executing typecheck/build/test, not a
+    hypothetical newer one. `pnpm install` re-run to sync the lockfile;
+    `tsc --noEmit` across all three tsconfigs still clean.
+
+  Full suite 42 files / 367 tests passing (7 new), `tsc`/`eslint` clean.

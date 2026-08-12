@@ -636,6 +636,86 @@ describe('AudioEngine (unit)', () => {
       vi.advanceTimersByTime(track.fadeOutDuration * 1000);
       expect(afterStop).not.toHaveBeenCalled();
     });
+
+    it('pause() cancels a pending seek cross-fade timer so it cannot resume playback after the pause', () => {
+      const engine = new AudioEngine();
+      const buf = { duration: 10 } as unknown as AudioBuffer;
+      engine.addTrack('pauseseek1', buf);
+      const track = (engine as any).tracks.get('pauseseek1');
+      track.seekFadeDuration = 2;
+
+      engine.setSeekFade('pauseseek1', true);
+      engine.play('pauseseek1');
+      engine.seek('pauseseek1', 5);
+
+      // A seek cross-fade keeps `playing` true throughout its pending window.
+      expect(track.fadeOutTimer).not.toBeNull();
+      expect(track.playing).toBe(true);
+
+      engine.pause('pauseseek1');
+
+      expect(track.fadeOutTimer).toBeNull();
+      expect(track.playing).toBe(false);
+      expect(track.sourceNode).toBeNull();
+
+      // The canceled seek timer must not fire and restart playback later.
+      vi.advanceTimersByTime(track.seekFadeDuration * 1000);
+      expect(track.playing).toBe(false);
+      expect(track.sourceNode).toBeNull();
+    });
+
+    it('stop() resets startOffset to 0 synchronously when fading out, so an interrupted fade cannot leave a stale resume position', () => {
+      const engine = new AudioEngine();
+      const buf = { duration: 10 } as unknown as AudioBuffer;
+      engine.addTrack('stopfade1', buf);
+      const track = (engine as any).tracks.get('stopfade1');
+      track.fadeOut = true;
+      track.fadeOutDuration = 5;
+
+      engine.seek('stopfade1', 3); // not playing yet; just sets startOffset
+      engine.play('stopfade1');
+      (engine.audioContext as any).currentTime += 1;
+
+      engine.stop('stopfade1');
+
+      // Reset happens immediately, not deferred until the fade's timer fires.
+      expect(track.startOffset).toBe(0);
+      expect(track.fadeOutTimer).not.toBeNull();
+
+      // Interrupting the fade (e.g. by playing again) must not resurrect the
+      // pre-stop offset — it stays reset regardless of how the fade ends.
+      engine.play('stopfade1');
+      expect(track.startOffset).toBe(0);
+    });
+
+    it('setVolume() during a pending fade-out leaves the in-flight ramp alone instead of retargeting it', () => {
+      const engine = new AudioEngine();
+      const buf = { duration: 10 } as unknown as AudioBuffer;
+      engine.addTrack('volfade1', buf);
+      const track = (engine as any).tracks.get('volfade1');
+      track.fadeOutDuration = 4;
+      engine.play('volfade1');
+
+      const afterStop = vi.fn();
+      (engine as any)._startFadeOut(track, afterStop);
+      const gain = track.gainNode.gain;
+      const cancelCallsBefore = gain.cancelScheduledValues.mock.calls.length;
+
+      engine.setVolume('volfade1', 0.3);
+
+      // track.volume is updated for whenever playback next (re)starts...
+      expect(track.volume).toBe(0.3);
+      // ...but the in-flight ramp is left alone: no new cancelScheduledValues
+      // call, and the originally-scheduled fade-out timer is untouched.
+      expect(gain.cancelScheduledValues.mock.calls.length).toBe(cancelCallsBefore);
+      expect(track.fadeOutTimer).not.toBeNull();
+
+      vi.advanceTimersByTime(track.fadeOutDuration * 1000);
+
+      expect(afterStop).toHaveBeenCalledTimes(1);
+      // The hard-stop's post-fade reset uses the just-set volume.
+      expect(gain.setValueAtTime).toHaveBeenCalledWith(0.3, 0);
+    });
   });
 
   // ── Setters + getRecordingStream (real timers) ─────────────────────────────

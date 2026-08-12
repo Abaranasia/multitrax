@@ -737,6 +737,119 @@ describe('AudioContext', () => {
     expect(screen.getByTestId('missing').textContent).toBe('/missing.wav');
   });
 
+  it('loadSession skips a track whose decode throws, reports it in missing, and still loads the rest', async () => {
+    const ids: `${string}-${string}-${string}-${string}-${string}`[] = [
+      '55555555-5555-5555-5555-555555555555',
+      '66666666-6666-6666-6666-666666666666',
+    ];
+    let call = 0;
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => ids[call++]);
+
+    const readSessionAudioFile = vi.fn(() =>
+      Promise.resolve({ ok: true, buffer: new ArrayBuffer(4) }),
+    );
+    window.electronAPI = createMockElectronAPI({ readSessionAudioFile });
+
+    const decodeError = new Error('corrupt audio data');
+    mockAudioEngine.audioContext.decodeAudioData.mockImplementationOnce(() =>
+      Promise.reject(decodeError),
+    );
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const corruptSnapshot = createSessionSnapshot({ filePath: '/corrupt.wav', title: 'Corrupt' });
+    const goodSnapshot = createSessionSnapshot({ filePath: '/good2.wav', title: 'Good2' });
+
+    const Consumer = () => {
+      const audio = useAudio();
+      const [result, setResult] = React.useState<{ loaded: number; missing: string[] } | null>(
+        null,
+      );
+      return (
+        <>
+          <button
+            onClick={() =>
+              void audio.loadSession([corruptSnapshot, goodSnapshot]).then(setResult)
+            }
+          >
+            Load Session
+          </button>
+          <div data-testid="track-count">{audio.tracks.length}</div>
+          <div data-testid="track-title">{audio.tracks[0]?.state.title ?? ''}</div>
+          <div data-testid="loaded">{result?.loaded ?? ''}</div>
+          <div data-testid="missing">{result?.missing.join(',') ?? ''}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Load Session'));
+
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('1'));
+    expect(screen.getByTestId('track-title').textContent).toBe('Good2');
+    expect(screen.getByTestId('loaded').textContent).toBe('1');
+    expect(screen.getByTestId('missing').textContent).toBe('/corrupt.wav');
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('/corrupt.wav'), decodeError);
+  });
+
+  it('applies live solo state to a file decoded within an addTracks batch, not a stale pre-batch snapshot', async () => {
+    const EXISTING_ID = '77777777-7777-7777-7777-777777777777';
+    const BATCH_ID = '88888888-8888-8888-8888-888888888888';
+    const ids: `${string}-${string}-${string}-${string}-${string}`[] = [EXISTING_ID, BATCH_ID];
+    let call = 0;
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => ids[call++]);
+
+    const Consumer = () => {
+      const audio = useAudio();
+      return (
+        <>
+          <button
+            onClick={() =>
+              void audio.addTracks([
+                { path: '/existing.mp3', name: 'Existing', buffer: new ArrayBuffer(4) },
+              ])
+            }
+          >
+            Add Existing
+          </button>
+          <button
+            onClick={() =>
+              void audio.addTracks([{ path: '/new.mp3', name: 'New', buffer: new ArrayBuffer(4) }])
+            }
+          >
+            Add New
+          </button>
+          <button onClick={() => audio.setSoloed(EXISTING_ID, true)}>Solo Existing</button>
+          <div data-testid="track-count">{audio.tracks.length}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add Existing'));
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('1'));
+
+    // Start the batch — its decodeAudioData call is still pending on a
+    // microtask — then toggle solo on the existing track before that decode
+    // resolves. The new track must still come in silenced: reading solo
+    // state fresh (not a snapshot taken before this click) is the fix.
+    fireEvent.click(screen.getByText('Add New'));
+    fireEvent.click(screen.getByText('Solo Existing'));
+
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('2'));
+
+    expect(mockAudioEngine.setVolume).toHaveBeenCalledWith(BATCH_ID, 0);
+  });
+
   it('muting a track sends engine.setVolume(id, 0), unmuting restores the last nominal volume', async () => {
     const Consumer = () => {
       const audio = useAudio();

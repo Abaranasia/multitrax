@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { AudioEngine } from '../audio/AudioEngine';
 import { TrackState } from '../domain/TrackState';
 import {
@@ -32,6 +32,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [masterBalance, setMasterBalanceState] = useState(0);
   const nextPos = useRef({ x: SIDE_INSET, y: TOP_INSET });
 
+  // Mirrors `tracks` for reads inside long-running async closures (like
+  // addTracks' per-file decode loop below) that must see solo/mute toggles
+  // made *while they're running*, not just the snapshot from when they started.
+  const tracksRef = useRef<TrackEntry[]>(tracks);
+  useEffect(() => {
+    tracksRef.current = tracks;
+  }, [tracks]);
+
   const setMasterVolume = useCallback(
     (value: number) => {
       engine.setMasterVolume(value);
@@ -51,7 +59,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const addTracks = useCallback(
     async (files: { path: string; name: string; buffer: ArrayBuffer }[]) => {
       const newEntries: TrackEntry[] = [];
-      const anySoloed = tracks.some((t) => t.state.soloed);
 
       for (const file of files) {
         try {
@@ -104,6 +111,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           // A newly-added track defaults to unmuted/unsoloed, but if some
           // other track is already soloed, it must join the rest of the mix
           // in silence rather than play at the engine's default gain of 1.
+          // Read the *live* solo state here, not a snapshot taken before this
+          // (possibly multi-file, async) import started — a solo toggle
+          // mid-import must still affect files decoded after it.
+          const anySoloed = tracksRef.current.some((t) => t.state.soloed);
           engine.setVolume(id, effectiveVolume(state, anySoloed));
 
           newEntries.push({
@@ -125,7 +136,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       setTracks((prev) => [...prev, ...newEntries]);
     },
-    [engine, tracks],
+    [engine],
   );
 
   const duplicateTrack = useCallback(
@@ -489,92 +500,99 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const missing: string[] = [];
 
       for (const snapshot of snapshots) {
-        const result = await window.electronAPI.readSessionAudioFile(snapshot.filePath);
-        if (!result.ok || !result.buffer) {
+        try {
+          const result = await window.electronAPI.readSessionAudioFile(snapshot.filePath);
+          if (!result.ok || !result.buffer) {
+            missing.push(snapshot.filePath);
+            continue;
+          }
+
+          const id = crypto.randomUUID();
+          const audioBuffer = await engine.audioContext.decodeAudioData(result.buffer.slice(0));
+
+          engine.addTrack(id, audioBuffer);
+          engine.setFilterSettings(id, {
+            type: snapshot.filterType,
+            cutoff: snapshot.filterCutoff,
+            resonance: snapshot.filterResonance,
+            mix: snapshot.filterMix,
+            output: snapshot.filterOutput,
+          });
+          engine.setDelaySettings(id, {
+            delayTime: snapshot.delayTime,
+            feedback: snapshot.delayFeedback,
+            mix: snapshot.delayMix,
+            damping: snapshot.delayDamping,
+            output: snapshot.delayOutput,
+          });
+          engine.setReverbSettings(id, {
+            room: snapshot.reverbRoom,
+            mix: snapshot.reverbMix,
+            preDelay: snapshot.reverbPreDelay,
+            damping: snapshot.reverbDamping,
+            output: snapshot.reverbOutput,
+          });
+          engine.setDistortionSettings(id, {
+            drive: snapshot.distortionDrive,
+            tone: snapshot.distortionTone,
+            mix: snapshot.distortionMix,
+            output: snapshot.distortionOutput,
+          });
+          engine.setVolume(id, snapshot.volume);
+          engine.setPan(id, snapshot.pan);
+          engine.setLoop(id, snapshot.loop);
+
+          const state: TrackState = {
+            id,
+            title: snapshot.title,
+            duration: audioBuffer.duration,
+            currentTime: 0,
+            volume: snapshot.volume,
+            pan: snapshot.pan,
+            muted: false,
+            soloed: false,
+            loop: snapshot.loop,
+            playing: false,
+            fadeIn: snapshot.fadeIn,
+            fadeOut: snapshot.fadeOut,
+            seekFade: snapshot.seekFade,
+            fadeInDuration: snapshot.fadeInDuration,
+            fadeOutDuration: snapshot.fadeOutDuration,
+            seekFadeDuration: snapshot.seekFadeDuration,
+            filterType: snapshot.filterType,
+            filterCutoff: snapshot.filterCutoff,
+            filterResonance: snapshot.filterResonance,
+            filterMix: snapshot.filterMix,
+            filterOutput: snapshot.filterOutput,
+            delayTime: snapshot.delayTime,
+            delayFeedback: snapshot.delayFeedback,
+            delayMix: snapshot.delayMix,
+            delayDamping: snapshot.delayDamping,
+            delayOutput: snapshot.delayOutput,
+            reverbRoom: snapshot.reverbRoom,
+            reverbMix: snapshot.reverbMix,
+            reverbPreDelay: snapshot.reverbPreDelay,
+            reverbDamping: snapshot.reverbDamping,
+            reverbOutput: snapshot.reverbOutput,
+            distortionDrive: snapshot.distortionDrive,
+            distortionTone: snapshot.distortionTone,
+            distortionMix: snapshot.distortionMix,
+            distortionOutput: snapshot.distortionOutput,
+            waveform: computeWaveformPeaks(audioBuffer),
+          };
+
+          newEntries.push({
+            state,
+            filePath: snapshot.filePath,
+            x: snapshot.x,
+            y: snapshot.y,
+          });
+        } catch (error) {
+          // A single corrupted/undecodable file must not abort the whole
+          // session load — same per-item resilience as addTracks above.
+          console.error(`Failed to load track from session: ${snapshot.filePath}`, error);
           missing.push(snapshot.filePath);
-          continue;
         }
-
-        const id = crypto.randomUUID();
-        const audioBuffer = await engine.audioContext.decodeAudioData(result.buffer.slice(0));
-
-        engine.addTrack(id, audioBuffer);
-        engine.setFilterSettings(id, {
-          type: snapshot.filterType,
-          cutoff: snapshot.filterCutoff,
-          resonance: snapshot.filterResonance,
-          mix: snapshot.filterMix,
-          output: snapshot.filterOutput,
-        });
-        engine.setDelaySettings(id, {
-          delayTime: snapshot.delayTime,
-          feedback: snapshot.delayFeedback,
-          mix: snapshot.delayMix,
-          damping: snapshot.delayDamping,
-          output: snapshot.delayOutput,
-        });
-        engine.setReverbSettings(id, {
-          room: snapshot.reverbRoom,
-          mix: snapshot.reverbMix,
-          preDelay: snapshot.reverbPreDelay,
-          damping: snapshot.reverbDamping,
-          output: snapshot.reverbOutput,
-        });
-        engine.setDistortionSettings(id, {
-          drive: snapshot.distortionDrive,
-          tone: snapshot.distortionTone,
-          mix: snapshot.distortionMix,
-          output: snapshot.distortionOutput,
-        });
-        engine.setVolume(id, snapshot.volume);
-        engine.setPan(id, snapshot.pan);
-        engine.setLoop(id, snapshot.loop);
-
-        const state: TrackState = {
-          id,
-          title: snapshot.title,
-          duration: audioBuffer.duration,
-          currentTime: 0,
-          volume: snapshot.volume,
-          pan: snapshot.pan,
-          muted: false,
-          soloed: false,
-          loop: snapshot.loop,
-          playing: false,
-          fadeIn: snapshot.fadeIn,
-          fadeOut: snapshot.fadeOut,
-          seekFade: snapshot.seekFade,
-          fadeInDuration: snapshot.fadeInDuration,
-          fadeOutDuration: snapshot.fadeOutDuration,
-          seekFadeDuration: snapshot.seekFadeDuration,
-          filterType: snapshot.filterType,
-          filterCutoff: snapshot.filterCutoff,
-          filterResonance: snapshot.filterResonance,
-          filterMix: snapshot.filterMix,
-          filterOutput: snapshot.filterOutput,
-          delayTime: snapshot.delayTime,
-          delayFeedback: snapshot.delayFeedback,
-          delayMix: snapshot.delayMix,
-          delayDamping: snapshot.delayDamping,
-          delayOutput: snapshot.delayOutput,
-          reverbRoom: snapshot.reverbRoom,
-          reverbMix: snapshot.reverbMix,
-          reverbPreDelay: snapshot.reverbPreDelay,
-          reverbDamping: snapshot.reverbDamping,
-          reverbOutput: snapshot.reverbOutput,
-          distortionDrive: snapshot.distortionDrive,
-          distortionTone: snapshot.distortionTone,
-          distortionMix: snapshot.distortionMix,
-          distortionOutput: snapshot.distortionOutput,
-          waveform: computeWaveformPeaks(audioBuffer),
-        };
-
-        newEntries.push({
-          state,
-          filePath: snapshot.filePath,
-          x: snapshot.x,
-          y: snapshot.y,
-        });
       }
 
       setTracks(newEntries);

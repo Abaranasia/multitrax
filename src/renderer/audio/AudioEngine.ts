@@ -260,6 +260,12 @@ export class AudioEngine {
     const track = this.tracks.get(id);
     if (!track || !track.playing) return;
 
+    // Invalidate any fade-out already in flight (e.g. a seek cross-fade's
+    // resume timer, or a previous pause/stop fade) before starting our own —
+    // otherwise it fires later and can silently restart or re-stop playback,
+    // undoing this pause. Matches play()/stop()/seek()'s own entry-point convention.
+    this._cancelFadeOut(track);
+
     if (track.fadeOut) {
       const savedOffset = this.getCurrentTime(id);
       track.playing = false;
@@ -282,10 +288,14 @@ export class AudioEngine {
     track.gainNode.gain.setValueAtTime(track.volume, this.ctx.currentTime);
 
     if (track.fadeOut && track.playing) {
+      // Reset the offset synchronously, not inside the fade's afterStop
+      // callback — that callback only runs if the fade completes
+      // undisturbed, but a subsequent play()/seek()/stop() cancels it via
+      // _cancelFadeOut without ever invoking afterStop, which used to leave
+      // startOffset stale (contradicting stop()'s own "resets to 0" contract).
       track.playing = false;
-      this._startFadeOut(track, () => {
-        track.startOffset = 0;
-      });
+      track.startOffset = 0;
+      this._startFadeOut(track, () => {});
     } else {
       this._stopSource(track);
       track.playing = false;
@@ -386,7 +396,16 @@ export class AudioEngine {
     const track = this.tracks.get(id);
     if (!track) return;
     track.volume = clamp(value, 0, 1);
-    // Cancel any ongoing fade ramp and jump to the new volume immediately
+
+    // A pending fade-out (pause/stop fade, or a seek cross-fade) already has
+    // its own gain ramp and a hard-stop/resume timer scheduled to match it.
+    // Retargeting the ramp here would leave that timer firing against a gain
+    // curve that no longer matches it, producing an abrupt cutoff. Let the
+    // fade finish undisturbed; it reads the latest track.volume once it does
+    // (as the pause/stop reset value, or as the seek's fade-in target).
+    if (track.fadeOutTimer !== null) return;
+
+    // Cancel any ongoing fade-in ramp and jump to the new volume immediately
     track.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
     track.gainNode.gain.setTargetAtTime(track.volume, this.ctx.currentTime, PARAM_RAMP_TIME_CONSTANT_S);
   }

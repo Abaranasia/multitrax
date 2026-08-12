@@ -487,3 +487,96 @@ what's meant to stay a focused mixing/monitoring tool.
     `test:no-watch` in place as an alias since `.github/workflows/ci.yml` and
     `openspec/config.yaml` call it directly by name — renaming it outright
     would have broken CI and the openspec verify/archive tooling.
+
+## Audit round 01
+
+Full-app review (audio engine, Electron main/IPC, React state layer, UI
+components, build/CI/coverage). Full detail, file:line references, and the
+concrete reachable-failure scenario for every item are in
+`doc/audit-round01.md`; that document's own checkboxes track fix status too
+— keep both in sync as items are closed.
+
+- [x] **Bugs** (`doc/audit-round01.md` § 1) — reachable defects in shipped
+  behavior; fixed first, per plan.
+  - [x] `pause()` doesn't cancel a pending fade timer, letting a playback
+    restart or an orphaned timer undo the pause. Fixed by calling
+    `_cancelFadeOut(track)` at `pause()`'s entry, matching `play()`/`stop()`/
+    `seek()`'s existing convention. Regression test in `AudioEngine.test.ts`
+    (seek cross-fade timer can no longer resume playback after a pause).
+  - [x] `stop()`'s offset-reset-to-0 is lost if its fade gets canceled by a
+    subsequent command. Fixed by setting `track.startOffset = 0` synchronously
+    in `stop()`'s fade branch instead of deferring it into the fade's
+    `afterStop` callback. Regression test covers an interrupted fade.
+  - [x] `clamp()` lets `NaN` through instead of falling back to a safe value.
+    Fixed with an explicit `Number.isNaN` check (± Infinity were already
+    handled correctly and are left alone). New `audioParams.test.ts`.
+  - [x] `setVolume()` doesn't account for a pending fade-out's scheduled
+    hard-stop, causing a scheduling mismatch. Fixed by skipping the immediate
+    gain retarget while `track.fadeOutTimer` is pending — the new volume is
+    still recorded and takes effect once the fade completes (as the
+    post-fade reset value, or as a seek's fade-in target).
+  - [x] `onLoadSession` has no `catch`; a decode failure silently aborts the
+    whole session load. Root cause fixed in `AudioContext.loadSession` with a
+    per-snapshot try/catch (same resilience `addTracks` already had) so one
+    bad track lands in `missing` instead of aborting the batch; added an
+    outer catch in `onLoadSession` too as a second layer.
+  - [x] `onOpenFiles` has the same silent-rejection pattern for a single bad
+    file in a multi-file batch. Fixed with a per-path try/catch; failed paths
+    are collected and surfaced via `window.alert`, mirroring the existing
+    "missing session files" pattern.
+  - [x] `addTracks` snapshots `anySoloed` once per batch instead of reading
+    live state, misapplying solo to later files in the same import. Fixed
+    with a `tracksRef` mirroring `tracks` via `useEffect`, read fresh right
+    before each file's `engine.setVolume` call instead of once up front.
+  - [x] `loadSession`/`newSession` race with a concurrent `addTracks`,
+    leaking or corrupting engine/React track state. Fixed at the entry points
+    in `useCanvas.ts`: `onDrop`/`onOpenFiles`/`onLoadSession`/`onNewSession`
+    now cross-check each other's in-flight refs (extending the existing
+    single-operation busy-guard pattern to be mutually exclusive across all
+    four track-list-mutating operations).
+
+  All 8 fixes verified with new regression tests that fail against the
+  pre-fix code and pass after (confirmed via `git stash` round-trip on each
+  changed file) — `AudioEngine.test.ts` (+3), `audioParams.test.ts` (new,
+  +3), `AudioContext.test.tsx` (+2), `Canvas.test.tsx` (+3). Full suite
+  41 files / 334 tests passing, `tsc`/`eslint` clean.
+
+- [ ] **Security** (`doc/audit-round01.md` § 2) — Electron/IPC
+  defense-in-depth gaps, no confirmed exploit path through today's UI.
+  - [ ] `fs:writeSessionFile` has no path validation, unlike sibling read
+    handlers.
+  - [ ] `fs:readSessionAudioFile` allows reading any absolute path that's a
+    file, with no audio-type check.
+  - [ ] `dev:main` runs with `--no-sandbox` unconditionally in dev.
+  - [ ] No navigation hardening (`will-navigate`/`setWindowOpenHandler`) on
+    the main `BrowserWindow`.
+  - [ ] No test pins the security-relevant `webPreferences`
+    (`contextIsolation`/`nodeIntegration`/`preload`).
+
+- [ ] **Accessibility** (`doc/audit-round01.md` § 3).
+  - [ ] Effect dialogs have no keyboard (Escape) dismissal or
+    `role="dialog"`.
+  - [ ] Settings-field labels aren't programmatically associated with their
+    controls.
+  - [ ] Mixer channel-strip reordering is mouse-only.
+  - [ ] Waveform seek is mouse-only.
+  - [ ] Toggle buttons inconsistently expose `aria-pressed`.
+  - [ ] Dropdown-menu toggles lack `aria-expanded`/`aria-haspopup`.
+
+- [ ] **Consistency / maintainability** (`doc/audit-round01.md` § 4).
+  - [ ] `PanDial` reintroduces the inline-style anti-pattern the "remove
+    inline styles" TODO already fixed elsewhere.
+  - [ ] Stale `effectiveVolume` "single place" comment — `loadSession`
+    bypasses it.
+  - [ ] Stale `tickCurrentTimes` "animation frame" comment — it's a 100ms
+    `setInterval`.
+  - [ ] `tickCurrentTimes` + unmemoized context value cause a full-tree
+    re-render 10×/sec.
+  - [ ] Stale `AudioEngine` class-doc comment (predates filter/distortion/
+    delay/panner/analyser).
+  - [ ] Unnamed magic numbers in `computeWaveformPeaks`.
+
+- [ ] **CI / tooling / coverage** (`doc/audit-round01.md` § 5).
+  - [ ] Electron-builder packaging config has zero CI signal.
+  - [ ] `useVUMeter.ts` has no dedicated test.
+  - [ ] `@types/node` is three majors ahead of CI's pinned Node version.

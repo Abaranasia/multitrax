@@ -173,6 +173,7 @@
   border-radius: 50%;
   background: radial-gradient(circle at 50% 40%, #2b303c, #191c24);
   border: 1px solid #363b48;
+  transform: rotate(var(--dial-rotation, 0deg));
 }
 
 .mixer-pan-dial::after {

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { AudioEngine } from '../audio/AudioEngine';
 import { TrackState } from '../domain/TrackState';
 import {
@@ -511,36 +511,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const audioBuffer = await engine.audioContext.decodeAudioData(result.buffer.slice(0));
 
           engine.addTrack(id, audioBuffer);
-          engine.setFilterSettings(id, {
-            type: snapshot.filterType,
-            cutoff: snapshot.filterCutoff,
-            resonance: snapshot.filterResonance,
-            mix: snapshot.filterMix,
-            output: snapshot.filterOutput,
-          });
-          engine.setDelaySettings(id, {
-            delayTime: snapshot.delayTime,
-            feedback: snapshot.delayFeedback,
-            mix: snapshot.delayMix,
-            damping: snapshot.delayDamping,
-            output: snapshot.delayOutput,
-          });
-          engine.setReverbSettings(id, {
-            room: snapshot.reverbRoom,
-            mix: snapshot.reverbMix,
-            preDelay: snapshot.reverbPreDelay,
-            damping: snapshot.reverbDamping,
-            output: snapshot.reverbOutput,
-          });
-          engine.setDistortionSettings(id, {
-            drive: snapshot.distortionDrive,
-            tone: snapshot.distortionTone,
-            mix: snapshot.distortionMix,
-            output: snapshot.distortionOutput,
-          });
-          engine.setVolume(id, snapshot.volume);
-          engine.setPan(id, snapshot.pan);
-          engine.setLoop(id, snapshot.loop);
 
           const state: TrackState = {
             id,
@@ -580,6 +550,42 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             distortionOutput: snapshot.distortionOutput,
             waveform: computeWaveformPeaks(audioBuffer),
           };
+
+          engine.setFilterSettings(id, {
+            type: snapshot.filterType,
+            cutoff: snapshot.filterCutoff,
+            resonance: snapshot.filterResonance,
+            mix: snapshot.filterMix,
+            output: snapshot.filterOutput,
+          });
+          engine.setDelaySettings(id, {
+            delayTime: snapshot.delayTime,
+            feedback: snapshot.delayFeedback,
+            mix: snapshot.delayMix,
+            damping: snapshot.delayDamping,
+            output: snapshot.delayOutput,
+          });
+          engine.setReverbSettings(id, {
+            room: snapshot.reverbRoom,
+            mix: snapshot.reverbMix,
+            preDelay: snapshot.reverbPreDelay,
+            damping: snapshot.reverbDamping,
+            output: snapshot.reverbOutput,
+          });
+          engine.setDistortionSettings(id, {
+            drive: snapshot.distortionDrive,
+            tone: snapshot.distortionTone,
+            mix: snapshot.distortionMix,
+            output: snapshot.distortionOutput,
+          });
+          // Routed through effectiveVolume, not the raw snapshot value — sessions
+          // don't currently persist mute/solo (a loaded track's `state` above is
+          // always unmuted/unsoloed), so this is equivalent to snapshot.volume
+          // today, but it keeps loadSession on the one path that decides engine
+          // gain if session persistence of mute/solo is ever added.
+          engine.setVolume(id, effectiveVolume(state, false));
+          engine.setPan(id, snapshot.pan);
+          engine.setLoop(id, snapshot.loop);
 
           newEntries.push({
             state,
@@ -624,59 +630,102 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   }, []);
 
-  // Called by animation frame to sync currentTime
+  // Called on a 100ms setInterval (see useCanvas.ts) to sync currentTime/playing
+  // from the engine. Bails out of the state update (returns `prev` itself)
+  // when nothing actually changed, and reuses each unchanged track's existing
+  // object, so a fully idle app (nothing playing) doesn't re-render its whole
+  // tree 10 times a second for no reason.
   const tickCurrentTimes = useCallback(() => {
-    setTracks((prev) =>
-      prev.map((t) => ({
-        ...t,
-        state: {
-          ...t.state,
-          currentTime: engine.getCurrentTime(t.state.id),
-          playing: engine.isPlaying(t.state.id),
-        },
-      })),
-    );
+    setTracks((prev) => {
+      let changed = false;
+      const next = prev.map((t) => {
+        const currentTime = engine.getCurrentTime(t.state.id);
+        const playing = engine.isPlaying(t.state.id);
+        if (currentTime === t.state.currentTime && playing === t.state.playing) return t;
+        changed = true;
+        return { ...t, state: { ...t.state, currentTime, playing } };
+      });
+      return changed ? next : prev;
+    });
   }, [engine]);
 
-  return (
-    <Ctx.Provider
-      value={{
-        engine,
-        tracks,
-        masterVolume,
-        masterBalance,
-        setMasterVolume,
-        setMasterBalance,
-        addTracks,
-        duplicateTrack,
-        removeTrack,
-        play,
-        pause,
-        stop,
-        stopAll,
-        playAll,
-        seek,
-        setVolume,
-        setMuted,
-        setSoloed,
-        setPan,
-        setLoop,
-        setFadeIn,
-        setFadeOut,
-        setSeekFade,
-        setFadeDurations,
-        setFilterSettings,
-        setDelaySettings,
-        setReverbSettings,
-        setDistortionSettings,
-        updatePosition,
-        reorderTracks,
-        tickCurrentTimes,
-        loadSession,
-        newSession,
-      }}
-    >
-      {children}
-    </Ctx.Provider>
+  // Memoized so the provider only hands consumers a new value when something
+  // it actually carries changed — otherwise every render (e.g. an unrelated
+  // parent re-render) would hand out a fresh object and force every
+  // `useAudio()` consumer to re-render regardless of whether any of this
+  // data changed.
+  const value = useMemo(
+    () => ({
+      engine,
+      tracks,
+      masterVolume,
+      masterBalance,
+      setMasterVolume,
+      setMasterBalance,
+      addTracks,
+      duplicateTrack,
+      removeTrack,
+      play,
+      pause,
+      stop,
+      stopAll,
+      playAll,
+      seek,
+      setVolume,
+      setMuted,
+      setSoloed,
+      setPan,
+      setLoop,
+      setFadeIn,
+      setFadeOut,
+      setSeekFade,
+      setFadeDurations,
+      setFilterSettings,
+      setDelaySettings,
+      setReverbSettings,
+      setDistortionSettings,
+      updatePosition,
+      reorderTracks,
+      tickCurrentTimes,
+      loadSession,
+      newSession,
+    }),
+    [
+      engine,
+      tracks,
+      masterVolume,
+      masterBalance,
+      setMasterVolume,
+      setMasterBalance,
+      addTracks,
+      duplicateTrack,
+      removeTrack,
+      play,
+      pause,
+      stop,
+      stopAll,
+      playAll,
+      seek,
+      setVolume,
+      setMuted,
+      setSoloed,
+      setPan,
+      setLoop,
+      setFadeIn,
+      setFadeOut,
+      setSeekFade,
+      setFadeDurations,
+      setFilterSettings,
+      setDelaySettings,
+      setReverbSettings,
+      setDistortionSettings,
+      updatePosition,
+      reorderTracks,
+      tickCurrentTimes,
+      loadSession,
+      newSession,
+    ],
   );
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 };

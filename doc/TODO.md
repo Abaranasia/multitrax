@@ -617,18 +617,46 @@ concrete reachable-failure scenario for every item are in
   wasn't part of what the audit flagged and was left out to keep this change
   scoped to the 6 stated findings.
 
-- [ ] **Consistency / maintainability** (`doc/audit-round01.md` § 4).
-  - [ ] `PanDial` reintroduces the inline-style anti-pattern the "remove
-    inline styles" TODO already fixed elsewhere.
-  - [ ] Stale `effectiveVolume` "single place" comment — `loadSession`
-    bypasses it.
-  - [ ] Stale `tickCurrentTimes` "animation frame" comment — it's a 100ms
-    `setInterval`.
-  - [ ] `tickCurrentTimes` + unmemoized context value cause a full-tree
-    re-render 10×/sec.
-  - [ ] Stale `AudioEngine` class-doc comment (predates filter/distortion/
-    delay/panner/analyser).
-  - [ ] Unnamed magic numbers in `computeWaveformPeaks`.
+- [x] **Consistency / maintainability** (`doc/audit-round01.md` § 4).
+  - [x] `PanDial` reintroduces the inline-style anti-pattern the "remove
+    inline styles" TODO already fixed elsewhere. Fixed the same way as its
+    siblings: the rotation degree is now set as a `--dial-rotation` CSS
+    custom property (`PanDial.tsx`), consumed by an actual
+    `transform: rotate(var(--dial-rotation, 0deg))` rule in `MixerView.css`.
+    `PanDial.test.tsx` updated to assert the custom property instead of the
+    (now stylesheet-owned) computed `transform`.
+  - [x] Stale `effectiveVolume` "single place" comment — `loadSession`
+    bypasses it. Fixed for real, not just the comment: reordered
+    `loadSession` to build `state` before calling the engine setters, then
+    routed `engine.setVolume` through `effectiveVolume(state, false)` like
+    every other call site. Sessions don't currently persist mute/solo, so
+    this is numerically identical to the old `snapshot.volume` today
+    (confirmed by the existing "loadSession … applies every engine setting"
+    test still passing unchanged) — but it closes the "latent trap" for good
+    instead of just documenting it, and the comment's claim is true again.
+  - [x] Stale `tickCurrentTimes` "animation frame" comment — it's a 100ms
+    `setInterval`. Comment corrected in place.
+  - [x] `tickCurrentTimes` + unmemoized context value cause a full-tree
+    re-render 10×/sec. Fixed both halves: `tickCurrentTimes`'s `setTracks`
+    updater now returns the *same* `prev` array (and reuses each unchanged
+    track's own object) when no track's `currentTime`/`playing` actually
+    changed, and the `Ctx.Provider`'s `value` is now `useMemo`'d over every
+    field it carries — combined, an idle app (nothing playing) no longer
+    re-renders its whole tree 10 times a second. New test verifies the
+    `tracks` reference is untouched by a no-op tick and does change when the
+    engine reports a different value.
+  - [x] Stale `AudioEngine` class-doc comment (predates filter/distortion/
+    delay/panner/analyser). Comment rewritten to list all 6 per-track
+    subgraphs.
+  - [x] Unnamed magic numbers in `computeWaveformPeaks`. Extracted as
+    exported `WAVEFORM_BUCKET_COUNT` (48) and `WAVEFORM_PEAK_BOOST` (1.4);
+    `waveform.test.ts` updated to reference them instead of repeating the
+    literals.
+
+  Verified with new/extended tests (`PanDial`, `waveform`, `AudioContext`)
+  that fail against the pre-fix source and pass after (confirmed via `git
+  stash` round-trips). Full suite 41 files / 360 tests passing, `tsc`/`eslint`
+  clean.
 
 - [ ] **CI / tooling / coverage** (`doc/audit-round01.md` § 5).
   - [ ] Electron-builder packaging config has zero CI signal.

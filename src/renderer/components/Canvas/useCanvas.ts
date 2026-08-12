@@ -82,33 +82,50 @@ export const useCanvas = () => {
     e.dataTransfer.dropEffect = 'copy';
   }, []);
 
+  // Shared across every operation that replaces or appends to the whole
+  // track list (drop / open-files / load-session / new-session). loadSession
+  // and newSession replace `tracks` wholesale and remove engine nodes up
+  // front; letting one of those interleave with an in-flight addTracks batch
+  // can drop a just-added track from React state while its engine node is
+  // never removed (leak), or resurrect a TrackEntry whose engine node was
+  // already torn down. Mirrors the busy-guard pattern already used below for
+  // each individual operation.
+  const isLoadingSessionRef = useRef(false);
+  const isDroppingFilesRef = useRef(false);
+  const isOpeningFilesRef = useRef(false);
+
   const onDrop = useCallback(
     async (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
+      if (isLoadingSessionRef.current) return;
 
-      const files: { path: string; name: string; buffer: ArrayBuffer }[] = [];
+      isDroppingFilesRef.current = true;
+      try {
+        const files: { path: string; name: string; buffer: ArrayBuffer }[] = [];
 
-      for (const file of Array.from(e.dataTransfer.files)) {
-        if (!file.type.startsWith('audio/') && !isKnownAudio(file.name)) continue;
+        for (const file of Array.from(e.dataTransfer.files)) {
+          if (!file.type.startsWith('audio/') && !isKnownAudio(file.name)) continue;
 
-        // Electron removed `File.path` in v32, so the real on-disk path can only
-        // come from the preload bridge. Fall back to the bare name outside
-        // Electron (tests, browser) — degraded, but never throws.
-        const filePath = window.electronAPI?.getPathForFile(file) ?? file.name;
-        const arrayBuffer = await file.arrayBuffer();
-        files.push({ path: filePath, name: file.name, buffer: arrayBuffer });
+          // Electron removed `File.path` in v32, so the real on-disk path can only
+          // come from the preload bridge. Fall back to the bare name outside
+          // Electron (tests, browser) — degraded, but never throws.
+          const filePath = window.electronAPI?.getPathForFile(file) ?? file.name;
+          const arrayBuffer = await file.arrayBuffer();
+          files.push({ path: filePath, name: file.name, buffer: arrayBuffer });
+        }
+
+        if (files.length > 0) await addTracks(files);
+      } finally {
+        isDroppingFilesRef.current = false;
       }
-
-      if (files.length > 0) await addTracks(files);
     },
     [addTracks],
   );
 
-  const isOpeningFilesRef = useRef(false);
   const [isOpeningFiles, setIsOpeningFiles] = useState(false);
 
   const onOpenFiles = useCallback(async () => {
-    if (!window.electronAPI || isOpeningFilesRef.current) return;
+    if (!window.electronAPI || isOpeningFilesRef.current || isLoadingSessionRef.current) return;
 
     isOpeningFilesRef.current = true;
     setIsOpeningFiles(true);
@@ -117,13 +134,24 @@ export const useCanvas = () => {
       if (!paths.length) return;
 
       const files: { path: string; name: string; buffer: ArrayBuffer }[] = [];
+      const failed: string[] = [];
       for (const p of paths) {
-        const buf = await window.electronAPI.readAudioFile(p);
-        const name = p.split('/').pop() ?? p.split('\\').pop() ?? p;
-        files.push({ path: p, name, buffer: buf });
+        try {
+          const buf = await window.electronAPI.readAudioFile(p);
+          const name = p.split('/').pop() ?? p.split('\\').pop() ?? p;
+          files.push({ path: p, name, buffer: buf });
+        } catch (error) {
+          // One unreadable path (moved/deleted/permissions) must not drop
+          // every other file already selected in this same batch.
+          console.error(`Failed to read ${p}`, error);
+          failed.push(p);
+        }
       }
 
-      await addTracks(files);
+      if (files.length > 0) await addTracks(files);
+      if (failed.length > 0) {
+        window.alert(`Some files could not be opened and were skipped:\n${failed.join('\n')}`);
+      }
     } finally {
       isOpeningFilesRef.current = false;
       setIsOpeningFiles(false);
@@ -178,11 +206,17 @@ export const useCanvas = () => {
     }
   }, [tracks]);
 
-  const isLoadingSessionRef = useRef(false);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
 
   const onLoadSession = useCallback(async () => {
-    if (!window.electronAPI || isLoadingSessionRef.current) return;
+    if (
+      !window.electronAPI ||
+      isLoadingSessionRef.current ||
+      isOpeningFilesRef.current ||
+      isDroppingFilesRef.current
+    ) {
+      return;
+    }
 
     isLoadingSessionRef.current = true;
     setIsLoadingSession(true);
@@ -209,6 +243,9 @@ export const useCanvas = () => {
       if (missing.length > 0) {
         window.alert(`Some session files could not be found and were skipped:\n${missing.join('\n')}`);
       }
+    } catch (error) {
+      console.error('Failed to load session', error);
+      window.alert('Failed to load session. See console for details.');
     } finally {
       isLoadingSessionRef.current = false;
       setIsLoadingSession(false);
@@ -216,6 +253,9 @@ export const useCanvas = () => {
   }, [loadSession]);
 
   const onNewSession = useCallback(() => {
+    if (isOpeningFilesRef.current || isLoadingSessionRef.current || isDroppingFilesRef.current) {
+      return;
+    }
     if (tracks.length > 0 && !window.confirm('Start a new session? Unsaved changes will be lost.')) {
       return;
     }

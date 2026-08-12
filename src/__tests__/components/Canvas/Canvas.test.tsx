@@ -305,6 +305,64 @@ describe('Canvas', () => {
     expect(openButton.disabled).toBe(false);
   });
 
+  it('skips a file that fails to read and still opens the rest of the batch', async () => {
+    const openAudioFiles = vi.fn(() => Promise.resolve(['/music/bad.wav', '/music/good.wav']));
+    const readAudioFile = vi.fn((p: string) =>
+      p === '/music/bad.wav'
+        ? Promise.reject(new Error('Access denied'))
+        : Promise.resolve(new ArrayBuffer(4)),
+    );
+    window.electronAPI = { ...createMockElectronAPI(), openAudioFiles, readAudioFile };
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+    render(<Canvas />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTitle('Open audio files'));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(mockAddTracks).toHaveBeenCalledTimes(1));
+    expect(mockAddTracks).toHaveBeenCalledWith([
+      expect.objectContaining({ path: '/music/good.wav', name: 'good.wav' }),
+    ]);
+    expect(errorSpy).toHaveBeenCalledWith('Failed to read /music/bad.wav', expect.any(Error));
+    expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('/music/bad.wav'));
+  });
+
+  it('ignores an Open Files click while a session load is still in flight', async () => {
+    let resolveOpenSession: (v: { opened: false }) => void = () => {};
+    const openSessionPending = new Promise<{ opened: false }>((resolve) => {
+      resolveOpenSession = resolve;
+    });
+    const openSession = vi.fn(() => openSessionPending);
+    const openAudioFiles = vi.fn(() => Promise.resolve(['/music/beat.wav']));
+    window.electronAPI = createMockElectronAPI({ openSession, openAudioFiles });
+
+    render(<Canvas />);
+
+    fireEvent.click(screen.getByTitle('Session menu'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Load Session'));
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTitle('Open audio files'));
+      await Promise.resolve();
+    });
+
+    expect(openAudioFiles).not.toHaveBeenCalled();
+    expect(mockAddTracks).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveOpenSession({ opened: false });
+      await Promise.resolve();
+    });
+  });
+
   it('renders a TrackPlayer for each track returned by useAudio', () => {
     useAudioMock.mockReturnValueOnce({
       tracks: [{ state: { id: '1', title: 'Test track' }, x: 10, y: 20 }],
@@ -986,5 +1044,38 @@ describe('Canvas', () => {
     fireEvent.click(screen.getByText('New Session'));
 
     expect(mockNewSession).not.toHaveBeenCalled();
+  });
+
+  it('ignores a New Session click while an Open Files batch is still in flight', async () => {
+    let resolveRead: (buf: ArrayBuffer) => void = () => {};
+    const readPending = new Promise<ArrayBuffer>((resolve) => {
+      resolveRead = resolve;
+    });
+    const openAudioFiles = vi.fn(() => Promise.resolve(['/music/beat.wav']));
+    const readAudioFile = vi.fn(() => readPending);
+    window.electronAPI = { ...createMockElectronAPI(), openAudioFiles, readAudioFile };
+    const confirmSpy = vi.spyOn(window, 'confirm').mockImplementation(() => true);
+
+    render(<Canvas />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTitle('Open audio files'));
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(readAudioFile).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByTitle('Session menu'));
+    fireEvent.click(screen.getByText('New Session'));
+
+    // The batch is still in flight (mid-decode) — New Session must be a
+    // no-op, not race the in-flight addTracks and drop/leak its track.
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(mockNewSession).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveRead(new ArrayBuffer(4));
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(mockAddTracks).toHaveBeenCalledTimes(1));
   });
 });

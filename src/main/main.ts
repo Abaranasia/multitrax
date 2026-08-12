@@ -8,9 +8,31 @@ const __dirname = path.dirname(__filename);
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
+const DEV_SERVER_URL = 'http://localhost:5173';
+
 // Session-scoped allowlist of paths granted via the native open-file dialog.
 // Replaced (not accumulated) on every `dialog:openAudioFiles` invocation.
 const grantedPaths = new Set<string>();
+
+// Shared with `fs:readSessionAudioFile`'s extension gate below, so the two
+// paths a file can enter the app through (the native picker's filter, and a
+// loaded session's `filePath`) agree on what "an audio file" means.
+const AUDIO_FILE_EXTENSIONS = ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus', 'webm'];
+
+// Only the app's own dev-server origin (dev) or its packaged renderer file
+// (prod) may be top-level-navigated to; everything else is denied. Guards
+// against a compromised/buggy renderer navigating the window to an
+// arbitrary remote URL.
+function isAllowedNavigationTarget(url: string): boolean {
+  if (isDev) {
+    try {
+      return new URL(url).origin === DEV_SERVER_URL;
+    } catch {
+      return false;
+    }
+  }
+  return url.startsWith('file://');
+}
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -24,8 +46,15 @@ function createWindow(): void {
     },
   });
 
+  // Electron security checklist: this app never needs to open child windows
+  // or navigate away from itself, so deny/block both outright.
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.on('will-navigate', (event, url) => {
+    if (!isAllowedNavigationTarget(url)) event.preventDefault();
+  });
+
   if (isDev) {
-    void win.loadURL('http://localhost:5173').catch((error) => {
+    void win.loadURL(DEV_SERVER_URL).catch((error) => {
       console.error('Failed to load dev server URL:', error);
     });
     win.webContents.openDevTools();
@@ -56,7 +85,7 @@ app.on('window-all-closed', () => {
 ipcMain.handle('dialog:openAudioFiles', async () => {
   const result = await dialog.showOpenDialog({
     title: 'Open Audio Files',
-    filters: [{ name: 'Audio', extensions: ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus'] }],
+    filters: [{ name: 'Audio', extensions: AUDIO_FILE_EXTENSIONS }],
     properties: ['openFile', 'multiSelections'],
   });
   grantedPaths.clear();
@@ -131,6 +160,8 @@ ipcMain.handle(
 ipcMain.handle(
   'fs:writeSessionFile',
   (_event, filePath: string, json: string): { saved: boolean; error?: string } => {
+    if (!path.isAbsolute(filePath)) return { saved: false, error: 'Path is not absolute' };
+
     try {
       fs.writeFileSync(filePath, json, 'utf-8');
       return { saved: true };
@@ -164,9 +195,10 @@ ipcMain.handle('dialog:openSession', async () => {
 // Deliberately not gated on `grantedPaths` — session file paths come from a
 // previously saved session, not the current open-file dialog grant, so the
 // same absolute-path + exists-and-is-a-file gate as `shell:revealFile` is
-// used instead. Resolves with a result object rather than rejecting, so a
-// missing/moved file can be skipped per track instead of failing the whole
-// session load.
+// used instead, plus an extension check (a hand-edited/untrusted session
+// file's `filePath` could otherwise point anywhere readable on disk).
+// Resolves with a result object rather than rejecting, so a missing/moved
+// file can be skipped per track instead of failing the whole session load.
 ipcMain.handle(
   'fs:readSessionAudioFile',
   (_event, filePath: string): { ok: boolean; buffer?: ArrayBuffer; error?: string } => {
@@ -176,6 +208,11 @@ ipcMain.handle(
       if (!fs.statSync(filePath).isFile()) return { ok: false, error: 'Path is not a file' };
     } catch (error) {
       return { ok: false, error: (error as Error).message };
+    }
+
+    const extension = path.extname(filePath).toLowerCase().slice(1);
+    if (!AUDIO_FILE_EXTENSIONS.includes(extension)) {
+      return { ok: false, error: 'Path is not a recognized audio file' };
     }
 
     try {

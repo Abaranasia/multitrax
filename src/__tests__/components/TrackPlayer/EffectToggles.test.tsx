@@ -73,4 +73,21 @@ describe('EffectToggles', () => {
     fireEvent.click(screen.getByTitle('Reverb settings'));
     expect(onReverbOpen).toHaveBeenCalledTimes(1);
   });
+
+  it('exposes each toggle button state via aria-pressed, matching MuteSoloButtons\' pattern', () => {
+    render(
+      <EffectToggles
+        {...baseProps}
+        filterActive={true}
+        distortionActive={false}
+        delayActive={true}
+        reverbActive={false}
+      />,
+    );
+
+    expect(screen.getByTitle('Filter settings').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByTitle('Waveshape settings').getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByTitle('Delay settings').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByTitle('Reverb settings').getAttribute('aria-pressed')).toBe('false');
+  });
 });

@@ -37,6 +37,7 @@ export const TransportToggles = ({
         className={`loop-toggle toggle--loop${loopOn ? ' loop-on' : ''}`}
         title={loopTitle}
         onClick={onLoopClick}
+        aria-pressed={loopOn}
       >
         <span className="loop-label">L</span>
       </button>
@@ -47,6 +48,7 @@ export const TransportToggles = ({
         className={`loop-toggle toggle--fade-in${fadeInOn ? ' loop-on' : ''}`}
         title={fadeInTitle}
         onClick={onFadeInClick}
+        aria-pressed={fadeInOn}
       >
         <span className="loop-label">I</span>
       </button>
@@ -57,6 +59,7 @@ export const TransportToggles = ({
         className={`loop-toggle toggle--fade-out${fadeOutOn ? ' loop-on' : ''}`}
         title={fadeOutTitle}
         onClick={onFadeOutClick}
+        aria-pressed={fadeOutOn}
       >
         <span className="loop-label">O</span>
       </button>
@@ -67,6 +70,7 @@ export const TransportToggles = ({
         className={`loop-toggle toggle--seek-fade${seekFadeOn ? ' loop-on' : ''}`}
         title={seekFadeTitle}
         onClick={onSeekFadeClick}
+        aria-pressed={seekFadeOn}
       >
         <span className="loop-label">S</span>
       </button>

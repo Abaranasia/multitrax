@@ -1,4 +1,4 @@
-import type { MouseEvent as ReactMouseEvent } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react';
 import { TrackEntry } from '../../context/audioContextInstance';
 import { formatDb } from '../../utils/formatDb';
 import { useChannelStrip } from './useChannelStrip';
@@ -32,14 +32,21 @@ interface ChannelStripProps {
   track: TrackEntry;
   isDragging: boolean;
   onDragHandleMouseDown: (id: string, e: ReactMouseEvent) => void;
+  onDragHandleKeyDown: (id: string, e: ReactKeyboardEvent) => void;
 }
 
-export const ChannelStrip = ({ track, isDragging, onDragHandleMouseDown }: ChannelStripProps) => {
+export const ChannelStrip = ({
+  track,
+  isDragging,
+  onDragHandleMouseDown,
+  onDragHandleKeyDown,
+}: ChannelStripProps) => {
   const { state } = track;
   const {
     engine,
     fmt,
     onProgressClick,
+    onProgressKeyDown,
     progress,
     play,
     pause,
@@ -81,8 +88,12 @@ export const ChannelStrip = ({ track, isDragging, onDragHandleMouseDown }: Chann
       <div className="mixer-strip-header">
         <span
           className="mixer-strip-grip"
-          title="Drag to reorder"
+          title="Drag to reorder (or focus and use ←/→)"
+          role="button"
+          tabIndex={0}
+          aria-label={`Reorder ${state.title}`}
           onMouseDown={(e) => onDragHandleMouseDown(track.state.id, e)}
+          onKeyDown={(e) => onDragHandleKeyDown(track.state.id, e)}
         >
           ⣿
         </span>
@@ -96,6 +107,7 @@ export const ChannelStrip = ({ track, isDragging, onDragHandleMouseDown }: Chann
         progress={progress}
         title={state.title}
         onProgressClick={onProgressClick}
+        onProgressKeyDown={onProgressKeyDown}
       />
 
       <EffectToggles {...effectToggles} />

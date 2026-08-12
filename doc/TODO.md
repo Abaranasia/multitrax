@@ -576,15 +576,46 @@ concrete reachable-failure scenario for every item are in
   stash` round-trip). Full suite 41 files / 340 tests passing, `tsc`/`eslint`
   clean.
 
-- [ ] **Accessibility** (`doc/audit-round01.md` § 3).
-  - [ ] Effect dialogs have no keyboard (Escape) dismissal or
-    `role="dialog"`.
-  - [ ] Settings-field labels aren't programmatically associated with their
-    controls.
-  - [ ] Mixer channel-strip reordering is mouse-only.
-  - [ ] Waveform seek is mouse-only.
-  - [ ] Toggle buttons inconsistently expose `aria-pressed`.
-  - [ ] Dropdown-menu toggles lack `aria-expanded`/`aria-haspopup`.
+- [x] **Accessibility** (`doc/audit-round01.md` § 3).
+  - [x] Effect dialogs have no keyboard (Escape) dismissal or
+    `role="dialog"`. Fixed once, in `EffectDialog.tsx` (the shared shell
+    behind all 5 effect dialogs): added `role="dialog"`/`aria-modal="true"`/
+    `aria-label={title}` on the panel, and a `keydown` listener that calls
+    `onCancel` on Escape — safe to attach unconditionally since the
+    component only exists in the tree while its dialog is open.
+  - [x] Settings-field labels aren't programmatically associated with their
+    controls. Fixed in `SettingsField.tsx`: the bare `<span>` is now a
+    `<label>` paired via `htmlFor`/`id`, with the id generated per instance
+    via `useId()` (not derived from `effect`/`label`) so two tracks with the
+    same effect dialog open at once never collide on one DOM id.
+  - [x] Mixer channel-strip reordering is mouse-only. Fixed: `useMixerReorder`
+    gained `onGripKeyDown`, moving the focused strip one slot on
+    ArrowLeft/ArrowRight (clamped at both ends); the grip in `ChannelStrip.tsx`
+    is now `role="button" tabIndex={0}` with a matching `aria-label` and a
+    focus-visible outline (`MixerView.css`).
+  - [x] Waveform seek is mouse-only. Fixed: `WaveformCanvas`'s shell is now
+    `role="slider"` with `tabIndex={0}` and `aria-valuemin/max/now`; both
+    `useTrackPlayer` and `useChannelStrip` gained an `onProgressKeyDown` that
+    seeks ±5s on ArrowLeft/ArrowRight and to 0/duration on Home/End, plus a
+    focus-visible outline (`TrackPlayer.css`, shared by both views).
+  - [x] Toggle buttons inconsistently expose `aria-pressed`. Fixed: added
+    `aria-pressed` to all 4 `EffectToggles` buttons and all 4 toggleable
+    `TransportToggles` buttons (not the fade-settings gear, which opens a
+    dialog rather than toggling), matching `MuteSoloButtons`' existing
+    pattern.
+  - [x] Dropdown-menu toggles lack `aria-expanded`/`aria-haspopup`. Fixed:
+    added both attributes to the `SessionMenu` and `ViewMenu` toggle buttons,
+    `aria-expanded` bound to `isOpen`.
+
+  All 6 fixes verified with new/extended tests (`EffectDialog`, `SettingsField`,
+  `EffectToggles`, `TransportControls`, `SessionMenu`, `ViewMenu`,
+  `WaveformCanvas`, `useMixerReorder`, `ChannelStrip`, `TrackPlayer` test
+  files) that fail against the pre-fix source and pass after (confirmed via a
+  single `git stash` round-trip across all 13 changed source files at once).
+  Full suite 41 files / 359 tests passing, `tsc`/`eslint` clean. Deeper
+  dialog focus-trapping (moving focus in on open, returning it on close)
+  wasn't part of what the audit flagged and was left out to keep this change
+  scoped to the 6 stated findings.
 
 - [ ] **Consistency / maintainability** (`doc/audit-round01.md` § 4).
   - [ ] `PanDial` reintroduces the inline-style anti-pattern the "remove

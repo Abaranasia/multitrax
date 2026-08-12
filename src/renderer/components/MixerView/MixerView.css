@@ -68,6 +68,14 @@
   font-size: 12px;
   line-height: 1;
   user-select: none;
+  border-radius: 4px;
+}
+
+/* Keyboard-focus ring for the grip's `role="button"` — it has no native
+   focus styling of its own since it isn't a real <button>. */
+.mixer-strip-grip:focus-visible {
+  outline: 2px solid #2dd4bf;
+  outline-offset: 2px;
 }
 
 .mixer-strip.is-dragging {

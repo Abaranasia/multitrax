@@ -133,4 +133,27 @@ describe('TransportControls', () => {
     fireEvent.click(screen.getByTitle('Configure fade durations'));
     expect(onOpenFadeSettings).toHaveBeenCalledTimes(1);
   });
+
+  it('exposes loop/fade-in/fade-out/seek-fade toggle state via aria-pressed', () => {
+    render(
+      <TransportControls
+        {...baseProps}
+        loopOn={true}
+        fadeInOn={false}
+        fadeOutOn={true}
+        seekFadeOn={false}
+      />,
+    );
+
+    expect(screen.getByTitle('Enable loop').getAttribute('aria-pressed')).toBe('true');
+    expect(
+      screen.getByTitle('Enable 5s fade in on play').getAttribute('aria-pressed'),
+    ).toBe('false');
+    expect(
+      screen.getByTitle('Enable 5s fade out on stop/pause').getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(
+      screen.getByTitle('Enable 2s fade out/in on seek').getAttribute('aria-pressed'),
+    ).toBe('false');
+  });
 });

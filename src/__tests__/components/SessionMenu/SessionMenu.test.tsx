@@ -199,4 +199,40 @@ describe('SessionMenu', () => {
     expect(screen.getByText<HTMLButtonElement>('Load Session').disabled).toBe(true);
     expect(screen.getByText<HTMLButtonElement>('Save Session').disabled).toBe(false);
   });
+
+  it('exposes aria-haspopup always, and aria-expanded reflecting isOpen', () => {
+    const { rerender } = render(
+      <SessionMenu
+        isOpen={false}
+        onToggle={vi.fn()}
+        onClose={vi.fn()}
+        onLoadSession={vi.fn()}
+        onSaveSession={vi.fn()}
+        onSaveNewSession={vi.fn()}
+        onNewSession={vi.fn()}
+        saveDisabled={false}
+        loadDisabled={false}
+      />,
+    );
+
+    const toggle = screen.getByTitle('Session menu');
+    expect(toggle.getAttribute('aria-haspopup')).toBe('true');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+
+    rerender(
+      <SessionMenu
+        isOpen
+        onToggle={vi.fn()}
+        onClose={vi.fn()}
+        onLoadSession={vi.fn()}
+        onSaveSession={vi.fn()}
+        onSaveNewSession={vi.fn()}
+        onNewSession={vi.fn()}
+        saveDisabled={false}
+        loadDisabled={false}
+      />,
+    );
+
+    expect(screen.getByTitle('Session menu').getAttribute('aria-expanded')).toBe('true');
+  });
 });

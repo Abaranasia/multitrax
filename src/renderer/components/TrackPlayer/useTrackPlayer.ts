@@ -1,4 +1,9 @@
-import { useCallback, useRef, type MouseEvent as ReactMouseEvent } from 'react';
+import {
+  useCallback,
+  useRef,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
 import { TrackState } from '../../domain/TrackState';
 import { useAudio } from '../../context/useAudio';
 import { useTrackContextMenu } from './components/contextMenu/useTrackContextMenu';
@@ -9,6 +14,11 @@ interface UseTrackPlayerProps {
   x: number;
   y: number;
 }
+
+// How far each arrow-key press seeks, in seconds — a keyboard equivalent of
+// the click-to-seek waveform, since the waveform shell has no visible ticks
+// to align a keypress to.
+const SEEK_STEP_S = 5;
 
 /** POSIX (`/music/song.wav`) or Windows (`C:\music\song.wav`) absolute path. */
 const isAbsolutePath = (filePath: string) =>
@@ -101,6 +111,21 @@ export const useTrackPlayer = ({ state, filePath, x, y }: UseTrackPlayerProps) =
     [seek, state.duration, state.id],
   );
 
+  const onProgressKeyDown = useCallback(
+    (e: ReactKeyboardEvent<HTMLDivElement>) => {
+      let next: number | null = null;
+      if (e.key === 'ArrowLeft') next = Math.max(0, state.currentTime - SEEK_STEP_S);
+      else if (e.key === 'ArrowRight') next = Math.min(state.duration, state.currentTime + SEEK_STEP_S);
+      else if (e.key === 'Home') next = 0;
+      else if (e.key === 'End') next = state.duration;
+
+      if (next === null) return;
+      e.preventDefault();
+      seek(state.id, next);
+    },
+    [seek, state.id, state.currentTime, state.duration],
+  );
+
   const progress = state.duration > 0 ? (state.currentTime / state.duration) * 100 : 0;
 
   return {
@@ -108,6 +133,7 @@ export const useTrackPlayer = ({ state, filePath, x, y }: UseTrackPlayerProps) =
     fmt,
     onMouseDown,
     onProgressClick,
+    onProgressKeyDown,
     progress,
     play,
     pause,

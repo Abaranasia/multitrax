@@ -142,31 +142,34 @@ fix write-up and test evidence for each.
 
 ## 3. Accessibility
 
-- [ ] **Effect dialogs have no keyboard dismissal.**
+All 6 fixed — see `doc/TODO.md`'s "Audit round 01 › Accessibility" entry for
+the fix write-up and test evidence for each.
+
+- [x] **Effect dialogs have no keyboard dismissal.**
   `src/renderer/components/TrackPlayer/components/EffectDialog.tsx:11-34`.
   No `role="dialog"`/`aria-modal`, no Escape-to-close, across all 5 dialogs
   (Delay/Filter/Distortion/Reverb/Fade) — inconsistent with
   `useTrackContextMenu.ts`, `useSessionMenu.ts`, and `useViewMenu.ts`, which
   all correctly close on Escape.
 
-- [ ] **Settings-field labels aren't programmatically associated with their
+- [x] **Settings-field labels aren't programmatically associated with their
   controls.** `src/renderer/components/TrackPlayer/components/SettingsField.tsx:34-47,56-67`.
   Bare `<span>` labels with no `htmlFor`/`aria-labelledby` — every slider and
   select in all 5 effect dialogs is announced to screen readers with no
   name.
 
-- [ ] **Mixer channel-strip reordering is mouse-only.**
+- [x] **Mixer channel-strip reordering is mouse-only.**
   `src/renderer/components/MixerView/ChannelStrip.tsx:82-88`,
   `src/renderer/components/MixerView/useMixerReorder.ts:32-77`. The drag
   handle has no `role`/`tabIndex`/keydown handler, and the reorder logic is
   wired entirely through `window` mouse events — no keyboard path exists.
 
-- [ ] **Waveform seek is mouse-only.**
+- [x] **Waveform seek is mouse-only.**
   `src/renderer/components/TrackPlayer/components/waveform/WaveformCanvas.tsx:17`.
   A plain `<div onClick>`, not a button — unreachable by keyboard in both
   TrackPlayer and Mixer view.
 
-- [ ] **Toggle buttons inconsistently expose `aria-pressed`.**
+- [x] **Toggle buttons inconsistently expose `aria-pressed`.**
   `MuteSoloButtons.tsx` sets it (and is tested for it); the structurally
   identical toggles in
   `src/renderer/components/TrackPlayer/components/effectToggles/EffectToggles.tsx:25-58`
@@ -174,7 +177,7 @@ fix write-up and test evidence for each.
   `src/renderer/components/TrackPlayer/components/transportControls/TransportToggles.tsx:35-72`
   don't — 8 toggle buttons rely on color/class alone.
 
-- [ ] **Dropdown-menu toggles lack `aria-expanded`/`aria-haspopup`.**
+- [x] **Dropdown-menu toggles lack `aria-expanded`/`aria-haspopup`.**
   `src/renderer/components/SessionMenu/SessionMenu.tsx:48`,
   `src/renderer/components/ViewMenu/ViewMenu.tsx:36`.
 

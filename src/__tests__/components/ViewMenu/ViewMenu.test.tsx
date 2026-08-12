@@ -135,4 +135,36 @@ describe('ViewMenu', () => {
 
     expect(screen.getByText<HTMLButtonElement>('⊞ Organize Tracks').disabled).toBe(true);
   });
+
+  it('exposes aria-haspopup always, and aria-expanded reflecting isOpen', () => {
+    const { rerender } = render(
+      <ViewMenu
+        isOpen={false}
+        onToggle={vi.fn()}
+        onClose={vi.fn()}
+        viewMode="canvas"
+        onOrganizeTracks={vi.fn()}
+        organizeDisabled={false}
+        onSwitchView={vi.fn()}
+      />,
+    );
+
+    const toggle = screen.getByTitle('View menu');
+    expect(toggle.getAttribute('aria-haspopup')).toBe('true');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+
+    rerender(
+      <ViewMenu
+        isOpen
+        onToggle={vi.fn()}
+        onClose={vi.fn()}
+        viewMode="canvas"
+        onOrganizeTracks={vi.fn()}
+        organizeDisabled={false}
+        onSwitchView={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTitle('View menu').getAttribute('aria-expanded')).toBe('true');
+  });
 });

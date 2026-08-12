@@ -33,7 +33,13 @@ export const ViewMenu = ({
 
   return (
     <div className="view-menu">
-      <button className="view-menu-toggle" onClick={onToggle} title="View menu">
+      <button
+        className="view-menu-toggle"
+        onClick={onToggle}
+        title="View menu"
+        aria-haspopup="true"
+        aria-expanded={isOpen}
+      >
         ▤ View
       </button>
 

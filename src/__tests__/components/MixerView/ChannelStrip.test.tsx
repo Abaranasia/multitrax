@@ -43,12 +43,31 @@ describe('ChannelStrip', () => {
           track={makeTrack({ ...baseState, waveform: [0.2, 0.6, 0.4] })}
           isDragging={false}
           onDragHandleMouseDown={vi.fn()}
+          onDragHandleKeyDown={vi.fn()}
         />
       </AudioProvider>,
     );
 
     expect(screen.getByText('Sample Track')).toBeTruthy();
     expect(document.querySelector('.waveform-canvas')).toBeTruthy();
+  });
+
+  it('seeks via arrow keys on the waveform shell', async () => {
+    render(
+      <AudioProvider>
+        <ChannelStrip
+          track={makeTrack({ ...baseState, currentTime: 5 })}
+          isDragging={false}
+          onDragHandleMouseDown={vi.fn()}
+          onDragHandleKeyDown={vi.fn()}
+        />
+      </AudioProvider>,
+    );
+
+    const shell = document.querySelector('.waveform-shell') as HTMLDivElement;
+    fireEvent.keyDown(shell, { key: 'ArrowRight' });
+
+    await waitFor(() => expect(mockAudioEngine.seek).toHaveBeenCalledWith('track-1', 10));
   });
 
   it('renders a VU meter next to the fader', () => {
@@ -58,6 +77,7 @@ describe('ChannelStrip', () => {
           track={makeTrack({ ...baseState })}
           isDragging={false}
           onDragHandleMouseDown={vi.fn()}
+          onDragHandleKeyDown={vi.fn()}
         />
       </AudioProvider>,
     );
@@ -72,6 +92,7 @@ describe('ChannelStrip', () => {
           track={makeTrack({ ...baseState, volume: 1 })}
           isDragging={false}
           onDragHandleMouseDown={vi.fn()}
+          onDragHandleKeyDown={vi.fn()}
         />
       </AudioProvider>,
     );
@@ -84,6 +105,7 @@ describe('ChannelStrip', () => {
           track={makeTrack({ ...baseState, volume: 0 })}
           isDragging={false}
           onDragHandleMouseDown={vi.fn()}
+          onDragHandleKeyDown={vi.fn()}
         />
       </AudioProvider>,
     );
@@ -98,6 +120,7 @@ describe('ChannelStrip', () => {
           track={makeTrack({ ...baseState })}
           isDragging={false}
           onDragHandleMouseDown={vi.fn()}
+          onDragHandleKeyDown={vi.fn()}
         />
       </AudioProvider>,
     );
@@ -113,6 +136,7 @@ describe('ChannelStrip', () => {
           track={makeTrack({ ...baseState })}
           isDragging={false}
           onDragHandleMouseDown={vi.fn()}
+          onDragHandleKeyDown={vi.fn()}
         />
       </AudioProvider>,
     );
@@ -131,6 +155,7 @@ describe('ChannelStrip', () => {
           track={makeTrack({ ...baseState })}
           isDragging={false}
           onDragHandleMouseDown={vi.fn()}
+          onDragHandleKeyDown={vi.fn()}
         />
       </AudioProvider>,
     );
@@ -155,7 +180,14 @@ describe('ChannelStrip', () => {
       ]);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-    return <ChannelStrip track={track} isDragging={false} onDragHandleMouseDown={vi.fn()} />;
+    return (
+      <ChannelStrip
+        track={track}
+        isDragging={false}
+        onDragHandleMouseDown={vi.fn()}
+        onDragHandleKeyDown={vi.fn()}
+      />
+    );
   };
 
   it('clicking Mute calls engine.setVolume(id, 0) for the same track', async () => {
@@ -199,6 +231,7 @@ describe('ChannelStrip', () => {
           track={makeTrack({ ...baseState })}
           isDragging={false}
           onDragHandleMouseDown={vi.fn()}
+          onDragHandleKeyDown={vi.fn()}
         />
       </AudioProvider>,
     );
@@ -215,14 +248,38 @@ describe('ChannelStrip', () => {
           track={makeTrack({ ...baseState })}
           isDragging={false}
           onDragHandleMouseDown={onDragHandleMouseDown}
+          onDragHandleKeyDown={vi.fn()}
         />
       </AudioProvider>,
     );
 
-    fireEvent.mouseDown(screen.getByTitle('Drag to reorder'));
+    fireEvent.mouseDown(screen.getByTitle('Drag to reorder (or focus and use ←/→)'));
 
     expect(onDragHandleMouseDown).toHaveBeenCalledTimes(1);
     expect(onDragHandleMouseDown.mock.calls[0][0]).toBe('track-1');
+  });
+
+  it('exposes the grip as a focusable button and calls onDragHandleKeyDown with the track id on keydown', () => {
+    const onDragHandleKeyDown = vi.fn();
+    render(
+      <AudioProvider>
+        <ChannelStrip
+          track={makeTrack({ ...baseState })}
+          isDragging={false}
+          onDragHandleMouseDown={vi.fn()}
+          onDragHandleKeyDown={onDragHandleKeyDown}
+        />
+      </AudioProvider>,
+    );
+
+    const grip = screen.getByTitle('Drag to reorder (or focus and use ←/→)');
+    expect(grip.getAttribute('role')).toBe('button');
+    expect(grip.tabIndex).toBe(0);
+
+    fireEvent.keyDown(grip, { key: 'ArrowRight' });
+
+    expect(onDragHandleKeyDown).toHaveBeenCalledTimes(1);
+    expect(onDragHandleKeyDown.mock.calls[0][0]).toBe('track-1');
   });
 
   it('adds the is-dragging class to the strip root when isDragging is true', () => {
@@ -232,6 +289,7 @@ describe('ChannelStrip', () => {
           track={makeTrack({ ...baseState })}
           isDragging={true}
           onDragHandleMouseDown={vi.fn()}
+          onDragHandleKeyDown={vi.fn()}
         />
       </AudioProvider>,
     );
@@ -246,6 +304,7 @@ describe('ChannelStrip', () => {
           track={makeTrack({ ...baseState })}
           isDragging={false}
           onDragHandleMouseDown={vi.fn()}
+          onDragHandleKeyDown={vi.fn()}
         />
       </AudioProvider>,
     );

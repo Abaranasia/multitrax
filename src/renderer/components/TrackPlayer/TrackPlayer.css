@@ -116,6 +116,13 @@
   cursor: pointer;
 }
 
+/* Keyboard-focus ring for the shell's `role="slider"` — it has no native
+   focus styling of its own since it isn't a form control. */
+.waveform-shell:focus-visible {
+  outline: 2px solid #2dd4bf;
+  outline-offset: 2px;
+}
+
 .waveform-canvas {
   position: absolute;
   inset: 0;

@@ -1200,4 +1200,56 @@ describe('AudioContext', () => {
     expect(screen.getByTestId('master-balance').textContent).toBe('-0.5');
     expect(mockAudioEngine.setMasterBalance).toHaveBeenCalledWith(-0.5);
   });
+
+  it('tickCurrentTimes keeps the same tracks reference when nothing changed, and produces a new one when currentTime/playing changes', async () => {
+    // `beforeEach`'s `vi.restoreAllMocks()` wipes the return values
+    // `createMockAudioEngine` configured at module load (it isn't a spy, so
+    // there's no "original" to restore to) — set the baseline explicitly
+    // rather than relying on those surviving into this test.
+    mockAudioEngine.getCurrentTime.mockReturnValue(0);
+    mockAudioEngine.isPlaying.mockReturnValue(false);
+
+    let latestTracks: unknown[] = [];
+    const Consumer = () => {
+      const audio = useAudio();
+      latestTracks = audio.tracks;
+      return (
+        <>
+          <button
+            onClick={() =>
+              void audio.addTracks([{ path: '/a.mp3', name: 'A', buffer: new ArrayBuffer(4) }])
+            }
+          >
+            Add
+          </button>
+          <button onClick={() => audio.tickCurrentTimes()}>Tick</button>
+          <div data-testid="track-count">{audio.tracks.length}</div>
+        </>
+      );
+    };
+
+    render(
+      <AudioProvider>
+        <Consumer />
+      </AudioProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Add'));
+    await waitFor(() => expect(screen.getByTestId('track-count').textContent).toBe('1'));
+    const tracksBeforeTick = latestTracks;
+
+    // getCurrentTime/isPlaying report the same values already reflected in
+    // state (0 / not playing) — this tick must be a genuine no-op: the exact
+    // same array (and track object) reference comes back, not just an
+    // equal-looking new one.
+    fireEvent.click(screen.getByText('Tick'));
+    expect(latestTracks).toBe(tracksBeforeTick);
+    expect(latestTracks[0]).toBe(tracksBeforeTick[0]);
+
+    // Now the engine reports a different currentTime — this tick must
+    // produce a new array (and a new object for the changed track).
+    mockAudioEngine.getCurrentTime.mockReturnValueOnce(5);
+    fireEvent.click(screen.getByText('Tick'));
+    expect(latestTracks).not.toBe(tracksBeforeTick);
+  });
 });

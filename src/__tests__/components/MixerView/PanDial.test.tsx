@@ -21,20 +21,20 @@ describe('PanDial', () => {
   it('shows "Center" and no rotation when pan is 0', () => {
     render(<PanDial {...baseProps} />);
     expect(document.querySelector('.mixer-pan-label')?.textContent).toBe('Center');
-    expect(getDial().style.transform).toBe('rotate(0deg)');
+    expect(getDial().style.getPropertyValue('--dial-rotation')).toBe('0deg');
   });
 
   it('shows an L label and rotates left when pan is negative', () => {
     render(<PanDial {...baseProps} pan={-0.6} title="Pan: 60% Left" />);
     expect(document.querySelector('.mixer-pan-label')?.textContent).toBe('L60');
-    expect(getDial().style.transform).toBe('rotate(-54deg)');
+    expect(getDial().style.getPropertyValue('--dial-rotation')).toBe('-54deg');
     expect(getInput().title).toBe('Pan: 60% Left');
   });
 
   it('shows an R label and rotates right when pan is positive', () => {
     render(<PanDial {...baseProps} pan={0.6} title="Pan: 60% Right" />);
     expect(document.querySelector('.mixer-pan-label')?.textContent).toBe('R60');
-    expect(getDial().style.transform).toBe('rotate(54deg)');
+    expect(getDial().style.getPropertyValue('--dial-rotation')).toBe('54deg');
   });
 
   it('fires onChange when the underlying input value changes', () => {

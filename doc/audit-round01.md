@@ -183,7 +183,10 @@ the fix write-up and test evidence for each.
 
 ## 4. Consistency / Maintainability
 
-- [ ] **`PanDial` reintroduces the inline-style pattern the "remove inline
+All 6 fixed — see `doc/TODO.md`'s "Audit round 01 › Consistency /
+maintainability" entry for the fix write-up and test evidence for each.
+
+- [x] **`PanDial` reintroduces the inline-style pattern the "remove inline
   styles" TODO already fixed elsewhere.**
   `src/renderer/components/MixerView/PanDial.tsx:23-26`. Sets a raw
   `style={{ transform: ... }}` directly; every other analogous control
@@ -192,7 +195,7 @@ the fix write-up and test evidence for each.
   `PanDial` was added later (`653ef2b`) and drifted back to the pattern the
   TODO fixed.
 
-- [ ] **Stale invariant comment in `AudioContext.tsx`.**
+- [x] **Stale invariant comment in `AudioContext.tsx`.**
   `src/renderer/context/AudioContext.tsx:15` vs. `:529`. The comment above
   `effectiveVolume` claims it's "the single place" gain reaches
   `engine.setVolume`; `loadSession` calls `engine.setVolume(id,
@@ -200,12 +203,12 @@ the fix write-up and test evidence for each.
   tracks are hardcoded unmuted/unsoloed) but a latent trap if session
   persistence of mute/solo is ever added.
 
-- [ ] **Stale comment on `tickCurrentTimes`.**
+- [x] **Stale comment on `tickCurrentTimes`.**
   `src/renderer/context/AudioContext.tsx:609`. Says "called by animation
   frame"; it's actually driven by a 100ms `setInterval`
   (`useCanvas.ts:76`).
 
-- [ ] **`tickCurrentTimes` + unmemoized context value cause a full-tree
+- [x] **`tickCurrentTimes` + unmemoized context value cause a full-tree
   re-render 10×/sec.** `src/renderer/context/AudioContext.tsx:610,624`.
   Every tick rebuilds every track object unconditionally, and the
   `Ctx.Provider` value is a fresh object literal every render with no
@@ -213,12 +216,12 @@ the fix write-up and test evidence for each.
   10 times a second for the app's entire lifetime, whether or not anything
   changed.
 
-- [ ] **Stale class-doc comment on `AudioEngine`.**
+- [x] **Stale class-doc comment on `AudioEngine`.**
   `src/renderer/audio/AudioEngine.ts:24-31`. Describes only the reverb +
   gain node per track; predates the filter/distortion/delay inserts and the
   panner/analyser nodes.
 
-- [ ] **Unnamed magic numbers in `computeWaveformPeaks`.**
+- [x] **Unnamed magic numbers in `computeWaveformPeaks`.**
   `src/renderer/audio/waveform.ts:9,19`. `48` (bucket count) and `1.4`
   (visual peak-boost factor) are bare literals; every other numeric
   constant under `audio/` is named and exported.

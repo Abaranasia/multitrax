@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, CSSProperties } from 'react';
 
 interface PanDialProps {
   pan: number;
@@ -22,7 +22,7 @@ export const PanDial = ({ pan, title, onChange, onDoubleClick }: PanDialProps) =
       <div className="mixer-pan-dial-wrap">
         <div
           className="mixer-pan-dial"
-          style={{ transform: `rotate(${pan * DIAL_SWEEP_DEG}deg)` }}
+          style={{ '--dial-rotation': `${pan * DIAL_SWEEP_DEG}deg` } as CSSProperties}
         />
         <input
           type="range"

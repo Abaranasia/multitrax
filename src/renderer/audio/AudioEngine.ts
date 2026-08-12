@@ -25,9 +25,11 @@ import {
  * AudioEngine — infrastructure layer wrapping the Web Audio API.
  *
  * Each track owns:
- *   - AudioBufferSourceNode  (re-created on every play, as per Web Audio spec)
- *   - GainNode               (persists, controls volume)
- *   - Reverb subgraph        (persists, insert effect — see ReverbNodes below)
+ *   - AudioBufferSourceNode          (re-created on every play, as per Web Audio spec)
+ *   - GainNode                       (persists, controls volume)
+ *   - Filter/Distortion/Delay/Reverb subgraphs (persist, chained insert effects —
+ *                                     see FilterNodes/DistortionNodes/DelayNodes/ReverbNodes below)
+ *   - StereoPannerNode + AnalyserNode (persist, pan control and level metering)
  */
 
 const FADE_DURATION = 5; // seconds (play/stop fades)

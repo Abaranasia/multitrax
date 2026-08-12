@@ -38,3 +38,11 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Package (electron-builder config smoke test)
+        # Unpacked (--dir) rather than a full AppImage/installer: this only
+        # needs to prove package.json's "build" config (appId, files glob,
+        # output dir, per-platform target sections) still resolves and
+        # packages cleanly, not to produce a distributable artifact — that
+        # belongs in a dedicated release workflow.
+        run: pnpm exec electron-builder --dir --publish=never

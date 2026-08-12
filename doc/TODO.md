@@ -541,17 +541,40 @@ concrete reachable-failure scenario for every item are in
   +3), `AudioContext.test.tsx` (+2), `Canvas.test.tsx` (+3). Full suite
   41 files / 334 tests passing, `tsc`/`eslint` clean.
 
-- [ ] **Security** (`doc/audit-round01.md` § 2) — Electron/IPC
+- [x] **Security** (`doc/audit-round01.md` § 2) — Electron/IPC
   defense-in-depth gaps, no confirmed exploit path through today's UI.
-  - [ ] `fs:writeSessionFile` has no path validation, unlike sibling read
-    handlers.
-  - [ ] `fs:readSessionAudioFile` allows reading any absolute path that's a
-    file, with no audio-type check.
-  - [ ] `dev:main` runs with `--no-sandbox` unconditionally in dev.
-  - [ ] No navigation hardening (`will-navigate`/`setWindowOpenHandler`) on
-    the main `BrowserWindow`.
-  - [ ] No test pins the security-relevant `webPreferences`
-    (`contextIsolation`/`nodeIntegration`/`preload`).
+  - [x] `fs:writeSessionFile` has no path validation, unlike sibling read
+    handlers. Fixed with the same `path.isAbsolute` gate the read handlers
+    already use.
+  - [x] `fs:readSessionAudioFile` allows reading any absolute path that's a
+    file, with no audio-type check. Fixed with an extension allowlist
+    (`AUDIO_FILE_EXTENSIONS`, shared with `dialog:openAudioFiles`'s native
+    file-picker filter so the two agree on what counts as "an audio file";
+    adds `webm` to both, which the renderer's own drag-and-drop check
+    already accepted but the dialog filter and this gate didn't).
+  - [x] `dev:main` runs with `--no-sandbox` unconditionally in dev. Fixed by
+    moving the Electron launch into `scripts/dev-main.mjs`, which only
+    applies the Linux/Wayland env vars and `--no-sandbox`/Ozone flags when
+    `process.platform === 'linux'` — macOS/Windows dev now runs sandboxed.
+    Side effect: the `cross-env` devDependency became unused (it existed
+    solely for this one script) and was removed; `pnpm install` re-run to
+    sync the lockfile.
+  - [x] No navigation hardening (`will-navigate`/`setWindowOpenHandler`) on
+    the main `BrowserWindow`. Fixed: `setWindowOpenHandler` now denies every
+    window-open/popup request (the app never needs child windows), and a
+    `will-navigate` listener blocks top-level navigation to anything other
+    than the app's own origin (the dev-server origin in dev, `file://` in
+    production).
+  - [x] No test pins the security-relevant `webPreferences`
+    (`contextIsolation`/`nodeIntegration`/`preload`). Fixed: added tests
+    asserting those three `BrowserWindow` options, plus new tests for the
+    `setWindowOpenHandler` deny-all behavior and the `will-navigate` block/
+    allow behavior.
+
+  All 5 fixes verified with new regression tests in `main.test.ts` (+6) that
+  fail against the pre-fix `main.ts` and pass after (confirmed via `git
+  stash` round-trip). Full suite 41 files / 340 tests passing, `tsc`/`eslint`
+  clean.
 
 - [ ] **Accessibility** (`doc/audit-round01.md` § 3).
   - [ ] Effect dialogs have no keyboard (Escape) dismissal or

@@ -96,7 +96,10 @@ evidence for each.
 
 ## 2. Security (Electron / IPC)
 
-- [ ] **`fs:writeSessionFile` has no path validation, unlike its sibling
+All 5 fixed — see `doc/TODO.md`'s "Audit round 01 › Security" entry for the
+fix write-up and test evidence for each.
+
+- [x] **`fs:writeSessionFile` has no path validation, unlike its sibling
   read handlers.** `src/main/main.ts:130-141`. `fs:readSessionAudioFile` and
   `shell:revealFile` both explicitly gate on `path.isAbsolute` +
   `fs.statSync(...).isFile()`; this handler calls `fs.writeFileSync`
@@ -107,7 +110,7 @@ evidence for each.
   gap if the renderer is ever compromised (malicious dependency, dev-mode
   MITM of the `localhost:5173` dev server).
 
-- [ ] **`fs:readSessionAudioFile` allows reading any absolute path that's a
+- [x] **`fs:readSessionAudioFile` allows reading any absolute path that's a
   file.** `src/main/main.ts:170-188`. No audio-type/extension check (unlike
   `dialog:openAudioFiles`, which UI-filters by extension). A hand-edited or
   untrusted session file that points `filePath` at an arbitrary readable
@@ -116,14 +119,14 @@ evidence for each.
   content — no confirmed exfiltration path currently, but the read
   primitive itself is real.
 
-- [ ] **`dev:main` runs Electron with `--no-sandbox` unconditionally, plus
+- [x] **`dev:main` runs Electron with `--no-sandbox` unconditionally, plus
   Linux/Wayland-only flags on every OS.** `package.json:9`. Exists to work
   around a GNOME 46 GTK/gsettings issue (`scripts/patch-gsettings.mjs`
   addresses the same root cause), but disables a major Electron defense
   layer for all local development regardless of host OS, and doesn't appear
   in `build`/`start`/`pack` (production unaffected).
 
-- [ ] **No navigation hardening on the main `BrowserWindow`.**
+- [x] **No navigation hardening on the main `BrowserWindow`.**
   `src/main/main.ts:15-25`. No `will-navigate`, `will-redirect`, or
   `setWindowOpenHandler` listener. `nodeIntegration: false` +
   `contextIsolation: true` limit blast radius, but nothing stops a
@@ -131,7 +134,7 @@ evidence for each.
   arbitrary remote URL — a standard item on Electron's own security
   checklist, currently absent.
 
-- [ ] **No regression test asserts the security-relevant `webPreferences`.**
+- [x] **No regression test asserts the security-relevant `webPreferences`.**
   `src/__tests__/main/main.test.ts`. `contextIsolation`, `nodeIntegration`,
   and the `preload` path are the entire security boundary of the app, but no
   test pins their values — a future refactor could silently weaken them with

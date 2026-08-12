@@ -18,9 +18,13 @@ vi.mock('electron', () => {
   };
 
   const BrowserWindow = vi.fn().mockImplementation(() => ({
-    loadFile: vi.fn(),
-    loadURL: vi.fn(),
-    webContents: { openDevTools: vi.fn() },
+    loadFile: vi.fn(() => Promise.resolve()),
+    loadURL: vi.fn(() => Promise.resolve()),
+    webContents: {
+      openDevTools: vi.fn(),
+      setWindowOpenHandler: vi.fn(),
+      on: vi.fn(),
+    },
   }));
 
   const dialog = {
@@ -297,6 +301,20 @@ describe('main IPC handlers', () => {
     expect(res).toEqual({ saved: true });
   });
 
+  it('fs:writeSessionFile refuses a relative path without touching the filesystem', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const fs = await import('fs');
+    (fs as any).writeFileSync.mockClear();
+
+    const res = await handlers['fs:writeSessionFile'](null, 'session.json', '{}');
+
+    expect((fs as any).writeFileSync).not.toHaveBeenCalled();
+    expect(res).toEqual({ saved: false, error: 'Path is not absolute' });
+  });
+
   it('fs:writeSessionFile returns { saved: false, error } when writeFileSync throws', async () => {
     const electron = await import('electron');
     await import('../../main/main');
@@ -430,5 +448,88 @@ describe('main IPC handlers', () => {
     const res = await handlers['fs:readSessionAudioFile'](null, '/music/song.wav');
 
     expect(res).toEqual({ ok: false, error: 'EACCES: permission denied' });
+  });
+
+  it('fs:readSessionAudioFile refuses a file with a non-audio extension without reading it', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const fs = await import('fs');
+    (fs as any).statSync.mockReturnValueOnce({ isFile: () => true });
+    (fs as any).readFileSync.mockClear();
+
+    const res = await handlers['fs:readSessionAudioFile'](null, '/etc/passwd');
+
+    expect((fs as any).readFileSync).not.toHaveBeenCalled();
+    expect(res).toEqual({ ok: false, error: 'Path is not a recognized audio file' });
+  });
+
+  it('fs:readSessionAudioFile accepts every extension the native file-open dialog offers', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const handlers = (electron as any).__ipcHandlers as Record<string, Function>;
+    const fs = await import('fs');
+    const data = Buffer.from([1]);
+
+    for (const ext of ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus', 'webm', 'WAV']) {
+      (fs as any).statSync.mockReturnValueOnce({ isFile: () => true });
+      (fs as any).readFileSync.mockReturnValueOnce(data);
+
+      const res = await handlers['fs:readSessionAudioFile'](null, `/music/song.${ext}`);
+      expect(res).toEqual({ ok: true, buffer: data.buffer });
+    }
+  });
+
+  it('creates the main window with contextIsolation on, nodeIntegration off, and the preload script wired', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const BrowserWindow = (electron as any).BrowserWindow as ReturnType<typeof vi.fn>;
+    expect(BrowserWindow).toHaveBeenCalledTimes(1);
+
+    const options = BrowserWindow.mock.calls[0][0] as {
+      webPreferences: { contextIsolation: boolean; nodeIntegration: boolean; preload: string };
+    };
+    expect(options.webPreferences.contextIsolation).toBe(true);
+    expect(options.webPreferences.nodeIntegration).toBe(false);
+    expect(options.webPreferences.preload).toContain('preload.js');
+  });
+
+  it('denies every window-open/popup request from the renderer', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const BrowserWindow = (electron as any).BrowserWindow as ReturnType<typeof vi.fn>;
+    const win = (BrowserWindow.mock.results[0] as { value: any }).value;
+    const setWindowOpenHandler = win.webContents.setWindowOpenHandler as ReturnType<typeof vi.fn>;
+
+    expect(setWindowOpenHandler).toHaveBeenCalledTimes(1);
+    const handler = setWindowOpenHandler.mock.calls[0][0] as () => { action: string };
+    expect(handler()).toEqual({ action: 'deny' });
+  });
+
+  it('blocks top-level navigation away from the packaged app, but allows navigating to its own renderer file', async () => {
+    const electron = await import('electron');
+    await import('../../main/main');
+
+    const BrowserWindow = (electron as any).BrowserWindow as ReturnType<typeof vi.fn>;
+    const win = (BrowserWindow.mock.results[0] as { value: any }).value;
+    const on = win.webContents.on as ReturnType<typeof vi.fn>;
+    const willNavigateCall = on.mock.calls.find((call: any[]) => call[0] === 'will-navigate');
+    expect(willNavigateCall).toBeTruthy();
+    const willNavigateHandler = willNavigateCall![1] as (
+      event: { preventDefault: () => void },
+      url: string,
+    ) => void;
+
+    const blocked = { preventDefault: vi.fn() };
+    willNavigateHandler(blocked, 'https://evil.example.com/');
+    expect(blocked.preventDefault).toHaveBeenCalledTimes(1);
+
+    const allowed = { preventDefault: vi.fn() };
+    willNavigateHandler(allowed, 'file:///app/dist/renderer/index.html');
+    expect(allowed.preventDefault).not.toHaveBeenCalled();
   });
 });
